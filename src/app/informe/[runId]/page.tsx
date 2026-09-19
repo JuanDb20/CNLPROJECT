@@ -6,6 +6,8 @@ import { PrintButton } from "@/components/print-button";
 import { requireUser } from "@/server/auth";
 import { ownedRun } from "@/server/http";
 
+import "../print.css";
+
 export const dynamic = "force-dynamic";
 
 export default async function InformePage({ params }: { params: Promise<{ runId: string }> }) {

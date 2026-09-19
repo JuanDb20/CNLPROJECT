@@ -1,0 +1,47 @@
+/* Impresión del informe: identidad del documento en papel.
+   Se importa desde las pantallas que renderizan el informe (vista del abogado y
+   portal del cliente). globals.css conserva sus reglas generales de impresión. */
+
+.informe-folio {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 18mm 16mm;
+    /* Los motores de paginado (Prince, WeasyPrint) numeran aquí; Chrome no
+       soporta cajas de margen, así que el folio repetido va en .informe-folio. */
+    @bottom-right {
+      content: "Página " counter(page);
+    }
+  }
+
+  p,
+  li,
+  dd {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Mata la hoja huérfana con una sola palabra del pie (A6). */
+  footer,
+  .no-break {
+    break-inside: avoid;
+  }
+
+  /* Folio repetido en cada hoja: acredita que el documento está completo. */
+  .informe-folio {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: block;
+    border-top: 1px solid #d4d4d4;
+    background: #fff;
+    padding-top: 2px;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    color: #525252;
+  }
+}
