@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import type { Severity } from "@/domain/types";
 
@@ -73,6 +73,7 @@ const TAG_TONES = {
   brand: "bg-brand-soft text-brand border-brand-soft",
   required: "bg-warning-soft text-warning border-warning-soft",
   safe: "bg-safe-soft text-safe border-safe-soft",
+  critical: "bg-critical-soft text-critical border-critical-soft",
 } as const;
 
 export function Tag({
@@ -156,7 +157,7 @@ export const buttonClass = (variant: ButtonVariant = "primary", full = false) =>
 /* ----------------------------- Formularios ---------------------------- */
 
 export const fieldClass =
-  "mt-1 w-full rounded-[7px] border border-line bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink";
+  "mt-1 w-full rounded-[7px] border border-ink-faint bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 /* -------------------------------- Texto ------------------------------- */
 
@@ -172,11 +173,12 @@ export function Panel({
   children,
   tone = "neutral",
   className,
+  ...rest
 }: {
   children: ReactNode;
   tone?: "neutral" | "critical" | "safe" | "brand";
   className?: string;
-}) {
+} & ComponentPropsWithoutRef<"div">) {
   const tones = {
     neutral: "border-line bg-surface-muted",
     critical: "border-critical-soft bg-critical-soft",
@@ -184,7 +186,7 @@ export function Panel({
     brand: "border-brand-soft bg-brand-soft",
   } as const;
   return (
-    <div className={cx("rounded-[8px] border p-3.5", tones[tone], className)}>
+    <div className={cx("rounded-[8px] border p-3.5", tones[tone], className)} {...rest}>
       {children}
     </div>
   );

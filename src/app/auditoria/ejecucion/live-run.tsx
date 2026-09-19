@@ -12,6 +12,7 @@ import {
   buttonClass,
   cx,
 } from "@/components/ui";
+import { executionLabel } from "@/domain/format";
 import type { AuditRun, LogEntry, LogLevel, ModuleStatus } from "@/domain/types";
 
 /**
@@ -47,7 +48,7 @@ const LOG_STYLE: Record<LogLevel, string> = {
 const LOG_TAG: Record<LogLevel, string> = {
   system: "SYSTEM",
   info: "INFO",
-  payload: "PAYLOAD",
+  payload: "SCAN",
   vuln: "VULN",
   ok: "OK",
 };
@@ -136,7 +137,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         {/* Módulos */}
         <Card>
-          <CardHeader title="Módulos en progreso" />
+          <CardHeader title={done ? "Análisis completado" : "Módulos en progreso"} />
           <ul className="space-y-2.5">
             {run.modules.map((module) => (
               <li
@@ -167,9 +168,6 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
                       <ProgressBar value={module.progress} tone="brand" />
                     </div>
                     <p className="mt-1.5 font-mono text-[10px] text-ink-faint">
-                      {module.payloadsSent > 0
-                        ? `${module.payloadsSent} payloads · `
-                        : ""}
                       {module.findingsFound} hallazgos · {module.progress}%
                     </p>
                   </>
@@ -182,17 +180,14 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
         {/* Consola */}
         <Card>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[11px] text-ink-soft">console.vigia_agent_logs</p>
+            <p className="font-mono text-[11px] text-ink-soft">Traza del análisis</p>
             <Tag tone="brand">{logs.length} eventos</Tag>
           </div>
 
           <div className="overflow-hidden rounded-[8px] border border-line-strong bg-canvas">
             <div className="flex items-center gap-1.5 border-b border-line bg-surface-muted px-3 py-2">
-              <span aria-hidden className="size-[7px] rounded-full bg-line-strong" />
-              <span aria-hidden className="size-[7px] rounded-full bg-line-strong" />
-              <span aria-hidden className="size-[7px] rounded-full bg-line-strong" />
-              <span className="ml-1.5 truncate font-mono text-[10px] text-ink-faint">
-                {run.scope.sandboxId} —{" "}
+              <span className="truncate font-mono text-[10px] text-ink-faint">
+                {executionLabel(run.scope.sandboxId)} —{" "}
                 <span className={connected ? "text-safe" : "text-ink-faint"}>
                   {connected ? "sesión activa" : done ? "sesión cerrada" : "reconectando"}
                 </span>
@@ -256,7 +251,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
             </a>
           ) : (
             <p className="mt-4 text-[11px] leading-relaxed text-ink-muted">
-              El análisis corre en {run.scope.sandboxId}, sobre el código cargado. Cada
+              El análisis corre en {executionLabel(run.scope.sandboxId)}, sobre el código cargado. Cada
               entrada de la traza queda sellada para el informe forense.
             </p>
           )}

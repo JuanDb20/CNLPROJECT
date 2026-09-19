@@ -35,7 +35,7 @@ export default async function Home() {
       </div>
 
       <h1
-        className="stagger mt-5 text-[13.5px] font-normal leading-relaxed text-ink-muted"
+        className="stagger mt-5 text-[30px] font-semibold leading-tight text-ink"
         style={{ "--d": ".18s" } as CSSProperties}
       >
         Auditoría adversarial de IA, con evidencia que un abogado puede firmar.
@@ -51,17 +51,17 @@ export default async function Home() {
         className="stagger mt-7 flex flex-wrap justify-center gap-3"
         style={{ "--d": ".32s" } as CSSProperties}
       >
-        <Link href="/ingresar" className={buttonClass("brand")}>
+        <form action={ingresarPrueba}>
+          <button type="submit" className={buttonClass("brand")}>
+            Probar sin registrarse
+          </button>
+        </form>
+        <Link href="/ingresar" className={buttonClass("secondary")}>
           Ingresar
         </Link>
         <Link href="/registro" className={buttonClass("secondary")}>
           Crear cuenta
         </Link>
-        <form action={ingresarPrueba}>
-          <button type="submit" className={buttonClass("secondary")}>
-            Probar sin registrarse
-          </button>
-        </form>
       </div>
 
       <p
@@ -69,7 +69,9 @@ export default async function Home() {
         style={{ "--d": ".5s" } as CSSProperties}
       >
         VIGÍA propone el análisis jurídico; cada hallazgo lo firma un abogado ·{" "}
-        <a href="/privacidad" className="underline">Política de tratamiento de datos</a>
+        <a href="/privacidad" className="underline">Política de tratamiento</a> ·{" "}
+        <a href="/verificar" className="underline">Verificar un informe</a> ·{" "}
+        <a href="/transparencia" className="underline">Transparencia</a>
       </p>
     </div>
   );

@@ -10,7 +10,9 @@ const COLOR: Record<"bajo" | "medio" | "alto", string> = {
 
 /** Arco que llega al puntaje con easing en vez de aparecer de golpe. */
 export function RiskGauge({ score, level }: { score: number; level: "bajo" | "medio" | "alto" }) {
-  const [shown, setShown] = useState(0);
+  /* Arranca en el puntaje real: sin JS (o antes de hidratar) la página dice 25,
+     no 0, que sería el peor puntaje posible. La animación lo baja y lo sube. */
+  const [shown, setShown] = useState(score);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {

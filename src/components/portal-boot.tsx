@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react";
  * `document.body` recibe el estado final de una vez, sin animar.
  */
 const MESSAGES = ["inicializando entorno seguro…", "verificando autorización…", "acceso concedido"];
+const SEEN_KEY = "vigia_portal_seen";
 
 export function PortalBoot() {
   const ref = useRef<HTMLDivElement>(null);
@@ -20,10 +21,14 @@ export function PortalBoot() {
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
+    const seen = sessionStorage.getItem(SEEN_KEY);
+    if (reduce || seen) {
+      ref.current?.setAttribute("data-hide", "true");
       document.body.dataset.portalDone = "true";
+      sessionStorage.setItem(SEEN_KEY, "1");
       return;
     }
+    sessionStorage.setItem(SEEN_KEY, "1");
 
     let i = 0;
     let cancelled = false;

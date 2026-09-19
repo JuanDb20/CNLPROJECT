@@ -17,24 +17,23 @@ function afterNextPaint(): Promise<void> {
 }
 
 export const STEPS = [
-  { n: 1, label: "Onboarding & Alcance", href: "/auditoria/alcance" },
+  { n: 1, label: "Alcance y autorización", href: "/auditoria/alcance" },
   { n: 2, label: "Configuración", href: "/auditoria/configuracion" },
-  { n: 3, label: "Ejecución en Vivo", href: "/auditoria/ejecucion" },
-  { n: 4, label: "Mapa de Riesgos", href: "/auditoria/riesgos" },
-  { n: 5, label: "Detalle de Hallazgos", href: "/auditoria/hallazgos" },
-  { n: 6, label: "Remediación & Firma", href: "/auditoria/remediacion" },
+  { n: 3, label: "Ejecución", href: "/auditoria/ejecucion" },
+  { n: 4, label: "Mapa de riesgos", href: "/auditoria/riesgos" },
+  { n: 5, label: "Detalle de hallazgos", href: "/auditoria/hallazgos" },
+  { n: 6, label: "Remediación y firma", href: "/auditoria/remediacion" },
 ] as const;
 
-function StepIcon({ n, active }: { n: number; active: boolean }) {
-  const color = active ? "currentColor" : "currentColor";
-  const common = { fill: "none", stroke: color, strokeWidth: 1.4 };
+function StepIcon({ n }: { n: number }) {
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.4 };
   return (
     <svg viewBox="0 0 16 16" aria-hidden className="size-[15px] shrink-0">
       {n === 1 && (
         <>
           <circle cx="8" cy="8" r="6" {...common} />
           <path d="M8 5v3.5" {...common} strokeLinecap="round" />
-          <circle cx="8" cy="11" r="0.7" fill={color} stroke="none" />
+          <circle cx="8" cy="11" r="0.7" fill="currentColor" stroke="none" />
         </>
       )}
       {n === 2 && (
@@ -45,7 +44,7 @@ function StepIcon({ n, active }: { n: number; active: boolean }) {
       {n === 3 && (
         <>
           <circle cx="8" cy="8" r="6" {...common} />
-          <circle cx="8" cy="8" r="2" fill={color} stroke="none" />
+          <circle cx="8" cy="8" r="2" fill="currentColor" stroke="none" />
         </>
       )}
       {n === 4 && (
@@ -98,33 +97,41 @@ export function StepNav() {
 
   return (
     <nav aria-label="Fases de la auditoría" className="lg:px-0">
-      <ul className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-        {STEPS.map((step) => {
-          const active = isActive(step.href);
-          return (
-            <li key={step.href} className="shrink-0 lg:shrink">
-              <Link
-                href={step.href}
-                onClick={go(step.href)}
-                aria-current={active ? "step" : undefined}
-                style={active ? { viewTransitionName: "vigia-step-pill" } : undefined}
-                className={cx(
-                  "flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition-colors",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                  active
-                    ? "bg-ink font-medium text-canvas"
-                    : "text-ink-soft hover:bg-surface-muted",
-                )}
-              >
-                <StepIcon n={step.n} active={active} />
-                <span className="whitespace-nowrap">
-                  {step.n}. {step.label}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="relative">
+        <ul className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+          {STEPS.map((step) => {
+            const active = isActive(step.href);
+            return (
+              <li key={step.href} className="shrink-0 lg:shrink">
+                <Link
+                  href={step.href}
+                  onClick={go(step.href)}
+                  aria-current={active ? "step" : undefined}
+                  style={active ? { viewTransitionName: "vigia-step-pill" } : undefined}
+                  className={cx(
+                    "flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition-colors",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                    active
+                      ? "bg-ink font-medium text-canvas"
+                      : "text-ink-soft hover:bg-surface-muted",
+                  )}
+                >
+                  <StepIcon n={step.n} />
+                  <span className="whitespace-nowrap">
+                    {step.n}. {step.label}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        {/* Indicio de que hay más pasos al desplazar, solo en el carrusel móvil. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 lg:hidden"
+          style={{ background: "linear-gradient(to left, var(--color-surface), transparent)" }}
+        />
+      </div>
     </nav>
   );
 }

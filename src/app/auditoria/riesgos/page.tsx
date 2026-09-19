@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { RiskGauge } from "@/components/risk-gauge";
 import { Card, cx } from "@/components/ui";
 import { FRAMEWORKS, getRules } from "@/domain/compliance";
@@ -5,7 +7,7 @@ import { WEIGHT, isResolved, scoreRun, sortFindings } from "@/domain/scoring";
 import type { FrameworkId } from "@/domain/types";
 import { requireAnalyzedRun } from "@/server/session";
 
-import { RiskList, type FilterOption, type RiskRow } from "./risk-list";
+import { RiskList, type FilterOption, type RiskRow, type RiskState } from "./risk-list";
 
 const fmt = (n: number) => n.toLocaleString("es-CO");
 
@@ -53,6 +55,12 @@ export default async function RiesgosPage() {
 
   const rows: RiskRow[] = sortFindings(run.findings).map((finding) => {
     const rules = getRules(finding.ruleIds);
+    const state: RiskState =
+      finding.remediation.status === "firmado"
+        ? "firmado"
+        : finding.remediation.status === "retesteado"
+          ? "retesteado"
+          : "abierto";
     return {
       id: finding.id,
       code: finding.code,
@@ -60,6 +68,7 @@ export default async function RiesgosPage() {
       title: finding.title,
       summary: finding.summary,
       signed: isResolved(finding),
+      state,
       frameworks: [...new Set(rules.map((r) => r.framework))],
       chips: rules.slice(0, 3).map((rule) => ({
         kind: KIND_LABEL[FRAMEWORKS[rule.framework].kind],
@@ -95,7 +104,7 @@ export default async function RiesgosPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card className="p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <RiskGauge score={score.score} level={score.level} />
@@ -110,7 +119,8 @@ export default async function RiesgosPage() {
           </p>
           {score.resolved > 0 ? (
             <p className="mt-0.5 text-[11px] text-safe">
-              {score.resolved} hallazgo(s) firmado(s)
+              {score.resolved} hallazgo{score.resolved === 1 ? "" : "s"} firmado
+              {score.resolved === 1 ? "" : "s"}
             </p>
           ) : null}
         </Card>
@@ -135,15 +145,23 @@ export default async function RiesgosPage() {
         />
       </div>
 
-      <p className="text-[11.5px] leading-relaxed text-ink-muted">
-        Cómo se calcula: 100 menos {fmt(WEIGHT.critico)} por cada crítico,{" "}
-        {fmt(WEIGHT.advertencia)} por cada advertencia y {fmt(WEIGHT.informativo)} por
-        cada informativo sin firmar; sube solo cuando el abogado firma la remediación
-        tras un retesteo en verde. Es un índice para priorizar, no una estimación de la
-        multa: la SIC gradúa las sanciones con los criterios del art. 24 de la Ley 1581
-        (daño o peligro causado, beneficio económico, reincidencia, obstrucción,
-        renuencia y reconocimiento de la infracción).
-      </p>
+      <div className="space-y-1.5">
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          Cómo se calcula: 100 menos {fmt(WEIGHT.critico)} por cada crítico,{" "}
+          {fmt(WEIGHT.advertencia)} por cada advertencia y {fmt(WEIGHT.informativo)} por
+          cada informativo sin firmar; sube solo cuando el abogado firma la remediación
+          tras un retesteo en verde. Es un índice para priorizar, no una estimación de la
+          multa: la SIC gradúa las sanciones con los criterios del art. 24 de la Ley 1581
+          (daño o peligro causado, beneficio económico, reincidencia, obstrucción,
+          renuencia y reconocimiento de la infracción).
+        </p>
+        <Link
+          href="/auditoria/evaluacion-impacto"
+          className="inline-block text-[12px] text-brand hover:underline"
+        >
+          Borrador de evaluación de impacto →
+        </Link>
+      </div>
 
       <Card>
         <RiskList rows={rows} filters={filters} />

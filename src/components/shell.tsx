@@ -8,7 +8,7 @@ export type MarkState = "reposo" | "ejecutando" | "critico" | "seguro";
 
 const MARK_TITLE: Record<MarkState, string> = {
   reposo: "Sin ejecución activa",
-  ejecutando: "Pruebas corriendo en el sandbox",
+  ejecutando: "Pruebas corriendo en el entorno seguro",
   critico: "Hay un hallazgo crítico sin firmar",
   seguro: "Todos los hallazgos están firmados",
 };

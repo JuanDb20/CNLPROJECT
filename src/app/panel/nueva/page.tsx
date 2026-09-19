@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { crearAuditoria, crearAuditoriaEjemplo } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardHeader, Panel, buttonClass, fieldClass } from "@/components/ui";
 
 const SECTORS = [
@@ -19,12 +20,37 @@ const SECTORS = [
   "Otro",
 ];
 
+const FINTREX_SECTOR = SECTORS.find((s) => s.startsWith("Financiero y fintech")) ?? SECTORS[0];
+
 export default async function NuevaAuditoriaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    caso?: string;
+    cliente?: string;
+    nit?: string;
+    representante?: string;
+    sector?: string;
+    sistema?: string;
+    repositorio?: string;
+  }>;
 }) {
-  const { error } = await searchParams;
+  const sp = await searchParams;
+  const { error } = sp;
+  const isFintrex = sp.caso === "fintrex";
+  const defaults = {
+    cliente: sp.cliente ?? (isFintrex ? "Fintrex S.A.S." : ""),
+    nit: sp.nit ?? (isFintrex ? "902.999.990-6" : ""),
+    representante: sp.representante ?? (isFintrex ? "María Fernanda Ríos" : ""),
+    sector: sp.sector ?? (isFintrex ? FINTREX_SECTOR : ""),
+    sistema:
+      sp.sistema ??
+      (isFintrex
+        ? "Portal de clientes con vinculación digital (selfie y cédula) y asistente de chat"
+        : ""),
+    repositorio: sp.repositorio ?? "",
+  };
 
   return (
     <div className="mx-auto max-w-[720px] space-y-5">
@@ -58,11 +84,11 @@ export default async function NuevaAuditoriaPage({
       </Panel>
 
       {error ? (
-        <Panel tone="critical">
+        <Panel tone="critical" role="alert" tabIndex={-1} autoFocus className="outline-none">
           <p className="text-[12.5px] text-critical">
-            No se pudo abrir la auditoría. Revisa que el cliente, el NIT (con su dígito de verificación) y el representante
-            legal estén completos, y que el código sea un .zip de hasta 4 MB con archivos
-            de texto o un repositorio público de GitHub.
+            {error === "1"
+              ? "No se pudo abrir la auditoría. Revisa que el cliente, el NIT (con su dígito de verificación) y el representante legal estén completos, y que el código sea un .zip de hasta 4 MB con archivos de texto o un repositorio público de GitHub."
+              : error}
           </p>
         </Panel>
       ) : null}
@@ -76,23 +102,31 @@ export default async function NuevaAuditoriaPage({
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-[12px] text-ink-soft sm:col-span-2">
-              Razón social
-              <input name="cliente" required minLength={2} maxLength={200} className={fieldClass} />
+              Razón social<span className="text-critical"> *</span>
+              <input
+                name="cliente"
+                required
+                minLength={2}
+                maxLength={200}
+                defaultValue={defaults.cliente}
+                className={fieldClass}
+              />
             </label>
             <label className="block text-[12px] text-ink-soft">
-              NIT
+              NIT<span className="text-critical"> *</span>
               <input
                 name="nit"
                 required
                 minLength={5}
                 maxLength={30}
                 placeholder="902.999.990-6"
+                defaultValue={defaults.nit}
                 className={fieldClass}
               />
             </label>
             <label className="block text-[12px] text-ink-soft">
               Sector
-              <select name="sector" className={fieldClass} defaultValue="">
+              <select name="sector" className={fieldClass} defaultValue={defaults.sector}>
                 <option value="" disabled>
                   Selecciona
                 </option>
@@ -102,18 +136,20 @@ export default async function NuevaAuditoriaPage({
               </select>
             </label>
             <label className="block text-[12px] text-ink-soft sm:col-span-2">
-              Representante legal
+              Representante legal<span className="text-critical"> *</span>
               <input
                 name="representante"
                 required
                 minLength={3}
                 maxLength={200}
+                defaultValue={defaults.representante}
+                aria-describedby="f-representante-help"
                 className={fieldClass}
               />
-              <span className="mt-1 block text-[11px] text-ink-faint">
-                Firma la autorización de las pruebas en el paso de alcance.
-              </span>
             </label>
+            <span id="f-representante-help" className="-mt-2 block text-[11px] text-ink-faint sm:col-span-2">
+              Firma la autorización de las pruebas en el paso de alcance.
+            </span>
           </div>
         </Card>
 
@@ -131,46 +167,56 @@ export default async function NuevaAuditoriaPage({
                 rows={3}
                 maxLength={1000}
                 placeholder="Asistente de chat para clientes, vinculación digital con selfie y cédula…"
+                defaultValue={defaults.sistema}
                 className={fieldClass}
               />
             </label>
-            <label className="block text-[12px] text-ink-soft">
-              Código fuente (.zip, hasta 4 MB)
-              <input
-                name="codigo"
-                type="file"
-                accept=".zip,application/zip"
-                className="mt-1 block w-full rounded-[7px] border border-dashed border-line-strong bg-surface-muted px-3 py-3 text-[12.5px] text-ink-soft file:mr-3 file:rounded-[6px] file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-[12px] file:text-canvas"
-              />
-              <span className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
+            <div>
+              <label className="block text-[12px] text-ink-soft">
+                Código fuente (.zip, hasta 4 MB)
+                <input
+                  name="codigo"
+                  type="file"
+                  accept=".zip,application/zip"
+                  aria-describedby="f-codigo-help"
+                  className="mt-1 block w-full rounded-[7px] border border-dashed border-line-strong bg-surface-muted px-3 py-3 text-[12.5px] text-ink-soft file:mr-3 file:rounded-[6px] file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-[12px] file:text-canvas"
+                />
+              </label>
+              <span id="f-codigo-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
                 Comprime la carpeta del proyecto. VIGÍA ignora node_modules, .git y los
                 archivos binarios, y calcula el SHA-256 del .zip para fijar la versión
                 auditada.
               </span>
-            </label>
-            <label className="block text-[12px] text-ink-soft">
-              O repositorio público de GitHub
-              <input
-                name="repositorio"
-                type="url"
-                placeholder="https://github.com/organizacion/proyecto"
-                pattern="https://github\.com/[\w.\-]+/[\w.\-]+/?"
-                className={fieldClass}
-              />
-              <span className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
+            </div>
+            <div>
+              <label className="block text-[12px] text-ink-soft">
+                O repositorio público de GitHub
+                <input
+                  name="repositorio"
+                  type="url"
+                  placeholder="https://github.com/organizacion/proyecto"
+                  pattern="https://github\.com/[\w.\-]+/[\w.\-]+/?"
+                  defaultValue={defaults.repositorio}
+                  aria-describedby="f-repositorio-help"
+                  className={fieldClass}
+                />
+              </label>
+              <span id="f-repositorio-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
                 VIGÍA descarga la rama principal. Si llenas los dos, se usa el repositorio.
               </span>
-            </label>
+            </div>
           </div>
         </Card>
+
+        <p className="text-[11px] text-ink-faint">
+          <span className="text-critical">*</span> Campo obligatorio
+        </p>
 
         <div className="flex flex-wrap justify-end gap-3">
           <Link href="/panel" className={buttonClass("secondary")}>
             Cancelar
           </Link>
-          <button type="submit" className={buttonClass("brand")}>
-            Crear auditoría
-          </button>
+          <SubmitButton>Crear auditoría</SubmitButton>
         </div>
       </form>
     </div>

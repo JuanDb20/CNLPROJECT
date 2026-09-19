@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
-import { alternarClausula, confirmarAlcance } from "@/app/actions";
+import { aceptarTodasLasClausulas, alternarClausula, confirmarAlcance } from "@/app/actions";
+import { CopyButton } from "@/components/copy-button";
 import {
   Card,
   CardHeader,
@@ -45,7 +46,7 @@ export default async function AlcancePage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">
-          Autorización del alcance y del repositorio
+          Autorización del alcance y del código
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
           Establece los límites operativos y la legalidad del equipo rojo
@@ -149,6 +150,14 @@ export default async function AlcancePage() {
             description="Valida las credenciales legales y los límites de responsabilidad operativa para el equipo rojo técnico."
           />
 
+          {clientAcceptance === null && pendingRequired > 0 ? (
+            <form action={aceptarTodasLasClausulas} className="mb-3">
+              <button type="submit" className={buttonClass("secondary", true)}>
+                Aceptar las 4 cláusulas
+              </button>
+            </form>
+          ) : null}
+
           <ul className="space-y-2.5">
             {clauses.map((clause) => (
               <li key={clause.id}>
@@ -170,7 +179,7 @@ export default async function AlcancePage() {
                         "mt-px grid size-[17px] shrink-0 place-items-center rounded-[4px] border transition-colors",
                         clause.accepted
                           ? "border-safe bg-safe text-canvas"
-                          : "border-line-strong bg-surface text-transparent group-hover:border-ink-faint",
+                          : "border-ink-faint bg-surface text-transparent group-hover:border-ink",
                       )}
                     >
                       <CheckIcon className="size-3" />
@@ -203,7 +212,15 @@ export default async function AlcancePage() {
           ) : (
             <div className="mt-5 rounded-[8px] border border-line bg-surface-muted p-3.5">
               <Label>Enlace para el representante legal</Label>
-              <input readOnly value={clientLink} aria-label="Enlace del portal del cliente" className={cx(fieldClass, "font-mono text-[11px]")} />
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={clientLink}
+                  aria-label="Enlace del portal del cliente"
+                  className={cx(fieldClass, "flex-1 font-mono text-[11px]")}
+                />
+                <CopyButton value={clientLink} className="mt-1" />
+              </div>
               <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
                 Envíaselo a {client.legalRepresentative}: allí lee el acuerdo, lo acepta con su
                 nombre y cédula, y luego consulta el informe. Si el acuerdo se firmó por fuera de
@@ -238,7 +255,8 @@ export default async function AlcancePage() {
             </form>
             {!canContinue ? (
               <p className="mt-2 text-[11px] text-ink-muted">
-                Faltan {pendingRequired} cláusula(s) obligatoria(s).
+                Falta{pendingRequired === 1 ? "" : "n"} {pendingRequired} cláusula
+                {pendingRequired === 1 ? "" : "s"} obligatoria{pendingRequired === 1 ? "" : "s"}.
               </p>
             ) : null}
           </div>

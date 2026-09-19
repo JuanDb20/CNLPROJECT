@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { abrirPullRequest } from "@/app/actions";
+import { LearningCard } from "@/components/learning-card";
 import {
   Card,
   CardHeader,
@@ -15,17 +16,26 @@ import {
 } from "@/components/ui";
 import { RedactedLine } from "@/components/redacted";
 import { FRAMEWORKS, getRules } from "@/domain/compliance";
+import { sortFindings } from "@/domain/scoring";
+import type { PatchKind } from "@/domain/types";
+import { learningMode } from "@/server/http";
 import { requireAnalyzedRun } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 
-const PATCH_LABEL = {
-  codigo: "Diferencia de código",
-  prompt: "Diferencia de prompt (system prompt patch)",
-  config: "Diferencia de configuración",
-  interfaz: "Diferencia de interfaz",
-  dependencia: "Diferencia de dependencias",
-} as const;
+const PATCH_LABEL: Record<PatchKind, string> = {
+  codigo: "Cambio en el código",
+  prompt: "Cambio en el prompt del sistema",
+  config: "Cambio en la configuración",
+  interfaz: "Cambio en la interfaz",
+  dependencia: "Cambio en las dependencias",
+};
+
+/** Ruta y línea en su propio renglón monoespaciado, separadas del código. */
+function splitEvidenceLine(line: string): { location: string; code: string } {
+  const match = line.match(/^(\S+:\d+)\s+(.*)$/);
+  return match ? { location: match[1], code: match[2] } : { location: "", code: line };
+}
 
 export default async function HallazgoPage({
   params,
@@ -41,6 +51,13 @@ export default async function HallazgoPage({
   const { remediation } = finding;
   const prOpen = remediation.prNumber !== null;
 
+  const ordered = sortFindings(run.findings);
+  const idx = ordered.findIndex((f) => f.id === finding.id);
+  const prev = idx > 0 ? ordered[idx - 1] : null;
+  const next = idx < ordered.length - 1 ? ordered[idx + 1] : null;
+
+  const aprendizaje = await learningMode();
+
   return (
     <div className="space-y-5">
       <div>
@@ -53,12 +70,31 @@ export default async function HallazgoPage({
         <p className="mt-1.5 text-[13px] text-ink-muted">{finding.summary}</p>
       </div>
 
-      <Link
-        href="/auditoria/riesgos"
-        className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-muted transition-colors hover:text-ink"
-      >
-        <span aria-hidden>←</span> Volver al mapa de riesgos
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href="/auditoria/riesgos"
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-muted transition-colors hover:text-ink"
+        >
+          <span aria-hidden>←</span> Volver al mapa de riesgos
+        </Link>
+        <nav aria-label="Navegación entre hallazgos" className="flex items-center gap-2 text-[12.5px]">
+          {prev ? (
+            <Link href={`/auditoria/hallazgos/${prev.id}`} className="text-ink-muted transition-colors hover:text-ink">
+              ← Anterior
+            </Link>
+          ) : (
+            <span className="text-ink-faint">← Anterior</span>
+          )}
+          <span aria-hidden className="text-ink-faint">·</span>
+          {next ? (
+            <Link href={`/auditoria/hallazgos/${next.id}`} className="text-ink-muted transition-colors hover:text-ink">
+              Siguiente →
+            </Link>
+          ) : (
+            <span className="text-ink-faint">Siguiente →</span>
+          )}
+        </nav>
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         {/* Evidencia */}
@@ -97,20 +133,21 @@ export default async function HallazgoPage({
           </div>
 
           <div className="mt-4">
-            <Label>Prueba</Label>
-            <Panel tone="neutral">
-              <Mono>&quot;{finding.evidence.probe}&quot;</Mono>
-            </Panel>
-          </div>
-
-          <div className="mt-4">
             <Label>Evidencia en el código</Label>
-            <Panel tone="critical" className="space-y-1.5 overflow-x-auto">
-              {finding.evidence.response.split("\n").map((line, i) => (
-                <Mono key={`${i}-${line}`} tone="critical" className="whitespace-pre">
-                  {line.includes("[ENMASCARADO]") ? <RedactedLine text={line} /> : line}
-                </Mono>
-              ))}
+            <Panel tone="critical" className="space-y-3 overflow-x-auto">
+              {finding.evidence.response.split("\n").map((line, i) => {
+                const { location, code } = splitEvidenceLine(line);
+                return (
+                  <div key={`${i}-${line}`}>
+                    {location ? (
+                      <p className="font-mono text-[10.5px] text-ink-faint">{location}</p>
+                    ) : null}
+                    <Mono tone="critical" className="mt-0.5 whitespace-pre">
+                      {code.includes("[ENMASCARADO]") ? <RedactedLine text={code} /> : code}
+                    </Mono>
+                  </div>
+                );
+              })}
             </Panel>
             <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
               Clic o Enter sobre un dato enmascarado lo ubica. VIGÍA nunca envía el dato real
@@ -135,8 +172,8 @@ export default async function HallazgoPage({
             <span className="font-mono text-[11.5px] text-ink-soft">
               {remediation.patch.target}
             </span>{" "}
-            para aplicar la mitigación identificada, sin tocar el código central de tu
-            aplicación de vibecoding.
+            para aplicar la mitigación identificada, sin tocar el código central de la
+            aplicación del cliente, hecha con vibecoding (código generado con IA).
           </p>
 
           <div className="mt-4">
@@ -216,6 +253,22 @@ export default async function HallazgoPage({
           </div>
         </Card>
       </div>
+
+      <Card>
+        <Label>Escenario (ilustrativo, no ejecutado en esta versión)</Label>
+        <Panel tone="neutral">
+          <Mono>&quot;{finding.evidence.probe}&quot;</Mono>
+        </Panel>
+      </Card>
+
+      {aprendizaje ? (
+        <LearningCard
+          hecho={finding.evidence.locations.join(" · ")}
+          norma={rules.map((r) => r.label).join(" · ") || "Sin norma asociada"}
+          riesgo={finding.summary}
+          remedio={remediation.patch.expectedImpact}
+        />
+      ) : null}
     </div>
   );
 }

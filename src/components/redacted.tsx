@@ -29,7 +29,7 @@ function RedactedToken() {
     <span
       role="button"
       tabIndex={0}
-      aria-label={open ? "Ocultar la marca de nuevo" : "Ubicar qué campo era este"}
+      aria-label={open ? "[ENMASCARADO], ocultar la marca de nuevo" : "[ENMASCARADO], ubicar qué campo era este"}
       className={open ? "redact open" : "redact"}
       onClick={() => setOpen((v) => !v)}
       onKeyDown={(e) => {

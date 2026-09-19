@@ -251,11 +251,22 @@ body[data-portal-done="true"] .stagger {
   display: grid;
   grid-template-columns: 8ch 9ch 1fr;
   gap: 8px;
-  white-space: nowrap;
 }
 .term-line .term-t {
   color: var(--color-ink-faint);
   font-variant-numeric: tabular-nums;
+}
+.term-line .term-msg {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .term-line {
+    grid-template-columns: 7ch 1fr;
+  }
+  .term-line .term-t {
+    display: none;
+  }
 }
 .term-line[data-level="vuln"] {
   box-shadow: inset 2px 0 0 var(--color-critical);

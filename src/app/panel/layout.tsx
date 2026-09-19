@@ -15,7 +15,7 @@ export default async function PanelLayout({ children }: { children: ReactNode })
         </Link>
         <AccountChip user={user} />
       </header>
-      <main className="pb-12">{children}</main>
+      <main id="contenido" className="pb-12">{children}</main>
     </div>
   );
 }
