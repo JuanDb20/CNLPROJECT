@@ -1,4 +1,4 @@
-import type { AuditRun, Finding, RunScore, Severity } from "./types";
+import type { AuditRun, Finding, ModuleId, RunScore, Severity } from "./types";
 
 /**
  * Puntuación de cumplimiento.
@@ -7,6 +7,12 @@ import type { AuditRun, Finding, RunScore, Severity } from "./types";
  * la misma cifra, y firmar una remediación la sube de forma trazable. El peso
  * de cada severidad está aquí y no disperso en la UI para que el manual técnico
  * pueda citar la fórmula exacta.
+ *
+ * Los pesos 9 / 3,5 / 0,5 son una convención interna de priorización, calibrada
+ * para que tres hallazgos críticos abiertos lleven la auditoría al nivel de
+ * riesgo alto. No derivan de ninguna norma: la Ley 1581 no fija puntajes y las
+ * sanciones las gradúa la SIC con los criterios del art. 24. La cifra ordena el
+ * trabajo de remediación; no mide cumplimiento.
  */
 
 export const WEIGHT: Record<Severity, number> = {
@@ -35,6 +41,34 @@ export function scoreRun(run: AuditRun): RunScore {
     informative: count("informativo"),
     resolved: run.findings.filter(isResolved).length,
   };
+}
+
+/**
+ * Clasificación de riesgos: probabilidad x impacto.
+ *
+ * Derivada, no almacenada. La severidad ya codifica el impacto y el módulo ya
+ * codifica qué tan al alcance de cualquiera está la falla. Sirve para la rejilla
+ * 3x3 del informe, que es la "identificación y clasificación de riesgos" que la
+ * Circular Externa 002 de 2024 de la SIC (num. III) considera elemento esencial
+ * del principio de responsabilidad demostrada.
+ */
+export const IMPACT: Record<Severity, 1 | 2 | 3> = {
+  informativo: 1,
+  advertencia: 2,
+  critico: 3,
+};
+
+/** Probabilidad de explotación: explotable sin autenticación y desde internet = alta. */
+export const LIKELIHOOD: Record<ModuleId, 1 | 2 | 3> = {
+  "static-scan": 3, // el patrón está en el código desplegado
+  "prompt-injection": 3, // basta escribir en el chat
+  "consent-ux": 2,
+  transparency: 2,
+};
+
+/** Celda [probabilidad, impacto] del hallazgo en la rejilla 3x3. */
+export function riskCell(f: Finding): readonly [number, number] {
+  return [LIKELIHOOD[f.module], IMPACT[f.severity]] as const;
 }
 
 export const SEVERITY_LABEL: Record<Severity, string> = {
