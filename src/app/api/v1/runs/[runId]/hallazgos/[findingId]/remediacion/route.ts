@@ -1,12 +1,11 @@
 import { openPullRequest, retest, signFinding } from "@/engine/remediation";
+import { currentUser } from "@/server/auth";
 import { fail, guard, ownedRun, present } from "@/server/http";
 
 type Params = { params: Promise<{ runId: string; findingId: string }> };
 
 interface Body {
   action: "abrir-pr" | "retestear" | "firmar";
-  abogado?: string;
-  tarjetaProfesional?: string;
   salvedad?: string;
 }
 
@@ -16,7 +15,8 @@ interface Body {
  */
 export async function POST(request: Request, { params }: Params) {
   const { runId, findingId } = await params;
-  if (!(await ownedRun(runId))) return fail("Auditoría no encontrada", 404);
+  const [run, user] = await Promise.all([ownedRun(runId), currentUser()]);
+  if (!run || !user) return fail("Auditoría no encontrada", 404);
   const body = (await request.json().catch(() => ({}))) as Body;
 
   switch (body.action) {
@@ -30,10 +30,8 @@ export async function POST(request: Request, { params }: Params) {
           await signFinding(
             runId,
             findingId,
-            {
-              name: String(body.abogado ?? ""),
-              professionalCard: String(body.tarjetaProfesional ?? ""),
-            },
+            // Firma el abogado autenticado; la API no acepta un firmante distinto.
+            { name: user.name, professionalCard: user.professionalCard },
             body.salvedad == null ? null : String(body.salvedad),
           ),
         ),

@@ -25,8 +25,13 @@ Para el build de producción:
 npm run build && npm start
 ```
 
-No hay variables de entorno ni base de datos: el MVP corre con estado en memoria
-(cuentas, sesiones y auditorías se pierden al reiniciar el servidor).
+Sin variables de entorno, el estado vive en memoria (se pierde al reiniciar). En
+Vercel cada ruta puede correr en una instancia distinta, así que el despliegue
+necesita Redis: con la integración **Upstash for Redis** del Marketplace de Vercel
+(plan gratuito) conectada al proyecto, VIGÍA toma `KV_REST_API_URL` y
+`KV_REST_API_TOKEN` (o `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`) y
+comparte el estado entre instancias. Si esas variables están en `.env.local`, el
+entorno local usa la misma base.
 
 ## Uso
 
@@ -34,11 +39,14 @@ No hay variables de entorno ni base de datos: el MVP corre con estado en memoria
    o **Ingresar**. Cada abogado solo ve sus propias auditorías.
 2. **Mis auditorías → Nueva auditoría.** Registrar al cliente (razón social, NIT,
    representante legal, sector) y cargar el código del sistema de IA en un `.zip`
-   de hasta 10 MB. VIGÍA lo lee en memoria, ignora `node_modules`, `.git` y los
-   binarios, y fija la versión auditada con su SHA-256.
-3. **Paso 1 — Alcance.** Aceptar las cuatro cláusulas obligatorias del acuerdo de
-   white hat. Sin ellas el botón de continuar queda deshabilitado: el art. 269A de
-   la Ley 1273 de 2009 sanciona el acceso «por fuera de lo acordado», y VIGÍA, que
+   de hasta 4 MB, o indicar un repositorio público de GitHub. VIGÍA lo lee en
+   memoria, ignora `node_modules`, `.git` y los binarios, y fija la versión
+   auditada con su SHA-256.
+3. **Paso 1 — Alcance.** El representante legal acepta las cuatro cláusulas del
+   acuerdo de white hat desde el **portal del cliente** (enlace secreto, sin cuenta,
+   con nombre y cédula). Si el acuerdo se firmó por fuera de VIGÍA, el abogado las
+   marca. Sin ellas el botón de continuar queda deshabilitado: el art. 269A de la
+   Ley 1273 de 2009 sanciona el acceso «por fuera de lo acordado», y VIGÍA, que
    actúa como encargado, suscribe el contrato de transmisión.
 4. **Paso 2 — Configuración.** Proveedores de IA detectados en el código, con país,
    rol y si el país está en la lista de la SIC. Seleccionar los marcos normativos.
@@ -49,6 +57,8 @@ No hay variables de entorno ni base de datos: el MVP corre con estado en memoria
    el análisis jurídico y el parche propuesto.
 7. **Paso 6 — Remediación.** Retesteo, firma del abogado revisor (nombre, tarjeta
    profesional y salvedad opcional) e informe de responsabilidad demostrada.
+8. **Informe** (`/informe/:id`): documento para imprimir o guardar en PDF desde el
+   navegador. El representante legal lo ve en su portal cuando se expide.
 
 El caso de prueba para ensayar el sistema está fuera de este repositorio, en
 `caso-prueba/` (un `.zip` con el código de una fintech ficticia y su guía).
@@ -59,7 +69,7 @@ El caso de prueba para ensayar el sistema está fuera de este repositorio, en
 src/
   domain/      Tipos, catálogo normativo, catálogo de pruebas y puntuación. Sin dependencias.
   engine/      Orquestador de módulos y ciclo de remediación.
-  server/      Cuentas y sesiones, lectura del .zip, repositorio y bus de eventos.
+  server/      Cuentas y sesiones, lectura del .zip y repositorio (Redis o memoria).
   app/api/v1/  API REST versionada.
   app/         Pantallas (React Server Components) y acciones de servidor.
   components/  Sistema visual.
@@ -73,13 +83,15 @@ Cuatro decisiones sostienen la escalabilidad sin complicar el MVP:
 - **Los módulos están registrados, no codificados en el flujo.**
   `src/engine/modules.ts` es un registro; cada entrada corresponde uno a uno con
   un worker que consumiría de una cola en la arquitectura objetivo.
-- **La interfaz consume un bus, no el orquestador.** La ejecución se lanza con
-  `POST /runs/:id/ejecucion`, que retorna de inmediato, y el progreso llega por
-  SSE desde `GET /runs/:id/eventos`. Mover el orquestador a un worker externo
-  (cola de trabajos + Redis Pub/Sub) no cambia una línea del cliente.
-- **La persistencia está detrás de una interfaz.** `AuditRepository` y
-  `EventBus` en `src/server/store.ts` tienen implementación en memoria;
-  sustituirlas por Postgres y Redis no afecta al dominio, al motor ni a la UI.
+- **La interfaz lee el repositorio, no el orquestador.** La ejecución se lanza con
+  `POST /runs/:id/ejecucion`, que retorna de inmediato y sigue corriendo con
+  `after()`; el progreso llega por SSE desde `GET /runs/:id/eventos`, que lee el
+  repositorio cada segundo. Mover el orquestador a un worker externo (cola de
+  trabajos) no cambia una línea del cliente.
+- **La persistencia está detrás de una interfaz.** `AccountRepository` y
+  `AuditRepository` en `src/server/store.ts` guardan JSON en un almacén
+  clave-valor (Redis por REST o memoria). Pasar a Postgres no afecta al dominio,
+  al motor ni a la UI.
 
 ## Motor de análisis
 
@@ -109,13 +121,14 @@ y responden 404 si la auditoría es de otro usuario.
 | Método | Ruta | Uso |
 | --- | --- | --- |
 | `GET` | `/api/v1/runs` | Auditorías del abogado de la sesión |
-| `POST` | `/api/v1/runs` | Abre una auditoría (multipart: `cliente`, `nit`, `representante`, `sector`, `sistema`, `codigo` .zip) |
+| `POST` | `/api/v1/runs` | Abre una auditoría (multipart: `cliente`, `nit`, `representante`, `sector`, `sistema`, y `codigo` .zip o `repositorio` URL pública de GitHub) |
 | `GET` | `/api/v1/runs/:id` | Estado y puntuación |
 | `POST` | `/api/v1/runs/:id/alcance` | `aceptar-clausula`, `autorizar` |
 | `PATCH` | `/api/v1/runs/:id/configuracion` | Marcos y minimización |
 | `POST` | `/api/v1/runs/:id/ejecucion` | Encola la ejecución |
 | `GET` | `/api/v1/runs/:id/eventos` | Flujo de eventos (SSE) |
-| `POST` | `/api/v1/runs/:id/hallazgos/:hid/remediacion` | `abrir-pr` (genera el parche), `retestear`, `firmar` (con `abogado`, `tarjetaProfesional` y `salvedad` opcional) |
+| `POST` | `/api/v1/runs/:id/version-corregida` | multipart con `codigo` (.zip) o `repositorio`: registra la versión corregida y retestea contra ella |
+| `POST` | `/api/v1/runs/:id/hallazgos/:hid/remediacion` | `abrir-pr` (genera el parche), `retestear`, `firmar` (firma el abogado autenticado; `salvedad` opcional) |
 | `POST` | `/api/v1/runs/:id/certificado` | Expide el informe de responsabilidad demostrada |
 | `GET` | `/api/v1/normativa` | Catálogo normativo |
 

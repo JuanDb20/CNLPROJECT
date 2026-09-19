@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -181,45 +182,69 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
         {/* Consola */}
         <Card>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-[11px] text-ink-soft">
-              console.vigia_agent_logs //{" "}
-              <span className={connected ? "text-safe" : "text-ink-faint"}>
-                {connected ? "live" : done ? "cerrado" : "reconectando"}
-              </span>
-            </p>
+            <p className="font-mono text-[11px] text-ink-soft">console.vigia_agent_logs</p>
             <Tag tone="brand">{logs.length} eventos</Tag>
           </div>
 
-          <div
-            ref={consoleRef}
-            className="scroll-slim h-[360px] overflow-y-auto rounded-[8px] border border-line bg-surface-muted p-3"
-            aria-live="polite"
-            aria-label="Traza de la auditoría"
-          >
-            {logs.length === 0 ? (
-              <p className="font-mono text-[11px] text-ink-faint">
-                Esperando el primer evento del orquestador…
-              </p>
-            ) : (
-              <ol className="space-y-1">
-                {logs.map((entry) => (
-                  <li
-                    key={entry.seq}
-                    className="rise font-mono text-[11px] leading-[1.7]"
-                  >
-                    <span className="text-ink-faint">
-                      {new Date(entry.at).toLocaleTimeString("es-CO", {
-                        hour12: false,
-                      })}
-                    </span>{" "}
-                    <span className={cx("font-medium", LOG_STYLE[entry.level])}>
-                      [{LOG_TAG[entry.level]}]
-                    </span>{" "}
-                    <span className="text-ink-soft">{entry.message}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
+          <div className="overflow-hidden rounded-[8px] border border-line-strong bg-canvas">
+            <div className="flex items-center gap-1.5 border-b border-line bg-surface-muted px-3 py-2">
+              <span aria-hidden className="size-[7px] rounded-full bg-line-strong" />
+              <span aria-hidden className="size-[7px] rounded-full bg-line-strong" />
+              <span aria-hidden className="size-[7px] rounded-full bg-line-strong" />
+              <span className="ml-1.5 truncate font-mono text-[10px] text-ink-faint">
+                {run.scope.sandboxId} —{" "}
+                <span className={connected ? "text-safe" : "text-ink-faint"}>
+                  {connected ? "sesión activa" : done ? "sesión cerrada" : "reconectando"}
+                </span>
+              </span>
+            </div>
+            <div
+              ref={consoleRef}
+              className="scroll-slim h-[320px] overflow-y-auto p-3"
+              aria-live="polite"
+              aria-label="Traza de la auditoría"
+            >
+              {logs.length === 0 ? (
+                <p className="font-mono text-[11px] text-ink-faint">
+                  Esperando el primer evento del orquestador…
+                </p>
+              ) : (
+                <ol className="space-y-0.5">
+                  {logs.map((entry, i) => {
+                    const isLatest = i === logs.length - 1 && !done;
+                    return (
+                      <li
+                        key={entry.seq}
+                        data-level={entry.level}
+                        className="term-line rise font-mono text-[11px] leading-[1.8]"
+                      >
+                        <span className="term-t">
+                          {new Date(entry.at).toLocaleTimeString("es-CO", {
+                            hour12: false,
+                          })}
+                        </span>
+                        <span className={cx("font-medium", LOG_STYLE[entry.level])}>
+                          [{LOG_TAG[entry.level]}]
+                        </span>
+                        <span
+                          className={cx(
+                            "term-msg overflow-hidden text-ink-soft",
+                            isLatest && "typing",
+                          )}
+                          style={
+                            isLatest
+                              ? ({ "--term-chw": `${entry.message.length}ch` } as CSSProperties)
+                              : undefined
+                          }
+                        >
+                          {entry.message}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
           </div>
 
           {done ? (

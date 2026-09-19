@@ -12,6 +12,7 @@ const ERRORS: Record<string, string> = {
   tarjeta: "La tarjeta profesional debe tener entre 3 y 7 dígitos.",
   clave: "La contraseña debe tener al menos 8 caracteres.",
   existe: "Ya existe una cuenta con ese correo. Ingresa con ella.",
+  politica: "Para crear la cuenta debes autorizar el tratamiento de tus datos.",
 };
 
 export default async function RegistroPage({
@@ -87,6 +88,13 @@ export default async function RegistroPage({
               autoComplete="new-password"
               className={fieldClass}
             />
+          </label>
+          <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-soft">
+            <input type="checkbox" name="politica" required className="mt-0.5" />
+            <span>
+              Autorizo el tratamiento de mis datos para gestionar mi cuenta e identificarme como firmante, según la{" "}
+              <a href="/privacidad" className="underline">política de tratamiento</a>.
+            </span>
           </label>
           <button type="submit" className={buttonClass("primary", true)}>
             Crear cuenta

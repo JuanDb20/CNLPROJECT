@@ -7,9 +7,12 @@ import { revalidatePath } from "next/cache";
 import type { FrameworkId } from "@/domain/types";
 import {
   acceptClause,
+  acceptScopeAsClient,
   authorizeScope,
+  createExampleRun,
   createRunFromForm,
   saveConfig,
+  sourceZip,
   startExecution,
 } from "@/engine/orchestrator";
 import {
@@ -17,9 +20,10 @@ import {
   openPullRequest,
   retest,
   signFinding,
+  uploadCorrected,
 } from "@/engine/remediation";
 import { login, loginDemo, logout, register, requireUser } from "@/server/auth";
-import { RUN_COOKIE } from "@/server/http";
+import { RUN_COOKIE, clientRun } from "@/server/http";
 import { requireRun } from "@/server/session";
 import { repository } from "@/server/store";
 
@@ -51,6 +55,7 @@ export async function registrarse(form: FormData) {
       professionalCard: String(form.get("tarjeta") ?? ""),
       firm: String(form.get("firma") ?? ""),
       password: String(form.get("clave") ?? ""),
+      privacyAccepted: form.get("politica") === "on",
     });
   } catch (error) {
     redirect(`/registro?error=${error instanceof Error ? error.message : "datos"}`);
@@ -83,6 +88,14 @@ export async function crearAuditoria(form: FormData) {
   } catch {
     redirect("/panel/nueva?error=1");
   }
+  await openRun(id);
+  redirect("/auditoria/alcance");
+}
+
+/** Auditoría con cliente y código de ejemplo, para probar el flujo sin llenar el formulario. */
+export async function crearAuditoriaEjemplo() {
+  const user = await requireUser();
+  const id = (await createExampleRun(user)).id;
   await openRun(id);
   redirect("/auditoria/alcance");
 }
@@ -149,14 +162,27 @@ export async function retestear(findingId: string) {
   revalidatePath("/auditoria", "layout");
 }
 
+/** Carga la versión corregida (.zip o GitHub) y retestea contra ella. */
+export async function retestearVersion(form: FormData) {
+  const id = await runId();
+  const hallazgo = String(form.get("hallazgo") ?? "");
+  const back = `/auditoria/remediacion?hallazgo=${encodeURIComponent(hallazgo)}`;
+  try {
+    const { fileName, zip } = await sourceZip(String(form.get("repositorio") ?? "").trim(), form.get("codigo"));
+    await uploadCorrected(id, fileName, zip);
+  } catch {
+    redirect(`${back}&error=version`);
+  }
+  redirect(back);
+}
+
 export async function firmarHallazgo(findingId: string, form: FormData) {
+  // Firma quien inició sesión: el nombre y la tarjeta no se toman del formulario.
+  const user = await requireUser();
   await signFinding(
     await runId(),
     findingId,
-    {
-      name: String(form.get("abogado") ?? ""),
-      professionalCard: String(form.get("tarjeta") ?? ""),
-    },
+    { name: user.name, professionalCard: user.professionalCard },
     String(form.get("salvedad") ?? ""),
   );
   revalidatePath("/auditoria", "layout");
@@ -165,4 +191,20 @@ export async function firmarHallazgo(findingId: string, form: FormData) {
 export async function expedirCertificado() {
   await issueCertificate(await runId());
   revalidatePath("/auditoria/remediacion");
+}
+
+/* ------------------------- Portal del cliente ------------------------- */
+
+export async function aceptarAlcanceCliente(form: FormData) {
+  const run = await clientRun(String(form.get("runId") ?? ""), String(form.get("token") ?? ""));
+  if (!run) redirect("/");
+  const back = `/cliente/${run.id}/${run.scope.clientToken}`;
+  if (run.scope.clientAcceptance || run.status !== "borrador") redirect(back);
+  if (form.get("acepto") !== "on") redirect(`${back}?error=1`);
+  try {
+    await acceptScopeAsClient(run.id, String(form.get("nombre") ?? ""), String(form.get("cedula") ?? ""));
+  } catch {
+    redirect(`${back}?error=1`);
+  }
+  redirect(back);
 }

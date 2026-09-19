@@ -20,7 +20,7 @@
   --color-ink: #f2f1ee;
   --color-ink-soft: #c9c7c2;
   --color-ink-muted: #8f8d89;
-  --color-ink-faint: #5c5a57;
+  --color-ink-faint: #858380; /* ≥ 4,5:1 sobre canvas, surface y surface-muted (WCAG AA) */
 
   --color-brand: #e2732a;
   --color-brand-soft: #241a11;
@@ -176,5 +176,177 @@ body[data-portal-done="true"] .stagger {
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
+  }
+}
+
+/* --------------------- Marca como indicador de estado ---------------------- */
+/* Reservada al header de una auditoría abierta (auditoria/layout.tsx): fuera de
+   ahí el logo se queda estático, como siempre. */
+@property --vigia-ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes vigia-spin {
+  to {
+    --vigia-ring-angle: 360deg;
+  }
+}
+@keyframes vigia-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 5px currentColor);
+    transform: scale(1.035);
+  }
+}
+.mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.mark-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  opacity: 0;
+  background: conic-gradient(
+    from var(--vigia-ring-angle),
+    transparent,
+    var(--color-brand),
+    transparent 35%
+  );
+  filter: blur(6px);
+  animation: vigia-spin 2.8s linear infinite;
+  transition: opacity 0.3s ease;
+}
+.mark[data-state="ejecutando"] .mark-ring {
+  opacity: 0.55;
+}
+.mark svg {
+  position: relative;
+  z-index: 1;
+  animation: vigia-breathe var(--vigia-breathe-d, 3.6s) ease-in-out infinite;
+}
+.mark[data-state="reposo"] svg {
+  color: var(--color-ink-soft);
+}
+.mark[data-state="ejecutando"] svg {
+  color: var(--color-brand);
+  --vigia-breathe-d: 2s;
+}
+.mark[data-state="critico"] svg {
+  color: var(--color-critical);
+  --vigia-breathe-d: 1.1s;
+}
+.mark[data-state="seguro"] svg {
+  color: var(--color-safe);
+}
+
+/* ------------------------ Consola de ejecución ------------------------ */
+.term-line {
+  display: grid;
+  grid-template-columns: 8ch 9ch 1fr;
+  gap: 8px;
+  white-space: nowrap;
+}
+.term-line .term-t {
+  color: var(--color-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.term-line[data-level="vuln"] {
+  box-shadow: inset 2px 0 0 var(--color-critical);
+  padding-left: 6px;
+  margin-left: -8px;
+}
+.term-line .term-msg.typing {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  border-right: 2px solid var(--color-brand);
+  animation:
+    vigia-typeline 0.5s steps(24) forwards,
+    vigia-caret 0.9s steps(1) infinite;
+}
+@keyframes vigia-typeline {
+  to {
+    width: var(--term-chw, 30ch);
+  }
+}
+@keyframes vigia-caret {
+  50% {
+    border-color: transparent;
+  }
+}
+
+/* --------------------------- Evidencia redactada --------------------------- */
+.redact {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.redact .redact-bar {
+  position: absolute;
+  inset: 1px 0;
+  background: var(--color-ink-faint);
+  border-radius: 2px;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.redact.open .redact-bar {
+  clip-path: inset(0 0 0 100%);
+}
+
+/* ------------------------------ Contador/arco ------------------------------ */
+.tabnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------- Transición nativa entre pasos --------------------- */
+::view-transition-old(vigia-step-pill),
+::view-transition-new(vigia-step-pill) {
+  animation-duration: 0.32s;
+}
+::view-transition-old(vigia-step-content),
+::view-transition-new(vigia-step-content) {
+  animation-duration: 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark-ring {
+    animation: none;
+  }
+  .mark svg {
+    animation: none;
+  }
+  .term-line .term-msg.typing {
+    width: var(--term-chw, 30ch) !important;
+    border-right-color: transparent !important;
+    animation: none !important;
+  }
+  ::view-transition-old(vigia-step-pill),
+  ::view-transition-new(vigia-step-pill),
+  ::view-transition-old(vigia-step-content),
+  ::view-transition-new(vigia-step-content) {
+    animation: none !important;
+  }
+}
+
+/* El informe se imprime en blanco aunque el navegador imprima los fondos. */
+@media print {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: #fff;
+  }
+  @page {
+    margin: 16mm;
   }
 }

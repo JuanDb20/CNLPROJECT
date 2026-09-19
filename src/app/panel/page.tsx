@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { abrirAuditoria } from "@/app/actions";
-import { Card, Tag, buttonClass, cx } from "@/components/ui";
+import { abrirAuditoria, crearAuditoriaEjemplo } from "@/app/actions";
+import { Card, Tag, buttonClass } from "@/components/ui";
 import { scoreRun } from "@/domain/scoring";
 import type { RunStatus } from "@/domain/types";
 import { requireUser } from "@/server/auth";
@@ -46,9 +46,16 @@ export default async function PanelPage() {
             VIGÍA lo analiza en un entorno aislado y te entrega los hallazgos, con la norma
             que incumple cada uno, para que los revises y los firmes.
           </p>
-          <Link href="/panel/nueva" className={cx(buttonClass("secondary"), "mt-4")}>
-            Abrir la primera auditoría
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/panel/nueva" className={buttonClass("secondary")}>
+              Abrir la primera auditoría
+            </Link>
+            <form action={crearAuditoriaEjemplo}>
+              <button type="submit" className={buttonClass("ghost")}>
+                O usa datos de ejemplo
+              </button>
+            </form>
+          </div>
         </Card>
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-[12px] border border-line bg-surface">

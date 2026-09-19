@@ -3,13 +3,30 @@ import type { User } from "@/domain/types";
 
 import { MarkIcon } from "./ui";
 
-export function Logo() {
+/** Estado real de la auditoría abierta, si la hay. Sin `state`, la marca queda estática. */
+export type MarkState = "reposo" | "ejecutando" | "critico" | "seguro";
+
+const MARK_TITLE: Record<MarkState, string> = {
+  reposo: "Sin ejecución activa",
+  ejecutando: "Pruebas corriendo en el sandbox",
+  critico: "Hay un hallazgo crítico sin firmar",
+  seguro: "Todos los hallazgos están firmados",
+};
+
+export function Logo({ state }: { state?: MarkState }) {
   return (
     <div className="flex items-center gap-2.5">
       <span
         aria-hidden
-        className="grid size-7 place-items-center rounded-[7px] border border-line-strong text-brand"
+        title={state ? MARK_TITLE[state] : undefined}
+        data-state={state}
+        className={
+          state
+            ? "mark size-7 rounded-[7px] border border-line-strong"
+            : "grid size-7 place-items-center rounded-[7px] border border-line-strong text-brand"
+        }
       >
+        {state ? <span className="mark-ring" aria-hidden /> : null}
         <MarkIcon className="size-[15px]" />
       </span>
       <span className="leading-none">

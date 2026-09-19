@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
@@ -49,4 +50,14 @@ export async function currentRun(): Promise<AuditRun | null> {
 export async function ownedRun(runId: string): Promise<AuditRun | null> {
   const [user, run] = await Promise.all([currentUser(), repository.find(runId)]);
   return user && run?.ownerId === user.id ? run : null;
+}
+
+/** La auditoría, solo si el token del enlace del cliente coincide. Para su portal. */
+export async function clientRun(runId: string, token: string): Promise<AuditRun | null> {
+  const run = await repository.find(runId);
+  const expected = Buffer.from(run?.scope.clientToken ?? "");
+  const given = Buffer.from(token);
+  return run && expected.length > 0 && expected.length === given.length && timingSafeEqual(expected, given)
+    ? run
+    : null;
 }

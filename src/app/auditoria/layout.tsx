@@ -1,10 +1,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { AccountChip, Logo } from "@/components/shell";
+import { AccountChip, Logo, type MarkState } from "@/components/shell";
 import { StepNav } from "@/components/step-nav";
+import type { AuditRun } from "@/domain/types";
 import { requireUser } from "@/server/auth";
 import { requireRun } from "@/server/session";
+
+/** Lo que la marca del header comunica de un vistazo, sin texto nuevo. */
+function markState(run: AuditRun): MarkState {
+  if (run.status === "ejecutando") return "ejecutando";
+  if (run.findings.some((f) => f.severity === "critico" && f.remediation.status !== "firmado")) {
+    return "critico";
+  }
+  if (run.status === "certificado") return "seguro";
+  return "reposo";
+}
 
 function SandboxBadge({ sandboxId }: { sandboxId: string }) {
   return (
@@ -29,7 +40,7 @@ export default async function AuditoriaLayout({ children }: { children: ReactNod
       {/* Columna de navegación */}
       <aside className="flex shrink-0 flex-col gap-4 lg:w-[252px]">
         <div className="rounded-[12px] border border-line bg-surface p-4">
-          <Logo />
+          <Logo state={markState(run)} />
           <div className="mt-4 border-t border-line pt-3">
             <StepNav />
           </div>
@@ -64,7 +75,9 @@ export default async function AuditoriaLayout({ children }: { children: ReactNod
           <AccountChip user={user} />
         </header>
 
-        <main className="pb-10">{children}</main>
+        <main className="pb-10" style={{ viewTransitionName: "vigia-step-content" }}>
+          {children}
+        </main>
 
         <div className="mb-6 flex flex-col gap-3 lg:hidden">
           <SandboxBadge sandboxId={run.scope.sandboxId} />

@@ -72,8 +72,8 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
     citation: "Reglamento (UE) 2024/1689",
     description:
       "Referencia comparada. Solo sería exigible si el sistema se ofrece o su resultado " +
-      "se usa en la Unión (art. 2). Su calendario de aplicación se modificó en 2026: " +
-      "verificar la fecha vigente antes de citarlo.",
+      "se usa en la Unión (art. 2). Las obligaciones de transparencia del art. 50 aplican " +
+      "desde el 2 de agosto de 2026; en 2026 solo se aplazó el régimen de alto riesgo.",
   },
   gdpr: {
     id: "gdpr",
@@ -189,7 +189,7 @@ export const RULES: ComplianceRule[] = [
   {
     id: "col-sic-paises",
     framework: "col-1581",
-    label: "Circular Única SIC Título V, num. 3.2 (CE 008/2017)",
+    label: "Circular Única SIC Título V, Cap. 3, num. 3.2 (CE 005/2017)",
     title: "Países con nivel adecuado de protección",
     obligation:
       "La SIC mantiene la lista de países con nivel adecuado; Estados Unidos figura en " +

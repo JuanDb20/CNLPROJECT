@@ -70,7 +70,7 @@ export function CardHeader({
 
 const TAG_TONES = {
   neutral: "bg-canvas text-ink-soft border-line",
-  brand: "bg-brand-soft text-brand-strong border-brand-soft",
+  brand: "bg-brand-soft text-brand border-brand-soft",
   required: "bg-warning-soft text-warning border-warning-soft",
   safe: "bg-safe-soft text-safe border-safe-soft",
 } as const;

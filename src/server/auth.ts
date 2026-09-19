@@ -14,6 +14,8 @@ import { accounts } from "./store";
  */
 
 export const SESSION_COOKIE = "vigia_sesion";
+/** Versión de la política de tratamiento (/privacidad) que acepta cada abogado al registrarse. */
+export const POLITICA_VERSION = "1.0, vigente desde el 18 de septiembre de 2026";
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -42,6 +44,7 @@ export async function register(input: {
   professionalCard: string;
   firm: string;
   password: string;
+  privacyAccepted: boolean;
 }): Promise<void> {
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -50,6 +53,8 @@ export async function register(input: {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) throw new Error("correo");
   if (!/^\d{3,7}$/.test(card)) throw new Error("tarjeta");
   if (input.password.length < 8 || input.password.length > 200) throw new Error("clave");
+  // Prueba de la autorización (Decreto 1377, art. 8): versión de la política y fecha.
+  if (!input.privacyAccepted) throw new Error("politica");
   if (await accounts.findByEmail(email)) throw new Error("existe");
 
   const user = await accounts.create({
@@ -59,6 +64,7 @@ export async function register(input: {
     professionalCard: card,
     firm: input.firm.trim().slice(0, 120),
     passwordHash: hashPassword(input.password),
+    privacyAcceptance: { version: POLITICA_VERSION, at: new Date().toISOString() },
   });
   await startSession(user.id);
 }
@@ -70,20 +76,20 @@ export async function login(email: string, password: string): Promise<boolean> {
   return true;
 }
 
-const DEMO_EMAIL = "demo@vigia.test";
-
-/** Usuario de prueba fijo, para no tener que registrar una cuenta real solo para probar el flujo. */
+/**
+ * Usuario de prueba nuevo en cada ingreso, para no tener que registrar una cuenta
+ * real: cada jurado ve solo sus auditorías y nadie pisa las de otro.
+ */
 export async function loginDemo(): Promise<void> {
-  const user =
-    (await accounts.findByEmail(DEMO_EMAIL)) ??
-    (await accounts.create({
-      id: randomUUID(),
-      name: "Usuario de prueba",
-      email: DEMO_EMAIL,
-      professionalCard: "000000",
-      firm: "VIGÍA (demo)",
-      passwordHash: hashPassword(randomBytes(16).toString("hex")),
-    }));
+  const id = randomUUID();
+  const user = await accounts.create({
+    id,
+    name: "Usuario de prueba",
+    email: `demo-${id.slice(0, 8)}@vigia.test`,
+    professionalCard: "000000",
+    firm: "VIGÍA (demo)",
+    passwordHash: hashPassword(randomBytes(16).toString("hex")),
+  });
   await startSession(user.id);
 }
 

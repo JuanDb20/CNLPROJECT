@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 
-import { nextPrNumber } from "@/domain/checks";
+import { nextPrNumber, runChecks } from "@/domain/checks";
 import { scoreRun } from "@/domain/scoring";
 import type { AuditRun, ConformityCertificate, Finding } from "@/domain/types";
+import { dependencyAdvisories } from "@/server/osv";
+import { readZip } from "@/server/zip";
 import { repository } from "@/server/store";
 
 /**
@@ -48,22 +50,61 @@ export async function openPullRequest(
   });
 }
 
-/** Reejecuta las pruebas adversariales contra la rama parcheada. */
+/**
+ * Retesteo real: corre el mismo catálogo de pruebas sobre la versión corregida.
+ * El hallazgo pasa solo si su prueba ya no lo encuentra; si sigue, queda la
+ * línea donde aparece.
+ */
+function evaluate(finding: Finding, detected: Finding[], fileName: string): Finding {
+  const still = detected.find((f) => f.code === finding.code);
+  return {
+    ...finding,
+    remediation: {
+      ...finding.remediation,
+      status: still ? "pr-abierto" : "retesteado",
+      retests: finding.remediation.retests.map((r) => ({ ...r, passed: !still })),
+      retestEvidence: still ? `Sigue presente en ${fileName}: ${still.evidence.locations[0]}` : null,
+    },
+  };
+}
+
+const retestable = (f: Finding) => f.remediation.status === "pr-abierto" || f.remediation.status === "retesteado";
+
+/** Recibe la versión corregida y retestea todos los hallazgos con parche generado. */
+export async function uploadCorrected(runId: string, fileName: string, zip: Buffer): Promise<AuditRun> {
+  const files = readZip(zip);
+  if (files.length === 0) throw new Error("El .zip no contiene archivos de código legibles");
+  await repository.saveCorrected(runId, zip);
+  const retestSource = {
+    fileName,
+    sha256: createHash("sha256").update(zip).digest("hex"),
+    bytes: zip.length,
+    fileCount: files.length,
+    uploadedAt: new Date().toISOString(),
+  };
+  const advisories = await dependencyAdvisories(files);
+  return repository.update(runId, (run) => {
+    const detected = runChecks(files, run.scope.client.name, advisories);
+    return {
+      ...run,
+      retestSource,
+      findings: run.findings.map((f) => (retestable(f) ? evaluate(f, detected, fileName) : f)),
+    };
+  });
+}
+
+/** Retestea un hallazgo contra la versión corregida ya cargada. */
 export async function retest(runId: string, findingId: string): Promise<AuditRun> {
-  return repository.update(runId, (run) =>
-    mutateFinding(run, findingId, (f) => {
-      if (f.remediation.status === "propuesta") {
-        throw new Error("Genera el parche antes de retestear");
-      }
-      return {
-        ...f,
-        remediation: {
-          ...f.remediation,
-          status: "retesteado",
-          retests: f.remediation.retests.map((r) => ({ ...r, passed: true })),
-        },
-      };
-    }),
+  const run = await repository.find(runId);
+  const finding = run?.findings.find((f) => f.id === findingId);
+  if (!run || !finding) throw new Error("Hallazgo no encontrado");
+  if (finding.remediation.status === "propuesta") throw new Error("Genera el parche antes de retestear");
+  if (!run.retestSource) throw new Error("Carga la versión corregida del código para retestear");
+  const files = await repository.files(runId, "corregido");
+  if (files.length === 0) throw new Error("La versión corregida ya no está disponible: cárgala de nuevo");
+  const detected = runChecks(files, run.scope.client.name, await dependencyAdvisories(files));
+  return repository.update(runId, (current) =>
+    mutateFinding(current, findingId, (f) => evaluate(f, detected, run.retestSource!.fileName)),
   );
 }
 
@@ -123,6 +164,36 @@ function hashCertificate(
     .slice(0, 32);
 }
 
+// Prototipo: FreeTSA. En producción, el estampado cronológico de una ECD acreditada por ONAC.
+const TSA_URL = process.env.VIGIA_TSA_URL ?? "https://freetsa.org/tsr";
+
+/**
+ * Sello de tiempo RFC 3161 sobre el hash del informe: un tercero certifica que
+ * el informe existía así en ese instante. La petición DER es fija salvo el
+ * SHA-256; se verifica con `openssl ts -verify`. Si la TSA falla, sale sin sello.
+ */
+async function timestamp(hash: string): Promise<ConformityCertificate["timestamp"]> {
+  const query = Buffer.concat([
+    Buffer.from("30390201013031300d060960864801650304020105000420", "hex"),
+    createHash("sha256").update(hash).digest(),
+    Buffer.from("0101ff", "hex"),
+  ]);
+  try {
+    const res = await fetch(TSA_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/timestamp-query" },
+      body: query,
+      signal: AbortSignal.timeout(8000),
+    });
+    const token = Buffer.from(await res.arrayBuffer());
+    const t = /\x18\x0f(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)Z/.exec(token.toString("latin1"));
+    if (!res.ok || !t) return null;
+    return { tsa: new URL(TSA_URL).host, at: `${t[1]}-${t[2]}-${t[3]}T${t[4]}:${t[5]}:${t[6]}Z`, token: token.toString("base64") };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Expide el informe. La puntuación «antes» se recalcula con todos los
  * hallazgos abiertos para que el documento muestre la mejora atribuible a la
@@ -163,13 +234,20 @@ export async function issueCertificate(
         `${f.code} · ${f.remediation.signedBy}` +
         (f.remediation.signatureNote ? ` · Salvedad: ${f.remediation.signatureNote}` : ""),
     ),
+    sourceSha256: run.scope.source.sha256,
+    retestSha256: run.retestSource?.sha256 ?? null,
+    findingsDigest: createHash("sha256")
+      .update(
+        JSON.stringify(
+          run.findings.map((f) => [f.code, f.severity, f.legalAnalysis, f.evidence.response, f.remediation.status]),
+        ),
+      )
+      .digest("hex"),
     previousHash,
   };
 
-  const certificate: ConformityCertificate = {
-    ...base,
-    hash: hashCertificate(base),
-  };
+  const hash = hashCertificate(base);
+  const certificate: ConformityCertificate = { ...base, hash, timestamp: await timestamp(hash) };
 
   await repository.saveCertificate(certificate);
   await repository.update(runId, (current) => ({

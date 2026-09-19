@@ -58,6 +58,8 @@ export interface ClientInfo {
   sector: string;
   /** Qué hace el sistema de IA auditado, en palabras del cliente. */
   system: string;
+  /** Matrícula en el RUES: null si el NIT no aparece; ausente si no se pudo consultar. */
+  rues?: { name: string; status: string; ciiu: string; renewed: string } | null;
 }
 
 /** Código fuente cargado para la auditoría. El hash fija la versión analizada. */
@@ -99,6 +101,11 @@ export interface AuditScope {
   /** Anonimización de credenciales y PII antes de cualquier análisis. */
   dataMinimizationEnabled: boolean;
   authorizedAt: string | null;
+  /** Secreto del enlace que el abogado envía al representante legal. */
+  clientToken: string;
+  /** Aceptación del acuerdo por el representante legal desde su portal. */
+  /** `clausesSha256` fija el texto exacto aceptado: cualquier cambio posterior en las cláusulas se nota. */
+  clientAcceptance: { name: string; idNumber: string; at: string; clausesSha256?: string } | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -225,6 +232,8 @@ export interface Remediation {
   signedBy: string | null;
   /** Salvedad o ajuste del abogado al análisis propuesto por VIGÍA. */
   signatureNote: string | null;
+  /** Si el retesteo falla: dónde sigue apareciendo la falla en la versión corregida. */
+  retestEvidence?: string | null;
 }
 
 export interface Finding {
@@ -260,9 +269,17 @@ export interface ConformityCertificate {
   scoreAfter: number;
   frameworks: FrameworkId[];
   signedFindings: string[];
+  /** SHA-256 del .zip auditado: el informe queda atado a esa versión exacta del código. */
+  sourceSha256: string;
+  /** SHA-256 de evidencia, análisis y estado de todos los hallazgos. */
+  findingsDigest: string;
+  /** SHA-256 de la versión corregida sobre la que pasó el retesteo. */
+  retestSha256: string | null;
   /** Encadenamiento por hash con el informe anterior (detecta alteraciones). */
   previousHash: string;
   hash: string;
+  /** Sello de tiempo RFC 3161 de un tercero sobre `hash`; null si la TSA no respondió. */
+  timestamp?: { tsa: string; at: string; token: string } | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -280,6 +297,8 @@ export interface AuditRun {
   modules: AuditModuleState[];
   logs: LogEntry[];
   findings: Finding[];
+  /** Versión corregida del código contra la que se retestea. */
+  retestSource?: SourceUpload | null;
   certificate: ConformityCertificate | null;
 }
 
@@ -302,4 +321,6 @@ export interface User {
   firm: string;
   /** scrypt: "sal:hash" en hexadecimal. */
   passwordHash: string;
+  /** Prueba de la autorización de tratamiento: versión de la política aceptada y fecha. */
+  privacyAcceptance?: { version: string; at: string };
 }

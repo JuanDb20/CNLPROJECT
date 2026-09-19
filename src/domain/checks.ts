@@ -67,7 +67,8 @@ export function buildClauses(client: string): ScopeClause[] {
         "encargado del tratamiento: se obliga a tratar los datos solo para la auditoría y " +
         `a nombre de ${client}, a salvaguardar su seguridad y a guardar confidencialidad ` +
         "(Decreto 1074 de 2015, art. 2.2.2.25.5.2). Enmascara credenciales, llaves de API " +
-        "y datos personales antes de cualquier análisis técnico.",
+        "y datos personales antes de cualquier análisis técnico, y borra el código cargado " +
+        "a los 90 días, conservando solo su huella SHA-256.",
       required: true,
       accepted: false,
     },
@@ -144,6 +145,8 @@ interface Hit {
 interface Ctx {
   files: RepoFile[];
   providers: DetectedProvider[];
+  /** Dependencias con avisos publicados (OSV.dev), consultadas antes por el servidor. */
+  advisories: Hit[];
 }
 
 /** Líneas que coinciden con `line` en los archivos cuya ruta coincide con `path`. */
@@ -210,6 +213,19 @@ function nextFix(text: string): string | null {
 }
 
 const TOOLS = /(^|\/)tools?\//i;
+/** Migraciones y esquemas SQL (no scripts de prueba ni ejemplos). */
+const SCHEMA = /(^|\/)(supabase|migrations?)\/.*\.sql$|(^|\/)schema\.sql$/i;
+/** Columnas que delatan datos personales en una tabla. */
+const PERSONAL = /\b(email|correo|phone|tel[eé]fono|celular|c[eé]dula|document\w*|address|direcci[oó]n|birth\w*|nacimiento|salar\w*|passport|pasaporte|medical|diagn\w*|health|salud)\b/i;
+const PUBLIC_VAR = /(NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_)\w*(KEY|TOKEN)|dangerouslyAllowBrowser/;
+/** Código que no llega al navegador. */
+const SERVER_ONLY = /(^|\/)(supabase\/functions|server|backend|scripts?|api|_?tests?)\//i;
+
+/** Payload de un JWT de Supabase con rol de servicio (salta todo el RLS). */
+const serviceRoleJwt = (text: string) =>
+  [...text.matchAll(/eyJ[\w-]+\.(eyJ[\w-]+)\.[\w-]+/g)].some((m) =>
+    /"role"\s*:\s*"service_role"/.test(Buffer.from(m[1], "base64url").toString()),
+  );
 const PROMPT = /prompt/i;
 
 /* ------------------------------------------------------------------ */
@@ -264,21 +280,37 @@ const CHECKS: Check[] = [
       "que expone la base de datos con la llave pública de Supabase.",
     detect: ({ files }) => {
       if (!files.some((f) => isCode(f) && /supabase/i.test(f.content))) return [];
+      const sql = files
+        .filter((f) => SCHEMA.test(f.path))
+        .map((f) => ({ ...f, content: f.content.replace(/--.*$/gm, "") }));
       const secured = new Set(
-        grep(files, /\.sql$/i, /enable\s+row\s+level\s+security/i).map((h) =>
-          /alter\s+table\s+(?:public\.)?"?(\w+)/i.exec(h.text)?.[1]?.toLowerCase(),
+        grep(sql, /./, /enable\s+row\s+level\s+security/i).map((h) =>
+          /alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?(?:public\.)?"?(\w+)/i.exec(h.text)?.[1]?.toLowerCase(),
         ),
       );
-      return grep(files, /\.sql$/i, /create\s+table/i).filter(
-        (h) => !secured.has(tableName(h.text)),
+      const created = grep(sql, /./, /^\s*create\s+table/i);
+      /* La causa del CVE-2025-48757 no es solo el RLS apagado: también políticas
+         `using (true)` que dejan leer a cualquiera tablas con datos personales. */
+      const personal = new Set(
+        sql.flatMap((f) =>
+          [...f.content.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?\s*\(([\s\S]*?)\);/gi)]
+            .filter((m) => PERSONAL.test(m[2]))
+            .map((m) => m[1].toLowerCase()),
+        ),
       );
+      const open = grep(sql, /./, /create\s+policy.*\son\s+(?:public\.)?"?\w+.*using\s*\(\s*true\s*\)/i).filter(
+        (h) =>
+          !/for\s+(insert|update|delete)\b/i.test(h.text) &&
+          personal.has(/\son\s+(?:public\.)?"?(\w+)/i.exec(h.text)?.[1]?.toLowerCase() ?? ""),
+      );
+      return [...created.filter((h) => !secured.has(tableName(h.text))), ...open];
     },
     patch: (hits) => ({
       kind: "codigo",
       target: "supabase/migrations/vigia_enable_rls.sql",
       removed: [],
       added: hits.flatMap((h) => {
-        const table = tableName(h.text);
+        const table = tableName(h.text) ?? /\son\s+(?:public\.)?"?(\w+)/i.exec(h.text)?.[1];
         return [
           `alter table ${table} enable row level security;`,
           `create policy "titular_lee_${table}" on ${table}`,
@@ -407,6 +439,48 @@ const CHECKS: Check[] = [
       "El asistente conserva su función legítima de soporte",
     ],
   },
+  {
+    code: "VGI-013",
+    module: "static-scan",
+    severity: "critico",
+    title: "Llave de servicio de Supabase expuesta en el código",
+    summary:
+      "La llave service_role, que ignora todas las políticas de acceso por fila, se " +
+      "declara como variable pública del navegador o queda escrita en el repositorio. Quien la tenga lee, " +
+      "modifica y borra cualquier tabla.",
+    legalAnalysis:
+      "Con esa llave cualquier persona accede a toda la base de datos de {cliente} sin " +
+      "iniciar sesión, incluidos los datos personales de todos los titulares. No existe " +
+      "control técnico que la contenga: es la negación del deber de seguridad (art. 4 " +
+      "lit. g y art. 17 lit. d de la Ley 1581) y del principio de acceso restringido (art. " +
+      "4 lit. f). Si el repositorio o la app ya fueron públicos, hay que tratarlo como " +
+      "incidente: rotar la llave y evaluar el reporte a la SIC (art. 17 lit. n).",
+    ruleIds: ["col-1581-seguridad", "col-1581-circulacion", "col-1581-incidentes", "owasp-a01", "owasp-a02"],
+    probe: "Búsqueda de la llave service_role en variables públicas y de JWT con rol de servicio escritos en el código.",
+    detect: ({ files }) =>
+      grep(
+        files.filter((f) => isCode(f) && !SERVER_ONLY.test(f.path)),
+        /./,
+        /(NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_)\w*SERVICE_ROLE|eyJ[\w-]+\.eyJ[\w-]+\.[\w-]+/,
+      ).filter((h) => !/eyJ/.test(h.text) || serviceRoleJwt(h.text)),
+    patch: edit(
+      "codigo",
+      [
+        "// La llave de servicio solo existe en el servidor (Edge Function o ruta de API).",
+        "// El navegador usa únicamente la llave publicable y el RLS decide qué puede leer.",
+      ],
+      "La llave que salta el RLS deja de viajar al navegador. Debe rotarse en el panel " +
+        "de Supabase: la anterior ya es pública.",
+    ),
+    branch: "vigia-patch/remove-service-role",
+    changeNote:
+      "Retira el cliente administrativo del código del navegador. La rotación de la llave " +
+      "se hace en Supabase, fuera del parche.",
+    retests: [
+      "Ningún archivo servido al navegador contiene la llave de servicio ni un JWT con rol service_role",
+      "Las operaciones administrativas responden desde el servidor",
+    ],
+  },
   /* ------------------------ ADVERTENCIAS ----------------------- */
   {
     code: "VGI-078",
@@ -436,7 +510,7 @@ const CHECKS: Check[] = [
       if (files.some((f) => /contrato de transmisi|data processing (agreement|addendum)/i.test(f.content))) {
         return [];
       }
-      return PROVIDERS.flatMap((p) => grep(files.filter(isSource), /./, p.pattern).slice(0, 1));
+      return PROVIDERS.flatMap((p) => grep(files.filter((f) => isSource(f) && !/(^|\/)\.github\//.test(f.path)), /./, p.pattern).slice(0, 1));
     },
     patch: (_hits, { providers }) => ({
       kind: "config",
@@ -508,7 +582,7 @@ const CHECKS: Check[] = [
     code: "VGI-012",
     module: "static-scan",
     severity: "advertencia",
-    title: "Llave del proveedor de IA publicada en el código del navegador",
+    title: "Llave del proveedor de IA expuesta en el navegador o en el repositorio",
     summary:
       "La llave del proveedor se declara con un prefijo público (NEXT_PUBLIC_ o " +
       "equivalente), así que viaja dentro del JavaScript que descarga cualquier visitante.",
@@ -522,10 +596,13 @@ const CHECKS: Check[] = [
     probe: "Búsqueda de llaves y secretos declarados como variables públicas del navegador.",
     detect: ({ files }) =>
       grep(
-        files,
+        files.filter(isCode),
         /./,
-        /(NEXT_PUBLIC_|VITE_|REACT_APP_)(?!SUPABASE_ANON)\w*(KEY|SECRET|TOKEN)\b|\bsk-(proj-)?[A-Za-z0-9]{20,}/,
-      ).sort((a, b) => Number(/\.env/.test(a.path)) - Number(/\.env/.test(b.path))),
+        /(NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_)\w*(OPENAI|GEMINI|GOOGLE_AI|ANTHROPIC|CLAUDE|GROQ|DEEPSEEK|MISTRAL|OPENROUTER)\w*(KEY|TOKEN)\b|dangerouslyAllowBrowser\s*:\s*true|\b(sk-(proj-|ant-)?[\w-]{20,}|AIza[\w-]{35})/,
+      )
+        // Un marcador de posición no es una llave; una variable pública con nombre de llave sí delata el diseño.
+        .filter((h) => PUBLIC_VAR.test(h.text) || !/your|xxxx|example|placeholder|reemplazar|aqu[ií]/i.test(h.text))
+        .sort((a, b) => Number(/\.env/.test(a.path)) - Number(/\.env/.test(b.path))),
     patch: edit(
       "codigo",
       [
@@ -555,13 +632,15 @@ const CHECKS: Check[] = [
       "En Colombia no hay todavía una ley de IA vigente que obligue a anunciar que se " +
       "conversa con un sistema de IA. Pero afirmar que se es una persona es " +
       "información no veraz sobre el servicio que recibe el consumidor (art. 23 de la " +
-      "Ley 1480). El art. 50 del AI Act europeo, que sí exige el aviso, sirve de " +
-      "referencia comparada para la corrección.",
+      "Ley 1480). El proyecto de ley 025 de 2026 Cámara, en trámite, propone esa " +
+      "obligación (art. 5 num. 3 lit. a), y el art. 50 del AI Act europeo, aplicable " +
+      "desde el 2 de agosto de 2026, ya la exige: ambos sirven de referencia para la corrección.",
     ruleIds: ["col-1480-informacion", "eu-ai-act-art50"],
     probe: "¿Eres una persona real del equipo de {cliente}?",
     detect: ({ files }) =>
+      // Solo instrucciones del asistente: el mismo texto en un test o en documentación no es una orden al modelo.
       grep(
-        files,
+        files.filter((f) => /prompt|agent|assistant|persona|bot|instruc/i.test(f.path) && !/(^|\/)(tests?|__tests__|docs?)\//i.test(f.path)),
         /\.(ts|tsx|js|jsx|md|txt|json)$/i,
         /(nunca|no)\s+(digas|reveles|admitas|menciones|aclares)[^.\n]{0,40}\b(IA|inteligencia artificial|bot|robot|modelo|m[aá]quina)\b|(eres|soy)\s+(una\s+)?(persona|humano|humana)\b/i,
       ),
@@ -595,7 +674,8 @@ const CHECKS: Check[] = [
       "suministro del sistema. Si el portal protege en el middleware las rutas con " +
       "datos de clientes, la falla permite leerlas sin iniciar sesión. La " +
       "vulnerabilidad es pública y su corrección está disponible, lo que hace difícil " +
-      "justificar no haberla aplicado.",
+      "justificar no haberla aplicado. Solo es explotable si la app se aloja con `next " +
+      "start`; en Vercel o Netlify la plataforma la neutraliza, y aun así conviene actualizar.",
     ruleIds: ["owasp-a03", "col-1581-seguridad"],
     probe: "Inventario de dependencias (package.json) cotejado con avisos de seguridad publicados.",
     detect: ({ files }) =>
@@ -617,6 +697,34 @@ const CHECKS: Check[] = [
       "Versión declarada igual o superior a la corregida",
       "Solicitud con el encabezado x-middleware-subrequest no evita la verificación de acceso",
     ],
+  },
+  {
+    code: "VGI-039",
+    module: "static-scan",
+    severity: "advertencia",
+    title: "Dependencias con vulnerabilidades publicadas",
+    summary:
+      "Librerías que el sistema usa en ejecución tienen avisos de seguridad públicos para " +
+      "la versión declarada, según la base abierta OSV.dev.",
+    legalAnalysis:
+      "El deber de seguridad (art. 4 lit. g de la Ley 1581) cubre también el software de " +
+      "terceros que {cliente} incorpora. Un aviso público con corrección disponible es un " +
+      "riesgo conocido: no actualizar es difícil de justificar ante la SIC. Cada aviso debe " +
+      "leerse en contexto: algunos solo aplican si la librería procesa datos de terceros.",
+    ruleIds: ["owasp-a03", "col-1581-seguridad"],
+    probe: "Consulta de cada dependencia de ejecución (package.json y package-lock.json) en OSV.dev.",
+    detect: ({ advisories }) => advisories,
+    patch: edit(
+      "codigo",
+      [
+        "$linea",
+        "// Actualizar a la versión corregida que indica cada aviso (npm install paquete@versión) y volver a construir.",
+      ],
+      "Las dependencias quedan en versiones sin avisos conocidos para el uso declarado.",
+    ),
+    branch: "vigia-patch/dependencias",
+    changeNote: "Solo cambia versiones de dependencias; exige volver a construir y probar la app.",
+    retests: ["OSV no reporta avisos para las versiones declaradas en la versión corregida"],
   },
   {
     code: "VGI-023",
@@ -915,8 +1023,8 @@ const CHECKS: Check[] = [
 ];
 
 /** Aplica el catálogo al código cargado. Solo devuelve lo que encuentra. */
-export function runChecks(files: RepoFile[], clientName: string): Finding[] {
-  const ctx: Ctx = { files, providers: detectProviders(files) };
+export function runChecks(files: RepoFile[], clientName: string, advisories: Hit[] = []): Finding[] {
+  const ctx: Ctx = { files, providers: detectProviders(files), advisories };
   const fill = (text: string) => mask(text.replaceAll("{cliente}", clientName));
 
   return CHECKS.flatMap((check) => {

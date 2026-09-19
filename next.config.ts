@@ -6,8 +6,8 @@ const nextConfig: NextConfig = {
   // están detrás de interfaces (src/server) para poder externalizarlos
   // (Postgres + Redis + workers) sin tocar la UI ni el dominio.
   experimental: {
-    // El formulario de nueva auditoría sube el código en .zip (hasta 10 MB).
-    serverActions: { bodySizeLimit: "11mb" },
+    // El formulario de nueva auditoría sube el código en .zip (hasta 4 MB; Vercel admite 4,5 MB por petición).
+    serverActions: { bodySizeLimit: "4.5mb" },
   },
 };
 

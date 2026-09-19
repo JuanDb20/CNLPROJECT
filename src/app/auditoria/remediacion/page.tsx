@@ -4,6 +4,7 @@ import {
   expedirCertificado,
   firmarHallazgo,
   retestear,
+  retestearVersion,
 } from "@/app/actions";
 import {
   Card,
@@ -18,6 +19,7 @@ import {
   fieldClass,
 } from "@/components/ui";
 import { scoreRun, sortFindings } from "@/domain/scoring";
+import { requireUser } from "@/server/auth";
 import { requireAnalyzedRun } from "@/server/session";
 
 export const dynamic = "force-dynamic";
@@ -26,10 +28,10 @@ export const dynamic = "force-dynamic";
 export default async function RemediacionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ hallazgo?: string }>;
+  searchParams: Promise<{ hallazgo?: string; error?: string }>;
 }) {
-  const { hallazgo } = await searchParams;
-  const run = await requireAnalyzedRun();
+  const { hallazgo, error } = await searchParams;
+  const [run, user] = await Promise.all([requireAnalyzedRun(), requireUser()]);
   const score = scoreRun(run);
 
   const withPr = sortFindings(run.findings).filter(
@@ -166,16 +168,20 @@ export default async function RemediacionPage({
               <Card className="flex flex-col">
                 <CardHeader
                   step="2."
-                  title="Retesteo de inyecciones (adversarial)"
+                  title="Retesteo sobre el código corregido"
                   tag="Entorno aislado"
                   tagTone="brand"
-                  description="Ejecución automática de pruebas adversariales controladas sobre la rama parcheada."
+                  description={
+                    run.retestSource
+                      ? `Versión corregida: ${run.retestSource.fileName} · SHA-256 ${run.retestSource.sha256.slice(0, 12)}…`
+                      : "VIGÍA vuelve a correr la misma prueba sobre el código con el parche aplicado."
+                  }
                 />
 
                 <Panel tone="neutral">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="font-mono text-[11px] text-ink-soft">
-                      vgi_test_runner_output
+                      resultado_del_retesteo
                     </span>
                     <Tag tone={retestPassed ? "safe" : "neutral"}>
                       {retestPassed ? "Pasado" : "Pendiente"}
@@ -224,24 +230,55 @@ export default async function RemediacionPage({
                       Retesteo pendiente
                     </p>
                     <p className="mt-1 text-[11.5px] leading-relaxed text-ink-muted">
-                      La firma solo se habilita cuando las pruebas adversariales vuelven
-                      a ejecutarse sobre la rama parcheada y pasan en su totalidad.
+                      Carga el código con el parche aplicado. La firma solo se habilita si
+                      la misma prueba ya no encuentra la falla.
                     </p>
+                    {selected.remediation.retestEvidence ? (
+                      <p className="mt-1.5 font-mono text-[11px] text-critical">
+                        {selected.remediation.retestEvidence}
+                      </p>
+                    ) : null}
+                    {error ? (
+                      <p className="mt-1.5 text-[11.5px] text-critical">
+                        No se pudo leer la versión corregida: carga un .zip de hasta 4 MB o la URL de un repositorio público de GitHub.
+                      </p>
+                    ) : null}
                   </Panel>
                 )}
 
                 <div className="mt-auto pt-5">
                   {!retestPassed ? (
-                    <form
-                      action={async () => {
-                        "use server";
-                        await retestear(selected.id);
-                      }}
-                    >
-                      <button type="submit" className={buttonClass("brand", true)}>
-                        Ejecutar retesteo adversarial
-                      </button>
-                    </form>
+                    <div className="space-y-3">
+                      {run.retestSource && !selected.remediation.retestEvidence ? (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await retestear(selected.id);
+                          }}
+                        >
+                          <button type="submit" className={buttonClass("brand", true)}>
+                            Retestear contra {run.retestSource.fileName}
+                          </button>
+                        </form>
+                      ) : null}
+                      <form action={retestearVersion} className="space-y-2">
+                        <input type="hidden" name="hallazgo" value={selected.id} />
+                        <label className="block text-[11.5px] text-ink-muted">
+                          {run.retestSource ? "Otra versión corregida (.zip)" : "Versión corregida del código (.zip)"}
+                          <input type="file" name="codigo" accept=".zip,application/zip" className={fieldClass} />
+                        </label>
+                        <input
+                          type="url"
+                          name="repositorio"
+                          placeholder="o https://github.com/organizacion/repositorio"
+                          aria-label="Repositorio público de GitHub con la versión corregida"
+                          className={fieldClass}
+                        />
+                        <button type="submit" className={buttonClass(run.retestSource ? "secondary" : "brand", true)}>
+                          Cargar y retestear
+                        </button>
+                      </form>
+                    </div>
                   ) : selected.remediation.status === "firmado" ? (
                     <Link
                       href="/auditoria/riesgos"
@@ -259,7 +296,8 @@ export default async function RemediacionPage({
                             required
                             minLength={3}
                             maxLength={120}
-                            autoComplete="name"
+                            readOnly
+                            defaultValue={user.name}
                             className={fieldClass}
                           />
                         </label>
@@ -271,6 +309,8 @@ export default async function RemediacionPage({
                             inputMode="numeric"
                             pattern="[0-9]{3,7}"
                             title="Solo números, de 3 a 7 dígitos"
+                            readOnly
+                            defaultValue={user.professionalCard}
                             className={fieldClass}
                           />
                         </label>
@@ -331,6 +371,14 @@ export default async function RemediacionPage({
                     <Mono key={line}>{line}</Mono>
                   ))}
                 </Panel>
+                <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                  <Link href={`/informe/${run.id}`} className={buttonClass("primary")}>
+                    Ver informe y guardar en PDF
+                  </Link>
+                  <p className="text-[11.5px] text-ink-muted">
+                    El representante legal también lo ve en su portal.
+                  </p>
+                </div>
               </div>
             ) : (
               <>
@@ -347,6 +395,9 @@ export default async function RemediacionPage({
                   >
                     Expedir informe de responsabilidad demostrada
                   </button>
+                  <Link href={`/informe/${run.id}`} className={cx(buttonClass("ghost"), "ml-2")}>
+                    Ver borrador
+                  </Link>
                 </form>
               </>
             )}

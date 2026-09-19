@@ -1,6 +1,6 @@
 import { currentPhase, overallProgress } from "@/engine/orchestrator";
 import { fail, ownedRun, present } from "@/server/http";
-import { bus, repository } from "@/server/store";
+import { repository } from "@/server/store";
 
 type Params = { params: Promise<{ runId: string }> };
 
@@ -9,15 +9,13 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/v1/runs/:runId/eventos — flujo de eventos de la auditoría (SSE).
  *
- * Emite dos tipos de evento: `log` por cada entrada de la traza y `estado` con
- * la instantánea de módulos y progreso. El cliente no consulta al orquestador:
- * se suscribe al bus, que es lo que permite sustituirlo por Redis Pub/Sub y
- * varios workers sin cambiar una línea de la interfaz.
+ * Emite dos tipos de evento: `log` por cada entrada nueva de la traza y
+ * `estado` con la instantánea de módulos y progreso. Lee del repositorio cada
+ * segundo, así que el orquestador puede correr en otra instancia o en un worker.
  */
 export async function GET(_request: Request, { params }: Params) {
   const { runId } = await params;
-  const run = await ownedRun(runId);
-  if (!run) return fail("Auditoría no encontrada", 404);
+  if (!(await ownedRun(runId))) return fail("Auditoría no encontrada", 404);
 
   const encoder = new TextEncoder();
 
@@ -36,9 +34,14 @@ export async function GET(_request: Request, { params }: Params) {
         }
       };
 
+      /* Envía la traza acumulada y luego solo lo nuevo, para que recargar la
+         página no pierda contexto. */
+      let sent = 0;
       const sendState = async () => {
         const current = await repository.find(runId);
         if (!current) return;
+        current.logs.slice(sent).forEach((entry) => send("log", entry));
+        sent = current.logs.length;
         send("estado", {
           ...present(current),
           progress: overallProgress(current),
@@ -49,17 +52,8 @@ export async function GET(_request: Request, { params }: Params) {
         }
       };
 
-      /* Reproduce la traza acumulada para que recargar la página no pierda
-         contexto, y luego sigue en vivo. */
-      run.logs.forEach((entry) => send("log", entry));
       void sendState();
-
-      const unsubscribe = bus.subscribe(runId, (entry) => {
-        send("log", entry);
-        void sendState();
-      });
-
-      const ticker = setInterval(() => void sendState(), 800);
+      const ticker = setInterval(() => void sendState(), 1000);
 
       const timeout = setTimeout(finish, 5 * 60 * 1000);
 
@@ -68,7 +62,6 @@ export async function GET(_request: Request, { params }: Params) {
         closed = true;
         clearInterval(ticker);
         clearTimeout(timeout);
-        unsubscribe();
         try {
           controller.close();
         } catch {

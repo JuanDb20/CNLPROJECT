@@ -13,6 +13,7 @@ import {
   buttonClass,
   cx,
 } from "@/components/ui";
+import { RedactedLine } from "@/components/redacted";
 import { FRAMEWORKS, getRules } from "@/domain/compliance";
 import { requireAnalyzedRun } from "@/server/session";
 
@@ -44,7 +45,7 @@ export default async function HallazgoPage({
     <div className="space-y-5">
       <div>
         <p className="font-mono text-[11px] text-ink-faint">
-          VIGÍA Vulnerability Report #{finding.code}
+          Informe de vulnerabilidad VIGÍA #{finding.code}
         </p>
         <h1 className="mt-1 text-[22px] font-semibold leading-tight tracking-tight text-ink">
           {finding.title}
@@ -105,12 +106,16 @@ export default async function HallazgoPage({
           <div className="mt-4">
             <Label>Evidencia en el código</Label>
             <Panel tone="critical" className="space-y-1.5 overflow-x-auto">
-              {finding.evidence.response.split("\n").map((line) => (
-                <Mono key={line} tone="critical" className="whitespace-pre">
-                  {line}
+              {finding.evidence.response.split("\n").map((line, i) => (
+                <Mono key={`${i}-${line}`} tone="critical" className="whitespace-pre">
+                  {line.includes("[ENMASCARADO]") ? <RedactedLine text={line} /> : line}
                 </Mono>
               ))}
             </Panel>
+            <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
+              Clic o Enter sobre un dato enmascarado lo ubica. VIGÍA nunca envía el dato real
+              al navegador: el motor lo enmascara antes de mostrar la evidencia.
+            </p>
           </div>
         </Card>
 

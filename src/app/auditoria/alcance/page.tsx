@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 import { alternarClausula, confirmarAlcance } from "@/app/actions";
 import {
   Card,
@@ -8,6 +10,7 @@ import {
   Tag,
   buttonClass,
   cx,
+  fieldClass,
 } from "@/components/ui";
 import { requireRun } from "@/server/session";
 
@@ -15,13 +18,24 @@ export const dynamic = "force-dynamic";
 
 export default async function AlcancePage() {
   const run = await requireRun();
-  const { client, source, clauses, signatories, dataMinimizationEnabled } = run.scope;
+  const { client, source, clauses, signatories, dataMinimizationEnabled, clientAcceptance } =
+    run.scope;
+  const h = await headers();
+  const clientLink = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}/cliente/${run.id}/${run.scope.clientToken}`;
 
   const pendingRequired = clauses.filter((c) => c.required && !c.accepted).length;
   const canContinue = pendingRequired === 0;
   const clientRows = [
     ["Cliente", client.name],
     ["NIT", client.nit],
+    [
+      "Registro mercantil",
+      client.rues
+        ? `${client.rues.name} · matrícula ${client.rues.status.toLowerCase()} · renovada en ${client.rues.renewed} (RUES)`
+        : client.rues === null
+          ? "El NIT no aparece en el RUES (datos abiertos de Confecámaras)"
+          : "",
+    ],
     ["Representante legal", client.legalRepresentative],
     ["Sector", client.sector],
     ["Sistema auditado", client.system],
@@ -147,6 +161,7 @@ export default async function AlcancePage() {
                   <button
                     type="submit"
                     aria-pressed={clause.accepted}
+                    disabled={clientAcceptance !== null}
                     className="group flex w-full items-start gap-2.5 rounded-[6px] p-1 text-left transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   >
                     <span
@@ -176,6 +191,29 @@ export default async function AlcancePage() {
               </li>
             ))}
           </ul>
+
+          {clientAcceptance ? (
+            <Panel tone="safe" className="mt-5">
+              <p className="text-[12px] text-safe">
+                Aceptado por {clientAcceptance.name} (C.C. {clientAcceptance.idNumber}) desde
+                el portal del cliente, el{" "}
+                {new Date(clientAcceptance.at).toLocaleString("es-CO", { timeZone: "America/Bogota" })}
+              </p>
+            </Panel>
+          ) : (
+            <div className="mt-5 rounded-[8px] border border-line bg-surface-muted p-3.5">
+              <Label>Enlace para el representante legal</Label>
+              <input readOnly value={clientLink} aria-label="Enlace del portal del cliente" className={cx(fieldClass, "font-mono text-[11px]")} />
+              <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+                Envíaselo a {client.legalRepresentative}: allí lee el acuerdo, lo acepta con su
+                nombre y cédula, y luego consulta el informe. Si el acuerdo se firmó por fuera de
+                VIGÍA, marca tú las cláusulas.{" "}
+                <a href={clientLink} target="_blank" rel="noreferrer" className="text-brand hover:underline">
+                  Abrir el portal del cliente ↗
+                </a>
+              </p>
+            </div>
+          )}
 
           <div className="mt-5 rounded-[8px] border border-line bg-surface-muted p-3.5">
             <Label>Firmantes autorizados</Label>

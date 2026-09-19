@@ -1,14 +1,20 @@
 import Link from "next/link";
 
-import { crearAuditoria } from "@/app/actions";
+import { crearAuditoria, crearAuditoriaEjemplo } from "@/app/actions";
 import { Card, CardHeader, Panel, buttonClass, fieldClass } from "@/components/ui";
 
 const SECTORS = [
-  "Financiero y fintech",
-  "Salud",
-  "Comercio electrónico",
-  "Educación",
-  "Telecomunicaciones",
+  "Financiero y fintech (Superfinanciera)",
+  "Seguros (Superfinanciera)",
+  "Salud (Supersalud)",
+  "Comercio electrónico y retail (SIC)",
+  "Servicios públicos domiciliarios (SSPD)",
+  "Transporte (Supertransporte)",
+  "Vigilancia y seguridad privada (Supervigilancia)",
+  "Economía solidaria (Supersolidaria)",
+  "Sociedades e industria (Supersociedades)",
+  "Educación (Mineducación)",
+  "Telecomunicaciones (MinTIC/CRC)",
   "Sector público",
   "Otro",
 ];
@@ -37,12 +43,26 @@ export default async function NuevaAuditoriaPage({
         </p>
       </div>
 
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[12.5px] leading-relaxed text-ink-soft">
+            ¿Solo estás probando el sistema? Abre una auditoría con un cliente y un
+            código de ejemplo (con fallas reales, no precalculadas) sin llenar nada.
+          </p>
+          <form action={crearAuditoriaEjemplo}>
+            <button type="submit" className={buttonClass("secondary")}>
+              Usar datos de ejemplo
+            </button>
+          </form>
+        </div>
+      </Panel>
+
       {error ? (
         <Panel tone="critical">
           <p className="text-[12.5px] text-critical">
-            No se pudo abrir la auditoría. Revisa que el cliente, el NIT y el representante
-            legal estén completos, y que el código sea un .zip de hasta 10 MB con archivos
-            de texto.
+            No se pudo abrir la auditoría. Revisa que el cliente, el NIT (con su dígito de verificación) y el representante
+            legal estén completos, y que el código sea un .zip de hasta 4 MB con archivos
+            de texto o un repositorio público de GitHub.
           </p>
         </Panel>
       ) : null}
@@ -66,7 +86,7 @@ export default async function NuevaAuditoriaPage({
                 required
                 minLength={5}
                 maxLength={30}
-                placeholder="900.123.456-7"
+                placeholder="902.999.990-6"
                 className={fieldClass}
               />
             </label>
@@ -115,18 +135,30 @@ export default async function NuevaAuditoriaPage({
               />
             </label>
             <label className="block text-[12px] text-ink-soft">
-              Código fuente (.zip, hasta 10 MB)
+              Código fuente (.zip, hasta 4 MB)
               <input
                 name="codigo"
                 type="file"
                 accept=".zip,application/zip"
-                required
                 className="mt-1 block w-full rounded-[7px] border border-dashed border-line-strong bg-surface-muted px-3 py-3 text-[12.5px] text-ink-soft file:mr-3 file:rounded-[6px] file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-[12px] file:text-canvas"
               />
               <span className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
                 Comprime la carpeta del proyecto. VIGÍA ignora node_modules, .git y los
                 archivos binarios, y calcula el SHA-256 del .zip para fijar la versión
                 auditada.
+              </span>
+            </label>
+            <label className="block text-[12px] text-ink-soft">
+              O repositorio público de GitHub
+              <input
+                name="repositorio"
+                type="url"
+                placeholder="https://github.com/organizacion/proyecto"
+                pattern="https://github\.com/[\w.\-]+/[\w.\-]+/?"
+                className={fieldClass}
+              />
+              <span className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
+                VIGÍA descarga la rama principal. Si llenas los dos, se usa el repositorio.
               </span>
             </label>
           </div>

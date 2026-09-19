@@ -1,4 +1,4 @@
-import { inflateRawSync } from "node:zlib";
+import { deflateRawSync, inflateRawSync } from "node:zlib";
 
 import type { RepoFile } from "@/domain/types";
 
@@ -62,4 +62,53 @@ function stripRoot(files: RepoFile[]): RepoFile[] {
   const root = files[0]?.path.split("/")[0];
   if (!root || !files.every((f) => f.path.startsWith(`${root}/`))) return files;
   return files.map((f) => ({ ...f, path: f.path.slice(root.length + 1) }));
+}
+
+/**
+ * Empaqueta archivos en memoria como un .zip que `readZip` puede leer, para
+ * auditorías de ejemplo que no vienen de una carga real. No valida CRC (nadie
+ * más abre este archivo), así que lo deja en 0.
+ */
+export function writeZip(files: RepoFile[]): Buffer {
+  const locals: Buffer[] = [];
+  const central: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = Buffer.from(file.path, "utf8");
+    const data = Buffer.from(file.content, "utf8");
+    const compressed = deflateRawSync(data);
+
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    locals.push(local, name, compressed);
+
+    const header = Buffer.alloc(46);
+    header.writeUInt32LE(0x02014b50, 0);
+    header.writeUInt16LE(20, 4);
+    header.writeUInt16LE(20, 6);
+    header.writeUInt16LE(8, 10);
+    header.writeUInt32LE(compressed.length, 20);
+    header.writeUInt32LE(data.length, 24);
+    header.writeUInt16LE(name.length, 28);
+    header.writeUInt32LE(offset, 42);
+    central.push(header, name);
+
+    offset += local.length + name.length + compressed.length;
+  }
+
+  const centralBuf = Buffer.concat(central);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(centralBuf.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+
+  return Buffer.concat([...locals, centralBuf, eocd]);
 }

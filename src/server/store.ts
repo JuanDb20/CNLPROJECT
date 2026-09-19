@@ -1,21 +1,17 @@
 import { randomBytes } from "node:crypto";
 
-import type {
-  AuditRun,
-  ConformityCertificate,
-  LogEntry,
-  RepoFile,
-  User,
-} from "@/domain/types";
+import type { AuditRun, ConformityCertificate, RepoFile, User } from "@/domain/types";
+
+import { readZip } from "./zip";
 
 /**
- * Capa de persistencia y de eventos.
+ * Capa de persistencia.
  *
- * `AccountRepository`, `AuditRepository` y `EventBus` son las únicas puertas por
- * las que la aplicación toca estado mutable. La implementación de este MVP vive en memoria;
- * sustituirla por Postgres (repositorio) y Redis Pub/Sub (bus) no exige cambios
- * en el dominio, en el motor ni en la interfaz, porque nadie fuera de este
- * archivo conoce el mecanismo de almacenamiento.
+ * `AccountRepository` y `AuditRepository` son las únicas puertas por las que la
+ * aplicación toca estado. Ambas se apoyan en un almacén clave-valor: Redis
+ * (Upstash, por su API REST) cuando el despliegue define sus variables de
+ * entorno, y memoria en desarrollo local. En Vercel cada ruta puede correr en
+ * una instancia distinta, así que en producción el estado vive en Redis.
  */
 
 export interface AccountRepository {
@@ -29,151 +25,131 @@ export interface AccountRepository {
 }
 
 export interface AuditRepository {
-  /** Guarda la auditoría y el código cargado, que se almacena aparte. */
-  create(run: AuditRun, files: RepoFile[]): Promise<AuditRun>;
+  /** Guarda la auditoría y el .zip cargado, que se almacena aparte. */
+  create(run: AuditRun, zip: Buffer): Promise<AuditRun>;
   find(id: string): Promise<AuditRun | null>;
   listByOwner(ownerId: string): Promise<AuditRun[]>;
-  files(runId: string): Promise<RepoFile[]>;
-  /** Mutación transaccional: recibe el estado actual y devuelve el nuevo. */
+  /** Archivos del .zip original o, con `corregido`, de la versión corregida. */
+  files(runId: string, version?: "corregido"): Promise<RepoFile[]>;
+  saveCorrected(runId: string, zip: Buffer): Promise<void>;
+  /** Lee, aplica la mutación y guarda el nuevo estado. */
   update(id: string, mutate: (run: AuditRun) => AuditRun): Promise<AuditRun>;
   saveCertificate(cert: ConformityCertificate): Promise<ConformityCertificate>;
   latestCertificateHash(): Promise<string>;
 }
 
-export interface EventBus {
-  publish(runId: string, entry: LogEntry): void;
-  subscribe(runId: string, listener: (entry: LogEntry) => void): () => void;
+/* ------------------------------------------------------------------ */
+/* Almacén clave-valor                                                 */
+/* ------------------------------------------------------------------ */
+
+interface KV {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, ttlSeconds?: number): Promise<void>;
+  del(key: string): Promise<void>;
 }
 
+function redis(url: string, token: string): KV {
+  const cmd = async (...args: Array<string | number>) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(args),
+      cache: "no-store",
+    });
+    const body = (await res.json()) as { result?: unknown; error?: string };
+    if (!res.ok || body.error) throw new Error(`Redis: ${body.error ?? res.status}`);
+    return body.result;
+  };
+  return {
+    get: async (key) => (await cmd("GET", key)) as string | null,
+    set: async (key, value, ttl) => void (await cmd("SET", key, value, ...(ttl ? ["EX", ttl] : []))),
+    del: async (key) => void (await cmd("DEL", key)),
+  };
+}
+
+// ponytail: en memoria las sesiones no caducan; la cookie sí (8 h).
+function memory(): KV {
+  const map = new Map<string, string>();
+  return {
+    get: async (key) => map.get(key) ?? null,
+    set: async (key, value) => void map.set(key, value),
+    del: async (key) => void map.delete(key),
+  };
+}
+
+const REDIS_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+
+/** En desarrollo Next recarga los módulos; la memoria se cuelga de `globalThis`. */
+const globalRef = globalThis as typeof globalThis & { __vigiaKV?: KV };
+const kv: KV =
+  REDIS_URL && REDIS_TOKEN ? redis(REDIS_URL, REDIS_TOKEN) : (globalRef.__vigiaKV ??= memory());
+
+const json = async <T>(key: string): Promise<T | null> => {
+  const value = await kv.get(key);
+  return value ? (JSON.parse(value) as T) : null;
+};
+const put = (key: string, value: unknown) => kv.set(key, JSON.stringify(value));
+
 /* ------------------------------------------------------------------ */
-/* Implementación en memoria                                           */
+/* Repositorios                                                        */
 /* ------------------------------------------------------------------ */
 
-class MemoryAccounts implements AccountRepository {
-  private users = new Map<string, User>();
-  private sessions = new Map<string, string>();
+const SESSION_SECONDS = 60 * 60 * 8;
+const ZIP_SECONDS = 60 * 60 * 24 * 90;
 
-  async create(user: User) {
-    this.users.set(user.id, user);
+export const accounts: AccountRepository = {
+  async create(user) {
+    await put(`user:${user.id}`, user);
+    await kv.set(`email:${user.email}`, user.id);
     return user;
-  }
-
-  async find(id: string) {
-    return this.users.get(id) ?? null;
-  }
-
-  async findByEmail(email: string) {
-    return [...this.users.values()].find((u) => u.email === email) ?? null;
-  }
-
-  async openSession(userId: string) {
+  },
+  find: (id) => json<User>(`user:${id}`),
+  async findByEmail(email) {
+    const id = await kv.get(`email:${email}`);
+    return id ? json<User>(`user:${id}`) : null;
+  },
+  async openSession(userId) {
     const token = randomBytes(32).toString("hex");
-    this.sessions.set(token, userId);
+    await kv.set(`session:${token}`, userId, SESSION_SECONDS);
     return token;
-  }
+  },
+  sessionUser: (token) => kv.get(`session:${token}`),
+  closeSession: (token) => kv.del(`session:${token}`),
+};
 
-  async sessionUser(token: string) {
-    return this.sessions.get(token) ?? null;
-  }
-
-  async closeSession(token: string) {
-    this.sessions.delete(token);
-  }
-}
-
-class MemoryRepository implements AuditRepository {
-  private runs = new Map<string, AuditRun>();
-  private sources = new Map<string, RepoFile[]>();
-  private certificates: ConformityCertificate[] = [];
-
-  async create(run: AuditRun, files: RepoFile[]) {
-    this.runs.set(run.id, run);
-    this.sources.set(run.id, files);
+// ponytail: update es leer-modificar-escribir sin bloqueo; basta porque cada
+// auditoría la escribe un solo proceso a la vez. Con Postgres, SELECT … FOR UPDATE.
+export const repository: AuditRepository = {
+  async create(run, zip) {
+    // Temporalidad (Decreto 1377 art. 11): el código se borra a los 90 días; queda su SHA-256.
+    await kv.set(`zip:${run.id}`, zip.toString("base64"), ZIP_SECONDS);
+    await put(`run:${run.id}`, run);
+    const ids = (await json<string[]>(`owner:${run.ownerId}`)) ?? [];
+    await put(`owner:${run.ownerId}`, [run.id, ...ids]);
     return run;
-  }
-
-  async find(id: string) {
-    return this.runs.get(id) ?? null;
-  }
-
-  async listByOwner(ownerId: string) {
-    return [...this.runs.values()]
-      .filter((r) => r.ownerId === ownerId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-
-  async files(runId: string) {
-    return this.sources.get(runId) ?? [];
-  }
-
-  async update(id: string, mutate: (run: AuditRun) => AuditRun) {
-    const current = this.runs.get(id);
+  },
+  find: (id) => json<AuditRun>(`run:${id}`),
+  async listByOwner(ownerId) {
+    const ids = (await json<string[]>(`owner:${ownerId}`)) ?? [];
+    const runs = await Promise.all(ids.map((id) => json<AuditRun>(`run:${id}`)));
+    return runs.filter((run): run is AuditRun => run !== null);
+  },
+  async files(runId, version) {
+    const zip = await kv.get(version ? `zip:${runId}:${version}` : `zip:${runId}`);
+    return zip ? readZip(Buffer.from(zip, "base64")) : [];
+  },
+  saveCorrected: (runId, zip) => kv.set(`zip:${runId}:corregido`, zip.toString("base64"), ZIP_SECONDS),
+  async update(id, mutate) {
+    const current = await json<AuditRun>(`run:${id}`);
     if (!current) throw new Error(`Auditoría no encontrada: ${id}`);
     const next = mutate(current);
-    this.runs.set(id, next);
+    await put(`run:${id}`, next);
     return next;
-  }
-
-  async saveCertificate(cert: ConformityCertificate) {
-    this.certificates.push(cert);
+  },
+  async saveCertificate(cert) {
+    await kv.set("certificado:ultimo", cert.hash);
     return cert;
-  }
-
-  async latestCertificateHash() {
-    const last = this.certificates.at(-1);
-    return last ? last.hash : "0".repeat(16);
-  }
-}
-
-class MemoryEventBus implements EventBus {
-  private listeners = new Map<string, Set<(entry: LogEntry) => void>>();
-
-  publish(runId: string, entry: LogEntry) {
-    this.listeners.get(runId)?.forEach((listener) => {
-      try {
-        listener(entry);
-      } catch {
-        /* un suscriptor caído no puede tumbar la publicación */
-      }
-    });
-  }
-
-  subscribe(runId: string, listener: (entry: LogEntry) => void) {
-    const set = this.listeners.get(runId) ?? new Set();
-    set.add(listener);
-    this.listeners.set(runId, set);
-    return () => {
-      set.delete(listener);
-      if (set.size === 0) this.listeners.delete(runId);
-    };
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Singleton                                                           */
-/* ------------------------------------------------------------------ */
-
-/**
- * En desarrollo Next recarga los módulos en cada cambio, así que el estado se
- * cuelga de `globalThis` para no perder la auditoría en curso entre recargas.
- */
-interface VigiaGlobal {
-  accounts?: AccountRepository;
-  repository?: AuditRepository;
-  bus?: EventBus;
-  /** Auditorías cuyo orquestador ya está corriendo, para no duplicarlo. */
-  running?: Set<string>;
-}
-
-const globalRef = globalThis as typeof globalThis & { __vigia?: VigiaGlobal };
-globalRef.__vigia ??= {};
-
-export const accounts: AccountRepository = (globalRef.__vigia.accounts ??=
-  new MemoryAccounts());
-
-export const repository: AuditRepository = (globalRef.__vigia.repository ??=
-  new MemoryRepository());
-
-export const bus: EventBus = (globalRef.__vigia.bus ??= new MemoryEventBus());
-
-export const runningRuns: Set<string> = (globalRef.__vigia.running ??= new Set());
+  },
+  latestCertificateHash: async () => (await kv.get("certificado:ultimo")) ?? "0".repeat(16),
+};

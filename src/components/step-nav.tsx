@@ -1,9 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import type { MouseEvent } from "react";
 
 import { cx } from "./ui";
+
+// ponytail: startViewTransition espera a que su callback resuelva antes de
+// capturar el estado "después"; el router de Next no expone cuándo terminó
+// de pintar la nueva ruta, así que se aproxima con dos frames. Si Next
+// adopta su integración nativa de View Transitions, esto se reemplaza por esa.
+function afterNextPaint(): Promise<void> {
+  return new Promise((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+}
 
 export const STEPS = [
   { n: 1, label: "Onboarding & Alcance", href: "/auditoria/alcance" },
@@ -68,9 +79,22 @@ function StepIcon({ n, active }: { n: number; active: boolean }) {
 
 export function StepNav() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
+
+  const go = (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (typeof document === "undefined" || !document.startViewTransition) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    event.preventDefault();
+    document.startViewTransition(async () => {
+      router.push(href);
+      await afterNextPaint();
+    });
+  };
 
   return (
     <nav aria-label="Fases de la auditoría" className="lg:px-0">
@@ -81,7 +105,9 @@ export function StepNav() {
             <li key={step.href} className="shrink-0 lg:shrink">
               <Link
                 href={step.href}
+                onClick={go(step.href)}
                 aria-current={active ? "step" : undefined}
+                style={active ? { viewTransitionName: "vigia-step-pill" } : undefined}
                 className={cx(
                   "flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition-colors",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",

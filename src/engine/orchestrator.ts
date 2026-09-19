@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { after } from "next/server";
 
 import { buildClauses, detectProviders, runChecks } from "@/domain/checks";
 import { ALL_FRAMEWORK_IDS, getRules } from "@/domain/compliance";
@@ -9,21 +10,24 @@ import type {
   LogEntry,
   LogLevel,
   ModuleId,
+  RepoFile,
   User,
 } from "@/domain/types";
-import { bus, repository, runningRuns } from "@/server/store";
-import { readZip } from "@/server/zip";
+import { EXAMPLE_FILES } from "@/server/example-repo";
+import { dependencyAdvisories } from "@/server/osv";
+import { repository } from "@/server/store";
+import { readZip, writeZip } from "@/server/zip";
 
 import { MODULES, initialModuleStates, isModuleEnabled } from "./modules";
 
 /**
  * Orquestador de la auditoría.
  *
- * Recorre los módulos habilitados, emite la traza y acumula los hallazgos. En
- * este MVP corre como una tarea en proceso; en la arquitectura objetivo el
- * mismo contrato (`startExecution` encola, los módulos publican en el bus) se
- * satisface con una cola de trabajos y workers aislados por cliente, sin que la
- * interfaz note la diferencia porque consume el bus y no el orquestador.
+ * Recorre los módulos habilitados, escribe la traza y acumula los hallazgos en
+ * el repositorio. En este MVP corre en la misma función que recibe la orden,
+ * después de responder (`after`); en la arquitectura objetivo lo toma una cola
+ * de trabajos con workers aislados por cliente. La interfaz no nota la
+ * diferencia porque lee el progreso del repositorio, no del orquestador.
  */
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -32,7 +36,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /* Creación y preparación                                              */
 /* ------------------------------------------------------------------ */
 
-const MAX_ZIP_BYTES = 10 * 1024 * 1024;
+// Vercel rechaza peticiones de más de 4,5 MB.
+const MAX_ZIP_BYTES = 4 * 1024 * 1024;
 
 /**
  * Abre una auditoría con los datos del cliente y el código en .zip. Es la única
@@ -47,21 +52,51 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
     sector: text("sector", 60),
     system: text("sistema", 1000),
   };
-  if (client.name.length < 2 || client.nit.length < 5 || client.legalRepresentative.length < 3) {
+  if (client.name.length < 2 || client.legalRepresentative.length < 3) {
     throw new Error("Indica el cliente, su NIT y su representante legal");
   }
-
-  const file = form.get("codigo");
-  if (!(file instanceof File) || !/\.zip$/i.test(file.name) || file.size === 0) {
-    throw new Error("Carga el código del sistema en un archivo .zip");
+  const [nit, dv] = client.nit.replace(/[.\s]/g, "").split("-");
+  if (!/^\d{6,10}$/.test(nit ?? "") || (dv !== undefined && Number(dv) !== nitCheckDigit(nit))) {
+    throw new Error("El NIT o su dígito de verificación no son válidos");
   }
-  if (file.size > MAX_ZIP_BYTES) throw new Error("El .zip supera 10 MB");
+  client.nit = `${nit.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${nitCheckDigit(nit)}`;
+  const rues = await ruesLookup(nit);
+  if (rues !== undefined) client.rues = rues;
 
-  const zip = Buffer.from(await file.arrayBuffer());
+  const { fileName, zip } = await sourceZip(text("repositorio", 300), form.get("codigo"));
   const files = readZip(zip);
   if (files.length === 0) throw new Error("El .zip no contiene archivos de código legibles");
 
-  const id = randomUUID().slice(0, 8);
+  return createRun(owner, client, fileName, zip, files);
+}
+
+const EXAMPLE_CLIENT: ClientInfo = {
+  name: "Fintrex S.A.S.",
+  // NIT ficticio con dígito de verificación correcto y sin registro en el RUES.
+  nit: "902.999.990-6",
+  legalRepresentative: "Camila Rueda Ospina",
+  sector: "Financiero y fintech",
+  system: "Asistente de chat para clientes, con vinculación digital por selfie y cédula.",
+};
+
+/**
+ * Abre una auditoría con un cliente y un código de ejemplo (fallas reales,
+ * detectadas por el mismo catálogo de pruebas), para probar el flujo sin
+ * tener que llenar el formulario ni cargar un .zip.
+ */
+export async function createExampleRun(owner: User): Promise<AuditRun> {
+  const zip = writeZip(EXAMPLE_FILES);
+  return createRun(owner, EXAMPLE_CLIENT, "ejemplo-fintrex.zip", zip, EXAMPLE_FILES);
+}
+
+function createRun(
+  owner: User,
+  client: ClientInfo,
+  fileName: string,
+  zip: Buffer,
+  files: RepoFile[],
+): Promise<AuditRun> {
+  const id = randomUUID().replaceAll("-", "").slice(0, 12);
   const now = new Date().toISOString();
   const run: AuditRun = {
     id,
@@ -71,7 +106,7 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
     scope: {
       client,
       source: {
-        fileName: file.name.slice(0, 200),
+        fileName,
         sha256: createHash("sha256").update(zip).digest("hex"),
         bytes: zip.length,
         fileCount: files.length,
@@ -91,6 +126,8 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
       sandboxId: `sandbox-${id}`,
       dataMinimizationEnabled: true,
       authorizedAt: null,
+      clientToken: randomUUID().replaceAll("-", ""),
+      clientAcceptance: null,
     },
     config: {
       frameworks: ALL_FRAMEWORK_IDS,
@@ -103,7 +140,64 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
     findings: [],
     certificate: null,
   };
-  return repository.create(run, files);
+  return repository.create(run, zip);
+}
+
+/** Dígito de verificación de la DIAN: pesos primos de derecha a izquierda, módulo 11. */
+export function nitCheckDigit(nit: string): number {
+  const weights = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71];
+  const sum = [...nit].reverse().reduce((acc, d, i) => acc + Number(d) * weights[i], 0) % 11;
+  return sum > 1 ? 11 - sum : sum;
+}
+
+/**
+ * Matrícula del cliente en el RUES, por los datos abiertos de Confecámaras en
+ * datos.gov.co (sin llave). undefined si no responde: la auditoría no depende de ello.
+ */
+async function ruesLookup(nit: string): Promise<ClientInfo["rues"]> {
+  try {
+    const res = await fetch(
+      `https://www.datos.gov.co/resource/c82u-588k.json?nit=${nit}&$select=razon_social,estado_matricula,cod_ciiu_act_econ_pri,ultimo_ano_renovado&$order=ultimo_ano_renovado DESC&$limit=1`,
+      { signal: AbortSignal.timeout(5000), cache: "no-store" },
+    );
+    if (!res.ok) return undefined;
+    const [row] = (await res.json()) as Array<Record<string, string>>;
+    return row
+      ? { name: row.razon_social, status: row.estado_matricula, ciiu: row.cod_ciiu_act_econ_pri, renewed: row.ultimo_ano_renovado }
+      : null;
+  } catch {
+    return undefined;
+  }
+}
+
+/** El código llega en .zip o se descarga de un repositorio público de GitHub. */
+export async function sourceZip(repoUrl: string, file: FormDataEntryValue | null) {
+  if (repoUrl) {
+    const repo = repoUrl.match(/^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/);
+    if (!repo) throw new Error("Indica la URL de un repositorio de GitHub");
+    // Host fijo y nombre validado: el usuario no elige a qué servidor se conecta VIGÍA.
+    const res = await fetch(`https://codeload.github.com/${repo[1]}/${repo[2]}/zip/HEAD`, {
+      cache: "no-store",
+    });
+    if (!res.ok || !res.body) throw new Error("No se pudo descargar: el repositorio debe ser público");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const reader = res.body.getReader();
+    for (let part = await reader.read(); !part.done; part = await reader.read()) {
+      size += part.value.length;
+      if (size > MAX_ZIP_BYTES) {
+        await reader.cancel();
+        throw new Error("El repositorio comprimido supera 4 MB");
+      }
+      chunks.push(Buffer.from(part.value));
+    }
+    return { fileName: `github.com/${repo[1]}/${repo[2]}`, zip: Buffer.concat(chunks) };
+  }
+  if (!(file instanceof File) || !/\.zip$/i.test(file.name) || file.size === 0) {
+    throw new Error("Carga el código del sistema en un archivo .zip");
+  }
+  if (file.size > MAX_ZIP_BYTES) throw new Error("El .zip supera 4 MB");
+  return { fileName: file.name.slice(0, 200), zip: Buffer.from(await file.arrayBuffer()) };
 }
 
 export async function acceptClause(
@@ -118,6 +212,35 @@ export async function acceptClause(
       clauses: run.scope.clauses.map((c) =>
         c.id === clauseId ? { ...c, accepted } : c,
       ),
+    },
+  }));
+}
+
+/** El representante legal acepta todo el acuerdo desde su portal, con nombre y cédula. */
+export async function acceptScopeAsClient(
+  runId: string,
+  name: string,
+  idNumber: string,
+): Promise<AuditRun> {
+  name = name.trim().slice(0, 120);
+  idNumber = idNumber.replace(/\D/g, "");
+  if (name.length < 3 || idNumber.length < 5 || idNumber.length > 12) {
+    throw new Error("Indica tu nombre completo y tu número de cédula");
+  }
+  return repository.update(runId, (run) => ({
+    ...run,
+    scope: {
+      ...run.scope,
+      clauses: run.scope.clauses.map((c) => ({ ...c, accepted: true })),
+      // Firma electrónica (Decreto 2364 de 2012): el registro queda atado al texto que se aceptó.
+      clientAcceptance: {
+        name,
+        idNumber,
+        at: new Date().toISOString(),
+        clausesSha256: createHash("sha256")
+          .update(JSON.stringify(run.scope.clauses.map((c) => [c.label, c.detail])))
+          .digest("hex"),
+      },
     },
   }));
 }
@@ -165,9 +288,8 @@ async function log(
   module: ModuleId | "orchestrator",
   message: string,
 ): Promise<void> {
-  let entry: LogEntry | null = null;
   await repository.update(runId, (run) => {
-    entry = {
+    const entry: LogEntry = {
       seq: run.logs.length + 1,
       at: new Date().toISOString(),
       level,
@@ -176,7 +298,6 @@ async function log(
     };
     return { ...run, logs: [...run.logs, entry] };
   });
-  if (entry) bus.publish(runId, entry);
 }
 
 /* ------------------------------------------------------------------ */
@@ -184,8 +305,8 @@ async function log(
 /* ------------------------------------------------------------------ */
 
 /**
- * Lanza la ejecución y devuelve de inmediato. El progreso se consume por el bus
- * de eventos, igual que ocurriría con un worker externo.
+ * Lanza la ejecución y devuelve de inmediato. El progreso se lee del
+ * repositorio, igual que ocurriría con un worker externo.
  */
 export async function startExecution(runId: string): Promise<AuditRun> {
   const run = await repository.find(runId);
@@ -193,9 +314,10 @@ export async function startExecution(runId: string): Promise<AuditRun> {
   if (!run.scope.authorizedAt) {
     throw new Error("La auditoría no tiene alcance autorizado");
   }
-  if (runningRuns.has(runId)) return run;
+  // Una ejecución sin traza en el último minuto se da por caída y se relanza.
+  const lastActivity = Date.parse(run.logs.at(-1)?.at ?? run.createdAt);
+  if (run.status === "ejecutando" && Date.now() - lastActivity < 60_000) return run;
 
-  runningRuns.add(runId);
   const started = await repository.update(runId, (current) => ({
     ...current,
     status: "ejecutando",
@@ -205,7 +327,7 @@ export async function startExecution(runId: string): Promise<AuditRun> {
     certificate: null,
   }));
 
-  void execute(runId).finally(() => runningRuns.delete(runId));
+  after(() => execute(runId));
   return started;
 }
 
@@ -215,7 +337,7 @@ async function execute(runId: string): Promise<void> {
 
   const selected = run.config.frameworks;
   const files = await repository.files(runId);
-  const catalog = runChecks(files, run.scope.client.name);
+  const catalog = runChecks(files, run.scope.client.name, await dependencyAdvisories(files));
 
   await log(
     runId,

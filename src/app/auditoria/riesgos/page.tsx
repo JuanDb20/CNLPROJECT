@@ -1,3 +1,4 @@
+import { RiskGauge } from "@/components/risk-gauge";
 import { Card, cx } from "@/components/ui";
 import { FRAMEWORKS, getRules } from "@/domain/compliance";
 import { WEIGHT, isResolved, scoreRun, sortFindings } from "@/domain/scoring";
@@ -96,10 +97,8 @@ export default async function RiesgosPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4 sm:p-5">
-          <div className="flex items-baseline gap-2.5">
-            <p className="text-[34px] font-semibold leading-none text-ink">
-              {score.score}
-            </p>
+          <div className="flex items-center gap-3">
+            <RiskGauge score={score.score} level={score.level} />
             <p className="text-[11px] leading-tight text-ink-muted">
               Puntuación de
               <br />
