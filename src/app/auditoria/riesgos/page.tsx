@@ -1,10 +1,12 @@
 import { Card, cx } from "@/components/ui";
 import { FRAMEWORKS, getRules } from "@/domain/compliance";
-import { isResolved, scoreRun, sortFindings } from "@/domain/scoring";
+import { WEIGHT, isResolved, scoreRun, sortFindings } from "@/domain/scoring";
 import type { FrameworkId } from "@/domain/types";
 import { requireAnalyzedRun } from "@/server/session";
 
 import { RiskList, type FilterOption, type RiskRow } from "./risk-list";
+
+const fmt = (n: number) => n.toLocaleString("es-CO");
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,7 @@ const KIND_LABEL = {
   juridico: "Jurídica",
   tecnico: "Técnica",
   interfaz: "Interfaz",
+  comparado: "Comparada",
 } as const;
 
 const LEVEL_LABEL = { bajo: "Bajo", medio: "Medio", alto: "Alto" } as const;
@@ -133,15 +136,19 @@ export default async function RiesgosPage() {
         />
       </div>
 
+      <p className="text-[11.5px] leading-relaxed text-ink-muted">
+        Cómo se calcula: 100 menos {fmt(WEIGHT.critico)} por cada crítico,{" "}
+        {fmt(WEIGHT.advertencia)} por cada advertencia y {fmt(WEIGHT.informativo)} por
+        cada informativo sin firmar; sube solo cuando el abogado firma la remediación
+        tras un retesteo en verde. Es un índice para priorizar, no una estimación de la
+        multa: la SIC gradúa las sanciones con los criterios del art. 24 de la Ley 1581
+        (daño o peligro causado, beneficio económico, reincidencia, obstrucción,
+        renuencia y reconocimiento de la infracción).
+      </p>
+
       <Card>
         <RiskList rows={rows} filters={filters} />
       </Card>
-
-      <p className="text-[11px] leading-relaxed text-ink-faint">
-        La puntuación penaliza cada hallazgo abierto según su severidad (crítico 9,
-        advertencia 3,5, informativo 0,5 sobre 100) y sube únicamente cuando la
-        remediación queda firmada tras un retesteo en verde.
-      </p>
     </div>
   );
 }

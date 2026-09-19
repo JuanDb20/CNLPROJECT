@@ -117,7 +117,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
           Ejecución de pruebas adversariales
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Equipo rojo en vivo sobre el sandbox autorizado
+          Equipo rojo en vivo en el entorno aislado autorizado
         </p>
       </div>
 
@@ -231,8 +231,8 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
             </a>
           ) : (
             <p className="mt-4 text-[11px] leading-relaxed text-ink-muted">
-              Los payloads se ejecutan contra {run.scope.sandboxId}. Cada entrada de la
-              traza queda sellada para el informe forense.
+              El análisis corre en {run.scope.sandboxId}, sobre el código cargado. Cada
+              entrada de la traza queda sellada para el informe forense.
             </p>
           )}
         </Card>

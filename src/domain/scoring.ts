@@ -9,7 +9,7 @@ import type { AuditRun, Finding, RunScore, Severity } from "./types";
  * pueda citar la fórmula exacta.
  */
 
-const WEIGHT: Record<Severity, number> = {
+export const WEIGHT: Record<Severity, number> = {
   critico: 9,
   advertencia: 3.5,
   informativo: 0.5,

@@ -1,33 +1,12 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AccountChip, Logo } from "@/components/shell";
 import { StepNav } from "@/components/step-nav";
-import { ShieldIcon } from "@/components/ui";
-import { SANDBOX_ID } from "@/domain/scenarios";
+import { requireUser } from "@/server/auth";
+import { requireRun } from "@/server/session";
 
-const OPERATOR = "legal.ops@fintrex.ai";
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span
-        aria-hidden
-        className="grid size-7 place-items-center rounded-full border border-line-strong text-ink"
-      >
-        <ShieldIcon className="size-[15px]" />
-      </span>
-      <span className="leading-none">
-        <span className="block text-[15px] font-semibold tracking-[0.14em] text-ink">
-          VIGÍA
-        </span>
-        <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.18em] text-ink-faint">
-          Red Team IA
-        </span>
-      </span>
-    </div>
-  );
-}
-
-function SandboxBadge() {
+function SandboxBadge({ sandboxId }: { sandboxId: string }) {
   return (
     <div className="rounded-[8px] border border-line bg-surface-muted p-3">
       <p className="flex items-center gap-2 text-[11px] font-medium text-safe">
@@ -35,13 +14,16 @@ function SandboxBadge() {
         Entorno seguro activo
       </p>
       <p className="mt-1.5 text-[11px] leading-relaxed text-ink-muted">
-        Pruebas autorizadas en <span className="font-mono">{SANDBOX_ID}</span>
+        Pruebas autorizadas en <span className="font-mono">{sandboxId}</span>
       </p>
     </div>
   );
 }
 
-export default function AuditoriaLayout({ children }: { children: ReactNode }) {
+export default async function AuditoriaLayout({ children }: { children: ReactNode }) {
+  const user = await requireUser();
+  const run = await requireRun();
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1320px] flex-col gap-0 px-4 py-4 sm:px-6 lg:flex-row lg:gap-7 lg:py-6">
       {/* Columna de navegación */}
@@ -54,35 +36,38 @@ export default function AuditoriaLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
-          <SandboxBadge />
+          <SandboxBadge sandboxId={run.scope.sandboxId} />
           <p className="px-1 text-[10px] leading-relaxed text-ink-faint">
-            Conforme a Ley 1581 de 2012, Ley 1266 de 2008, RGPD y EU AI Act Art. 50.
-            Acceso restringido.
+            Marco: Ley 1581 de 2012 y su reglamentación, Ley 1266 de 2008 y Ley 1480 de
+            2011. RGPD y AI Act solo como referencia comparada.
           </p>
         </div>
       </aside>
 
       {/* Columna de contenido */}
       <div className="mt-4 min-w-0 flex-1 lg:mt-0">
-        <header className="mb-5 flex flex-wrap items-center justify-end gap-3">
-          <span className="rounded-[5px] border border-warning-soft bg-warning-soft px-2 py-[3px] font-mono text-[10px] font-medium uppercase tracking-wider text-warning">
-            Red team autorizado
-          </span>
-          <span className="flex items-center gap-2 text-[12px] text-ink-muted">
-            <span
-              aria-hidden
-              className="grid size-6 place-items-center rounded-full bg-ink text-[10px] font-semibold text-white"
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/panel"
+              className="text-[12.5px] text-ink-muted transition-colors hover:text-ink"
             >
-              J
+              <span aria-hidden>←</span> Mis auditorías
+            </Link>
+            <span className="text-[12.5px] font-medium text-ink">
+              {run.scope.client.name}
             </span>
-            {OPERATOR}
-          </span>
+            <span className="rounded-[5px] border border-warning-soft bg-warning-soft px-2 py-[3px] font-mono text-[10px] font-medium uppercase tracking-wider text-warning">
+              Equipo rojo autorizado
+            </span>
+          </div>
+          <AccountChip user={user} />
         </header>
 
         <main className="pb-10">{children}</main>
 
         <div className="mb-6 flex flex-col gap-3 lg:hidden">
-          <SandboxBadge />
+          <SandboxBadge sandboxId={run.scope.sandboxId} />
         </div>
       </div>
     </div>

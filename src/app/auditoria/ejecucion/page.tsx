@@ -19,7 +19,7 @@ export default async function EjecucionPage() {
             Ejecución de pruebas adversariales
           </h1>
           <p className="mt-1.5 text-[13px] text-ink-muted">
-            Equipo rojo en vivo sobre el sandbox autorizado
+            Equipo rojo en vivo en el entorno aislado autorizado
           </p>
         </div>
         <Card>

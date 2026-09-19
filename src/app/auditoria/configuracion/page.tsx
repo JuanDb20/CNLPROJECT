@@ -7,8 +7,8 @@ import { ConfigForm } from "./config-form";
 export const dynamic = "force-dynamic";
 
 const CLASSIFICATION_LABEL = {
-  "third-party-llm": "Third-party LLM",
-  "self-hosted": "Self-hosted",
+  "third-party-llm": "LLM de terceros",
+  "self-hosted": "Alojado por el cliente",
   sdk: "SDK",
 } as const;
 
@@ -31,7 +31,7 @@ export default async function ConfiguracionPage() {
         <Card>
           <CardHeader
             title="Arquitectura y flujos de datos"
-            tag="Vibecoding scan"
+            tag="Análisis del código"
             tagTone="brand"
           />
 
@@ -50,32 +50,49 @@ export default async function ConfiguracionPage() {
                     <p className="mt-0.5 text-[11px] text-ink-muted">
                       {provider.surface}
                     </p>
+                    {provider.country && (
+                      <p className="mt-1 text-[11px] text-ink-soft">
+                        {provider.country} ·{" "}
+                        {provider.role === "responsable"
+                          ? "Responsable → transferencia (art. 26)"
+                          : "Encargado → transmisión (contrato)"}
+                      </p>
+                    )}
                   </div>
-                  <Tag>{CLASSIFICATION_LABEL[provider.classification]}</Tag>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <Tag>{CLASSIFICATION_LABEL[provider.classification]}</Tag>
+                    {provider.adequateCountry === true && (
+                      <Tag tone="safe">País adecuado SIC</Tag>
+                    )}
+                    {provider.adequateCountry === false && (
+                      <Tag tone="required">Zona gris</Tag>
+                    )}
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+          <p className="mt-2.5 text-[11px] leading-relaxed text-ink-muted">
+            Estados Unidos figura en la lista de países con nivel adecuado de la SIC:
+            enviar datos a esos proveedores no es un incumplimiento por el país; lo
+            exigible es el contrato de transmisión. Un proveedor en un país que no está en
+            la lista queda en zona gris y pasa a revisión jurídica.
+          </p>
 
           <div className="mt-5">
             <Label>Control de acceso y minimización</Label>
             <div className="rounded-[8px] border border-safe-soft bg-safe-soft p-3.5">
               <p className="text-[12.5px] font-semibold text-safe">
-                Máscara de datos personales (PII)
+                Enmascaramiento de datos personales
               </p>
               <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
                 VIGÍA inyectará simulaciones en lugar de consultar registros reales de
-                usuarios de {run.scope.clientName}, para mantener el cumplimiento
+                usuarios de {run.scope.client.name}, para mantener el cumplimiento
                 estricto del principio de minimización de datos.
               </p>
             </div>
           </div>
 
-          <p className="mt-4 text-[11px] leading-relaxed text-ink-faint">
-            Intensidad del equipo rojo:{" "}
-            <span className="font-medium text-ink-soft">{run.config.intensity}</span>.
-            Determina cuántos payloads adversariales envía cada módulo.
-          </p>
         </Card>
 
         {/* Marcos normativos */}

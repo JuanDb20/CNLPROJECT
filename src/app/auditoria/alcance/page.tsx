@@ -1,8 +1,4 @@
-import {
-  alternarClausula,
-  conectarRepositorio,
-  confirmarAlcance,
-} from "@/app/actions";
+import { alternarClausula, confirmarAlcance } from "@/app/actions";
 import {
   Card,
   CardHeader,
@@ -13,17 +9,23 @@ import {
   buttonClass,
   cx,
 } from "@/components/ui";
-import { REPOSITORY_SLUG } from "@/domain/scenarios";
 import { requireRun } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function AlcancePage() {
   const run = await requireRun();
-  const { repository, clauses, signatories, dataMinimizationEnabled } = run.scope;
+  const { client, source, clauses, signatories, dataMinimizationEnabled } = run.scope;
 
   const pendingRequired = clauses.filter((c) => c.required && !c.accepted).length;
-  const canContinue = Boolean(repository) && pendingRequired === 0;
+  const canContinue = pendingRequired === 0;
+  const clientRows = [
+    ["Cliente", client.name],
+    ["NIT", client.nit],
+    ["Representante legal", client.legalRepresentative],
+    ["Sector", client.sector],
+    ["Sistema auditado", client.system],
+  ].filter(([, value]) => value);
 
   return (
     <div className="space-y-5">
@@ -59,12 +61,12 @@ export default async function AlcancePage() {
         </span>
         <div>
           <p className="text-[13px] font-semibold text-ink">
-            Declaración de consentimiento explícito y sandbox controlado
+            Declaración de consentimiento explícito y entorno aislado
           </p>
           <p className="mt-1 text-[12px] leading-relaxed text-ink-muted">
             Las pruebas de hacking ético se ejecutan estrictamente en entornos aislados.
-            VIGÍA nunca interactúa con ramas de producción ni con bases de datos activas
-            sin autorización criptográfica previa.
+            VIGÍA no interactúa con ramas de producción ni con bases de datos activas, y
+            no ejecuta ninguna prueba sin la autorización escrita del cliente.
           </p>
         </div>
       </Panel>
@@ -74,43 +76,38 @@ export default async function AlcancePage() {
         <Card>
           <CardHeader
             step="1."
-            title="Origen de código (vibecoding)"
-            tag="Integración"
+            title="Cliente y código cargado"
+            tag="Cadena de custodia"
             tagTone="brand"
-            description="Conecta el repositorio donde se autogenera el código de tu aplicación de IA para mapear dependencias de prompts y scripts."
+            description="Versión del sistema que VIGÍA analiza. El hash SHA-256 fija exactamente qué código se auditó."
           />
 
-          {repository ? (
-            <div className="rounded-[8px] border border-line bg-surface-muted p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-[12px] font-medium text-ink">
-                    {repository.slug}
-                  </p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-                    Ramas autorizadas:{" "}
-                    <span className="font-mono">
-                      {repository.authorizedBranches.join(", ")}
-                    </span>
-                  </p>
-                </div>
-                <Tag tone="safe">Conectado</Tag>
-              </div>
-            </div>
-          ) : (
-            <form action={conectarRepositorio}>
-              <div className="rounded-[8px] border border-dashed border-line-strong bg-surface-muted p-3.5">
-                <p className="font-mono text-[12px] text-ink-soft">{REPOSITORY_SLUG}</p>
-                <p className="mt-1 text-[11px] text-ink-muted">
-                  Sin conectar. El análisis estático requiere acceso de lectura a las
-                  ramas de prueba.
+          <div className="rounded-[8px] border border-line bg-surface-muted p-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-mono text-[12px] font-medium text-ink">
+                  {source.fileName}
                 </p>
-                <button type="submit" className={cx(buttonClass("secondary"), "mt-3")}>
-                  Conectar repositorio
-                </button>
+                <p className="mt-1 text-[11px] text-ink-muted">
+                  {source.fileCount} archivos de código ·{" "}
+                  {Math.max(1, Math.round(source.bytes / 1024))} KB
+                </p>
+                <p className="mt-1 break-all font-mono text-[10.5px] text-ink-faint">
+                  SHA-256 {source.sha256}
+                </p>
               </div>
-            </form>
-          )}
+              <Tag tone="safe">Cargado</Tag>
+            </div>
+          </div>
+
+          <dl className="mt-4 grid gap-x-4 gap-y-2 text-[12px] sm:grid-cols-[auto_1fr]">
+            {clientRows.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-ink-muted">{label}</dt>
+                <dd className="text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
 
           <div className="mt-4 rounded-[8px] border border-line bg-surface-muted p-3.5">
             <p className="text-[12px] font-semibold text-ink">
@@ -122,7 +119,7 @@ export default async function AlcancePage() {
               )}
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-              Al conectar el repositorio, VIGÍA anonimiza credenciales, llaves de API y
+              Al cargar el código, VIGÍA anonimiza credenciales, llaves de API y
               datos sensibles del cliente antes de iniciar cualquier análisis técnico.
             </p>
           </div>
@@ -150,14 +147,14 @@ export default async function AlcancePage() {
                   <button
                     type="submit"
                     aria-pressed={clause.accepted}
-                    className="group flex w-full items-start gap-2.5 rounded-[6px] p-1 text-left transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    className="group flex w-full items-start gap-2.5 rounded-[6px] p-1 text-left transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   >
                     <span
                       aria-hidden
                       className={cx(
                         "mt-px grid size-[17px] shrink-0 place-items-center rounded-[4px] border transition-colors",
                         clause.accepted
-                          ? "border-safe bg-safe text-white"
+                          ? "border-safe bg-safe text-canvas"
                           : "border-line-strong bg-surface text-transparent group-hover:border-ink-faint",
                       )}
                     >
@@ -181,12 +178,11 @@ export default async function AlcancePage() {
           </ul>
 
           <div className="mt-5 rounded-[8px] border border-line bg-surface-muted p-3.5">
-            <Label>Firmantes cripto-autorizados</Label>
+            <Label>Firmantes autorizados</Label>
             <ul className="grid gap-2 sm:grid-cols-2">
               {signatories.map((s) => (
-                <li key={s.id} className="font-mono text-[11px] text-safe">
-                  {s.fingerprint}{" "}
-                  <span className="text-ink-muted">({s.role})</span>
+                <li key={s.id} className="text-[11.5px] text-ink-soft">
+                  {s.role}
                 </li>
               ))}
             </ul>
@@ -204,9 +200,7 @@ export default async function AlcancePage() {
             </form>
             {!canContinue ? (
               <p className="mt-2 text-[11px] text-ink-muted">
-                {!repository
-                  ? "Conecta el repositorio para continuar."
-                  : `Faltan ${pendingRequired} cláusula(s) obligatoria(s).`}
+                Faltan {pendingRequired} cláusula(s) obligatoria(s).
               </p>
             ) : null}
           </div>

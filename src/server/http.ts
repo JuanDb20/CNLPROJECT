@@ -4,9 +4,10 @@ import { cookies } from "next/headers";
 import { scoreRun } from "@/domain/scoring";
 import type { AuditRun } from "@/domain/types";
 
+import { currentUser } from "./auth";
 import { repository } from "./store";
 
-/** Cookie que identifica la auditoría en curso para esta sesión del navegador. */
+/** Cookie que identifica la auditoría abierta en esta sesión del navegador. */
 export const RUN_COOKIE = "vigia_run";
 
 export function ok<T>(data: T, init?: ResponseInit) {
@@ -42,4 +43,10 @@ export async function currentRun(): Promise<AuditRun | null> {
   const id = await currentRunId();
   if (!id) return null;
   return repository.find(id);
+}
+
+/** La auditoría, solo si pertenece al abogado de la sesión. Para la API. */
+export async function ownedRun(runId: string): Promise<AuditRun | null> {
+  const [user, run] = await Promise.all([currentUser(), repository.find(runId)]);
+  return user && run?.ownerId === user.id ? run : null;
 }

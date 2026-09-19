@@ -134,12 +134,12 @@ export function RuleChip({ kind, label }: { kind: string; label: string }) {
 
 const BUTTON_VARIANTS = {
   primary:
-    "bg-ink text-white hover:bg-ink-soft disabled:bg-line-strong disabled:text-white",
+    "bg-ink text-canvas hover:bg-ink-soft disabled:bg-line-strong disabled:text-canvas",
   brand:
-    "bg-brand text-white hover:bg-brand-strong disabled:bg-line-strong disabled:text-white",
+    "bg-brand text-canvas hover:bg-brand-strong disabled:bg-line-strong disabled:text-canvas",
   secondary:
-    "border border-line bg-surface text-ink-soft hover:bg-canvas disabled:text-ink-faint",
-  ghost: "text-ink-muted hover:text-ink hover:bg-canvas",
+    "border border-line bg-surface text-ink-soft hover:bg-surface-muted disabled:text-ink-faint",
+  ghost: "text-ink-muted hover:text-ink hover:bg-surface-muted",
 } as const;
 
 export type ButtonVariant = keyof typeof BUTTON_VARIANTS;
@@ -152,6 +152,11 @@ export const buttonClass = (variant: ButtonVariant = "primary", full = false) =>
     full && "w-full",
     BUTTON_VARIANTS[variant],
   );
+
+/* ----------------------------- Formularios ---------------------------- */
+
+export const fieldClass =
+  "mt-1 w-full rounded-[7px] border border-line bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink";
 
 /* -------------------------------- Texto ------------------------------- */
 
@@ -259,15 +264,22 @@ export function CheckIcon({ className }: { className?: string }) {
   );
 }
 
-export function ShieldIcon({ className }: { className?: string }) {
+/** Marca de VIGÍA: insignia hexagonal con un acceso (>>) — no un escudo genérico. */
+export function MarkIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden className={cx("size-4", className)}>
       <path
-        d="M8 1.8l4.8 1.7v4.1c0 3-2 5.4-4.8 6.6-2.8-1.2-4.8-3.6-4.8-6.6V3.5L8 1.8z"
+        d="M8 1 14.3 4.5V11.5L8 15 1.7 11.5V4.5Z"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
+        strokeWidth="1.2"
+      />
+      <path
+        d="M5.6 5.8 9 8 5.6 10.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="square"
       />
     </svg>
   );

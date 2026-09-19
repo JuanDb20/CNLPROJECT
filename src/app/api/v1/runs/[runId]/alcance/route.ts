@@ -1,14 +1,10 @@
-import {
-  acceptClause,
-  authorizeScope,
-  connectRepository,
-} from "@/engine/orchestrator";
-import { fail, guard, present } from "@/server/http";
+import { acceptClause, authorizeScope } from "@/engine/orchestrator";
+import { fail, guard, ownedRun, present } from "@/server/http";
 
 type Params = { params: Promise<{ runId: string }> };
 
 interface Body {
-  action: "conectar-repositorio" | "aceptar-clausula" | "autorizar";
+  action: "aceptar-clausula" | "autorizar";
   clauseId?: string;
   accepted?: boolean;
 }
@@ -16,11 +12,10 @@ interface Body {
 /** POST /api/v1/runs/:runId/alcance — paso 1: onboarding y autorización. */
 export async function POST(request: Request, { params }: Params) {
   const { runId } = await params;
-  const body = (await request.json()) as Body;
+  if (!(await ownedRun(runId))) return fail("Auditoría no encontrada", 404);
+  const body = (await request.json().catch(() => ({}))) as Body;
 
   switch (body.action) {
-    case "conectar-repositorio":
-      return guard(async () => present(await connectRepository(runId)));
     case "aceptar-clausula":
       if (!body.clauseId) return fail("Falta clauseId");
       return guard(async () =>

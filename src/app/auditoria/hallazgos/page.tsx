@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<RemediationStatus, string> = {
   propuesta: "Parche propuesto",
-  "pr-abierto": "PR abierto",
+  "pr-abierto": "Parche generado",
   retesteado: "Retesteado",
   firmado: "Firmado",
 };
@@ -39,14 +39,14 @@ export default async function HallazgosPage() {
       <Card>
         <CardHeader
           title={`${findings.length} hallazgos en la auditoría ${run.id}`}
-          description="Abre un hallazgo para revisar el payload que lo produjo, la trazabilidad normativa y el parche que VIGÍA propone."
+          description="Abre un hallazgo para revisar la prueba y la evidencia en el código, la trazabilidad normativa y el parche que VIGÍA propone."
         />
         <ul className="divide-y divide-line">
           {findings.map((finding) => (
             <li key={finding.id}>
               <Link
                 href={`/auditoria/hallazgos/${finding.id}`}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[6px] py-3.5 transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[6px] py-3.5 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <div className="w-full sm:w-[108px] sm:shrink-0">
                   <SeverityBadge severity={finding.severity} />

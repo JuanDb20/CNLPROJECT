@@ -54,7 +54,7 @@ export function ConfigForm({
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   checked
                     ? "border-line bg-surface-muted"
-                    : "border-line bg-surface hover:bg-canvas",
+                    : "border-line bg-surface hover:bg-surface-muted",
                 )}
               >
                 <span
@@ -62,7 +62,7 @@ export function ConfigForm({
                   className={cx(
                     "mt-px grid size-[17px] shrink-0 place-items-center rounded-[4px] border transition-colors",
                     checked
-                      ? "border-brand bg-brand text-white"
+                      ? "border-brand bg-brand text-canvas"
                       : "border-line-strong bg-surface text-transparent group-hover:border-ink-faint",
                   )}
                 >

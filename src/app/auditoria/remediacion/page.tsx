@@ -15,11 +15,13 @@ import {
   Tag,
   buttonClass,
   cx,
+  fieldClass,
 } from "@/components/ui";
 import { scoreRun, sortFindings } from "@/domain/scoring";
 import { requireAnalyzedRun } from "@/server/session";
 
 export const dynamic = "force-dynamic";
+
 
 export default async function RemediacionPage({
   searchParams,
@@ -60,8 +62,8 @@ export default async function RemediacionPage({
       {withPr.length === 0 ? (
         <Card>
           <p className="text-[13px] leading-relaxed text-ink-soft">
-            Todavía no hay pull requests abiertos. Abre el parche de un hallazgo desde su
-            detalle para que VIGÍA lo envíe a una rama aislada.
+            Todavía no hay parches generados. Genera el parche de un hallazgo desde su
+            detalle para que VIGÍA lo prepare en una rama aislada.
           </p>
           <Link
             href="/auditoria/riesgos"
@@ -84,8 +86,8 @@ export default async function RemediacionPage({
                     className={cx(
                       "rounded-[6px] border px-2.5 py-1.5 font-mono text-[10.5px] transition-colors",
                       f.id === selected?.id
-                        ? "border-ink bg-ink text-white"
-                        : "border-line bg-surface text-ink-soft hover:bg-canvas",
+                        ? "border-ink bg-ink text-canvas"
+                        : "border-line bg-surface text-ink-soft hover:bg-surface-muted",
                       f.remediation.status === "firmado" &&
                         f.id !== selected?.id &&
                         "text-safe",
@@ -101,25 +103,24 @@ export default async function RemediacionPage({
 
           {selected ? (
             <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-              {/* 1. Pull request */}
+              {/* 1. Parche */}
               <Card>
                 <CardHeader
                   step="1."
-                  title="Pull request y verificación de rama"
+                  title="Parche en rama aislada"
                   tag="Trazabilidad"
                   tagTone="brand"
-                  description="VIGÍA ha enviado el parche propuesto a una rama aislada para evitar la sobrescritura directa en producción."
+                  description="VIGÍA preparó el parche en una rama aislada, separada de producción, para que el equipo del cliente lo revise y lo aplique."
                 />
 
                 <div className="rounded-[8px] border border-line bg-surface-muted p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[12.5px] font-medium text-ink">
-                        Pull Request #{selected.remediation.prNumber} — GitHub
+                        Parche #{selected.remediation.prNumber}
                       </p>
                       <p className="mt-1 font-mono text-[11px] leading-relaxed text-ink-muted">
-                        {selected.remediation.branch} →{" "}
-                        {run.scope.repository?.authorizedBranches[0]}
+                        rama {selected.remediation.branch}
                       </p>
                     </div>
                     <Tag
@@ -166,7 +167,7 @@ export default async function RemediacionPage({
                 <CardHeader
                   step="2."
                   title="Retesteo de inyecciones (adversarial)"
-                  tag="Sandbox test"
+                  tag="Entorno aislado"
                   tagTone="brand"
                   description="Ejecución automática de pruebas adversariales controladas sobre la rama parcheada."
                 />
@@ -200,15 +201,21 @@ export default async function RemediacionPage({
                       Firmado por {selected.remediation.signedBy} el{" "}
                       {new Date(selected.remediation.signedAt!).toLocaleString("es-CO")}
                     </p>
+                    {selected.remediation.signatureNote ? (
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-ink-soft">
+                        Salvedad: {selected.remediation.signatureNote}
+                      </p>
+                    ) : null}
                   </Panel>
                 ) : retestPassed ? (
                   <Panel tone="safe" className="mt-4">
                     <p className="text-[12.5px] font-semibold text-safe">
-                      Firma de aprobación legal y técnica
+                      Firma del abogado revisor
                     </p>
                     <p className="mt-1 text-[11.5px] leading-relaxed text-ink-soft">
-                      Al confirmar la remediación, VIGÍA expide un certificado inmutable
-                      de conformidad encadenado por hash al certificado anterior.
+                      VIGÍA propone el análisis jurídico; la decisión es del abogado. Al
+                      firmar, lo asume como propio y el hallazgo entra en el informe de
+                      responsabilidad demostrada con su nombre y tarjeta profesional.
                     </p>
                   </Panel>
                 ) : (
@@ -243,12 +250,40 @@ export default async function RemediacionPage({
                       Volver al mapa de riesgos
                     </Link>
                   ) : (
-                    <form
-                      action={async () => {
-                        "use server";
-                        await firmarHallazgo(selected.id);
-                      }}
-                    >
+                    <form action={firmarHallazgo.bind(null, selected.id)} className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">
+                        <label className="text-[11.5px] text-ink-muted">
+                          Abogado revisor
+                          <input
+                            name="abogado"
+                            required
+                            minLength={3}
+                            maxLength={120}
+                            autoComplete="name"
+                            className={fieldClass}
+                          />
+                        </label>
+                        <label className="text-[11.5px] text-ink-muted">
+                          Tarjeta profesional
+                          <input
+                            name="tarjeta"
+                            required
+                            inputMode="numeric"
+                            pattern="[0-9]{3,7}"
+                            title="Solo números, de 3 a 7 dígitos"
+                            className={fieldClass}
+                          />
+                        </label>
+                      </div>
+                      <label className="block text-[11.5px] text-ink-muted">
+                        Salvedad o ajuste al análisis (opcional)
+                        <textarea name="salvedad" rows={2} maxLength={500} className={fieldClass} />
+                      </label>
+                      <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-soft">
+                        <input type="checkbox" required className="mt-0.5" />
+                        Revisé la evidencia y el análisis jurídico de {selected.code} y los
+                        asumo como propios.
+                      </label>
                       <button type="submit" className={buttonClass("primary", true)}>
                         Firmar y cerrar hallazgo
                       </button>
@@ -259,14 +294,14 @@ export default async function RemediacionPage({
             </div>
           ) : null}
 
-          {/* Certificado */}
+          {/* Informe de responsabilidad demostrada */}
           <Card>
             <CardHeader
               step="3."
-              title="Certificado de conformidad"
-              tag="Inmutable"
+              title="Informe de responsabilidad demostrada"
+              tag="Encadenado por hash"
               tagTone="safe"
-              description="Documento oponible: encadena por hash el resultado de la auditoría, los hallazgos firmados y los marcos evaluados."
+              description="Evidencia para demostrar ante la SIC las medidas adoptadas (art. 26 del Decreto 1377 de 2013), que la SIC tiene en cuenta al evaluar sanciones (art. 27). Encadena por hash el resultado, los hallazgos firmados por el abogado y los marcos evaluados. No es un certificado de conformidad acreditado."
             />
 
             {run.certificate ? (
@@ -290,16 +325,18 @@ export default async function RemediacionPage({
                 </Panel>
                 <Panel tone="neutral" className="sm:col-span-2">
                   <Label>
-                    Hallazgos cerrados ({run.certificate.signedFindings.length})
+                    Hallazgos firmados ({run.certificate.signedFindings.length})
                   </Label>
-                  <Mono>{run.certificate.signedFindings.join(" · ")}</Mono>
+                  {run.certificate.signedFindings.map((line) => (
+                    <Mono key={line}>{line}</Mono>
+                  ))}
                 </Panel>
               </div>
             ) : (
               <>
                 <p className="text-[13px] leading-relaxed text-ink-soft">
                   {score.resolved === 0
-                    ? "Firma al menos un hallazgo para poder expedir el certificado."
+                    ? "Firma al menos un hallazgo para poder expedir el informe."
                     : `${score.resolved} hallazgo(s) firmado(s). Puntuación actual: ${score.score}.`}
                 </p>
                 <form action={expedirCertificado} className="mt-4">
@@ -308,7 +345,7 @@ export default async function RemediacionPage({
                     disabled={score.resolved === 0}
                     className={buttonClass("primary")}
                   >
-                    Expedir certificado de conformidad
+                    Expedir informe de responsabilidad demostrada
                   </button>
                 </form>
               </>

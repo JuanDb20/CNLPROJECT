@@ -55,8 +55,8 @@ export function RiskList({
                   "rounded-[6px] border px-2.5 py-1.5 font-mono text-[10.5px] transition-colors",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   isActive
-                    ? "border-ink bg-ink text-white"
-                    : "border-line bg-surface text-ink-soft hover:bg-canvas",
+                    ? "border-ink bg-ink text-canvas"
+                    : "border-line bg-surface text-ink-soft hover:bg-surface-muted",
                 )}
               >
                 {filter.label}

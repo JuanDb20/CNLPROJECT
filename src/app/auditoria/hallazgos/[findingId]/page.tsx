@@ -19,6 +19,7 @@ import { requireAnalyzedRun } from "@/server/session";
 export const dynamic = "force-dynamic";
 
 const PATCH_LABEL = {
+  codigo: "Diferencia de código",
   prompt: "Diferencia de prompt (system prompt patch)",
   config: "Diferencia de configuración",
   interfaz: "Diferencia de interfaz",
@@ -95,28 +96,21 @@ export default async function HallazgoPage({
           </div>
 
           <div className="mt-4">
-            <Label>Prompt de entrada probado (jailbreak)</Label>
+            <Label>Prueba</Label>
             <Panel tone="neutral">
               <Mono>&quot;{finding.evidence.probe}&quot;</Mono>
             </Panel>
           </div>
 
           <div className="mt-4">
-            <Label>Respuesta de la IA en sandbox</Label>
-            <Panel tone="critical">
-              <Mono tone="critical">&quot;{finding.evidence.response}&quot;</Mono>
-            </Panel>
-          </div>
-
-          <div className="mt-4">
-            <Label>Ubicaciones en el repositorio</Label>
-            <ul className="space-y-1">
-              {finding.evidence.locations.map((loc) => (
-                <li key={loc} className="font-mono text-[11px] text-ink-soft">
-                  {loc}
-                </li>
+            <Label>Evidencia en el código</Label>
+            <Panel tone="critical" className="space-y-1.5 overflow-x-auto">
+              {finding.evidence.response.split("\n").map((line) => (
+                <Mono key={line} tone="critical" className="whitespace-pre">
+                  {line}
+                </Mono>
               ))}
-            </ul>
+            </Panel>
           </div>
         </Card>
 
@@ -127,7 +121,7 @@ export default async function HallazgoPage({
               Mitigación y parche
             </h2>
             <Tag tone={prOpen ? "safe" : "required"}>
-              {prOpen ? "PR abierto" : "Propuesta revisable"}
+              {prOpen ? "Parche generado" : "Propuesta revisable"}
             </Tag>
           </div>
 
@@ -210,7 +204,7 @@ export default async function HallazgoPage({
                 className="flex-1"
               >
                 <button type="submit" className={buttonClass("primary", true)}>
-                  Generar pull request seguro
+                  Generar parche
                 </button>
               </form>
             )}

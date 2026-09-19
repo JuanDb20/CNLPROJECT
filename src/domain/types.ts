@@ -15,12 +15,13 @@
 export type FrameworkId =
   | "col-1581"
   | "col-1266"
+  | "col-1480"
+  | "owasp"
   | "eu-ai-act"
-  | "gdpr"
-  | "owasp-llm"
-  | "dark-patterns";
+  | "gdpr";
 
-export type FrameworkKind = "juridico" | "tecnico" | "interfaz";
+/** `comparado`: marco extranjero que orienta pero no se reporta como incumplimiento. */
+export type FrameworkKind = "juridico" | "tecnico" | "interfaz" | "comparado";
 
 export interface Framework {
   id: FrameworkId;
@@ -49,12 +50,29 @@ export interface ComplianceRule {
 /* Alcance y autorización (paso 1)                                     */
 /* ------------------------------------------------------------------ */
 
-export interface RepositoryRef {
-  provider: "github" | "gitlab" | "bitbucket";
-  slug: string;
-  /** Ramas explícitamente autorizadas para el ejercicio de red team. */
-  authorizedBranches: string[];
-  connectedAt: string;
+/** Datos del cliente auditado, tal como los registra el abogado. */
+export interface ClientInfo {
+  name: string;
+  nit: string;
+  legalRepresentative: string;
+  sector: string;
+  /** Qué hace el sistema de IA auditado, en palabras del cliente. */
+  system: string;
+}
+
+/** Código fuente cargado para la auditoría. El hash fija la versión analizada. */
+export interface SourceUpload {
+  fileName: string;
+  sha256: string;
+  bytes: number;
+  fileCount: number;
+  uploadedAt: string;
+}
+
+/** Archivo de texto del código cargado. Se guarda aparte de la auditoría. */
+export interface RepoFile {
+  path: string;
+  content: string;
 }
 
 /** Cláusula del acuerdo de alcance que el responsable legal debe aceptar. */
@@ -69,13 +87,11 @@ export interface ScopeClause {
 export interface Signatory {
   id: string;
   role: string;
-  /** Huella del firmante; nunca se almacenan credenciales. */
-  fingerprint: string;
 }
 
 export interface AuditScope {
-  clientName: string;
-  repository: RepositoryRef | null;
+  client: ClientInfo;
+  source: SourceUpload;
   clauses: ScopeClause[];
   signatories: Signatory[];
   /** Identificador del entorno aislado donde se ejecutan las pruebas. */
@@ -95,6 +111,12 @@ export interface DetectedProvider {
   model: string;
   surface: string;
   classification: "third-party-llm" | "self-hosted" | "sdk";
+  /** País de tratamiento declarado por el proveedor (null si es librería local). */
+  country: string | null;
+  /** ¿Figura el país en la lista de nivel adecuado de la SIC? */
+  adequateCountry: boolean | null;
+  /** Encargado → transmisión (contrato); responsable → transferencia (art. 26). */
+  role: "encargado" | "responsable" | null;
 }
 
 export interface AuditConfig {
@@ -155,16 +177,16 @@ export type RunStatus =
 export type Severity = "critico" | "advertencia" | "informativo";
 
 export interface Evidence {
-  /** Entrada adversarial exacta que se envió al sistema. */
+  /** Prueba que aplicó VIGÍA. */
   probe: string;
-  /** Respuesta del sistema en el sandbox (ya minimizada). */
+  /** Líneas del código que la sustentan, con secretos enmascarados. */
   response: string;
-  /** Rutas del repositorio implicadas. */
+  /** Rutas del código implicadas, con número de línea. */
   locations: string[];
 }
 
 /** Naturaleza del cambio propuesto. Determina qué artefacto se modifica. */
-export type PatchKind = "prompt" | "config" | "interfaz" | "dependencia";
+export type PatchKind = "codigo" | "prompt" | "config" | "interfaz" | "dependencia";
 
 export interface Patch {
   kind: PatchKind;
@@ -199,7 +221,10 @@ export interface Remediation {
   changeNote: string;
   retests: RetestResult[];
   signedAt: string | null;
+  /** Abogado que asume el análisis: nombre y tarjeta profesional. */
   signedBy: string | null;
+  /** Salvedad o ajuste del abogado al análisis propuesto por VIGÍA. */
+  signatureNote: string | null;
 }
 
 export interface Finding {
@@ -219,9 +244,13 @@ export interface Finding {
 }
 
 /* ------------------------------------------------------------------ */
-/* Certificado (paso 6)                                               */
+/* Informe de responsabilidad demostrada (paso 6)                     */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Evidencia de la remediación para acreditar responsabilidad demostrada ante
+ * la SIC. No es un certificado de conformidad acreditado (ONAC).
+ */
 export interface ConformityCertificate {
   id: string;
   runId: string;
@@ -231,7 +260,7 @@ export interface ConformityCertificate {
   scoreAfter: number;
   frameworks: FrameworkId[];
   signedFindings: string[];
-  /** Encadenamiento tipo log inmutable: hash del certificado anterior. */
+  /** Encadenamiento por hash con el informe anterior (detecta alteraciones). */
   previousHash: string;
   hash: string;
 }
@@ -242,6 +271,8 @@ export interface ConformityCertificate {
 
 export interface AuditRun {
   id: string;
+  /** Abogado que abrió la auditoría; solo él puede verla. */
+  ownerId: string;
   createdAt: string;
   status: RunStatus;
   scope: AuditScope;
@@ -260,4 +291,15 @@ export interface RunScore {
   warning: number;
   informative: number;
   resolved: number;
+}
+
+/** Abogado usuario de VIGÍA. */
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  professionalCard: string;
+  firm: string;
+  /** scrypt: "sal:hash" en hexadecimal. */
+  passwordHash: string;
 }

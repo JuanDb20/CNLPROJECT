@@ -1,19 +1,39 @@
-import type { AuditRun, ConformityCertificate, LogEntry } from "@/domain/types";
+import { randomBytes } from "node:crypto";
+
+import type {
+  AuditRun,
+  ConformityCertificate,
+  LogEntry,
+  RepoFile,
+  User,
+} from "@/domain/types";
 
 /**
  * Capa de persistencia y de eventos.
  *
- * `AuditRepository` y `EventBus` son las dos únicas puertas por las que la
- * aplicación toca estado mutable. La implementación de este MVP vive en memoria;
+ * `AccountRepository`, `AuditRepository` y `EventBus` son las únicas puertas por
+ * las que la aplicación toca estado mutable. La implementación de este MVP vive en memoria;
  * sustituirla por Postgres (repositorio) y Redis Pub/Sub (bus) no exige cambios
  * en el dominio, en el motor ni en la interfaz, porque nadie fuera de este
  * archivo conoce el mecanismo de almacenamiento.
  */
 
+export interface AccountRepository {
+  create(user: User): Promise<User>;
+  find(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  /** Abre una sesión y devuelve su token opaco. */
+  openSession(userId: string): Promise<string>;
+  sessionUser(token: string): Promise<string | null>;
+  closeSession(token: string): Promise<void>;
+}
+
 export interface AuditRepository {
-  create(run: AuditRun): Promise<AuditRun>;
+  /** Guarda la auditoría y el código cargado, que se almacena aparte. */
+  create(run: AuditRun, files: RepoFile[]): Promise<AuditRun>;
   find(id: string): Promise<AuditRun | null>;
-  list(): Promise<AuditRun[]>;
+  listByOwner(ownerId: string): Promise<AuditRun[]>;
+  files(runId: string): Promise<RepoFile[]>;
   /** Mutación transaccional: recibe el estado actual y devuelve el nuevo. */
   update(id: string, mutate: (run: AuditRun) => AuditRun): Promise<AuditRun>;
   saveCertificate(cert: ConformityCertificate): Promise<ConformityCertificate>;
@@ -29,12 +49,46 @@ export interface EventBus {
 /* Implementación en memoria                                           */
 /* ------------------------------------------------------------------ */
 
+class MemoryAccounts implements AccountRepository {
+  private users = new Map<string, User>();
+  private sessions = new Map<string, string>();
+
+  async create(user: User) {
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async find(id: string) {
+    return this.users.get(id) ?? null;
+  }
+
+  async findByEmail(email: string) {
+    return [...this.users.values()].find((u) => u.email === email) ?? null;
+  }
+
+  async openSession(userId: string) {
+    const token = randomBytes(32).toString("hex");
+    this.sessions.set(token, userId);
+    return token;
+  }
+
+  async sessionUser(token: string) {
+    return this.sessions.get(token) ?? null;
+  }
+
+  async closeSession(token: string) {
+    this.sessions.delete(token);
+  }
+}
+
 class MemoryRepository implements AuditRepository {
   private runs = new Map<string, AuditRun>();
+  private sources = new Map<string, RepoFile[]>();
   private certificates: ConformityCertificate[] = [];
 
-  async create(run: AuditRun) {
+  async create(run: AuditRun, files: RepoFile[]) {
     this.runs.set(run.id, run);
+    this.sources.set(run.id, files);
     return run;
   }
 
@@ -42,10 +96,14 @@ class MemoryRepository implements AuditRepository {
     return this.runs.get(id) ?? null;
   }
 
-  async list() {
-    return [...this.runs.values()].sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt),
-    );
+  async listByOwner(ownerId: string) {
+    return [...this.runs.values()]
+      .filter((r) => r.ownerId === ownerId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async files(runId: string) {
+    return this.sources.get(runId) ?? [];
   }
 
   async update(id: string, mutate: (run: AuditRun) => AuditRun) {
@@ -100,6 +158,7 @@ class MemoryEventBus implements EventBus {
  * cuelga de `globalThis` para no perder la auditoría en curso entre recargas.
  */
 interface VigiaGlobal {
+  accounts?: AccountRepository;
   repository?: AuditRepository;
   bus?: EventBus;
   /** Auditorías cuyo orquestador ya está corriendo, para no duplicarlo. */
@@ -108,6 +167,9 @@ interface VigiaGlobal {
 
 const globalRef = globalThis as typeof globalThis & { __vigia?: VigiaGlobal };
 globalRef.__vigia ??= {};
+
+export const accounts: AccountRepository = (globalRef.__vigia.accounts ??=
+  new MemoryAccounts());
 
 export const repository: AuditRepository = (globalRef.__vigia.repository ??=
   new MemoryRepository());

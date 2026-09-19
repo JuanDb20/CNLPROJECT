@@ -86,8 +86,8 @@ export function StepNav() {
                   "flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition-colors",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   active
-                    ? "bg-ink font-medium text-white"
-                    : "text-ink-soft hover:bg-canvas",
+                    ? "bg-ink font-medium text-canvas"
+                    : "text-ink-soft hover:bg-surface-muted",
                 )}
               >
                 <StepIcon n={step.n} active={active} />

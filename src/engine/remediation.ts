@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { nextPrNumber } from "@/domain/scenarios";
+import { nextPrNumber } from "@/domain/checks";
 import { scoreRun } from "@/domain/scoring";
 import type { AuditRun, ConformityCertificate, Finding } from "@/domain/types";
 import { repository } from "@/server/store";
@@ -9,9 +9,9 @@ import { repository } from "@/server/store";
  * Remediación y certificación.
  *
  * El ciclo es deliberadamente de cuatro pasos —propuesta, PR, retesteo, firma—
- * porque es el que hace el informe oponible: la firma solo se habilita cuando
- * el retesteo sobre la rama parcheada pasa, y queda encadenada por hash al
- * certificado anterior.
+ * porque es el que convierte el informe en evidencia de responsabilidad
+ * demostrada: la firma solo se habilita cuando el retesteo sobre la rama
+ * parcheada pasa, y el informe queda encadenado por hash al anterior.
  */
 
 function mutateFinding(
@@ -25,7 +25,7 @@ function mutateFinding(
   };
 }
 
-/** Abre el pull request en la rama aislada. Nunca escribe en producción. */
+/** Prepara el parche en una rama aislada. Nunca escribe en producción. */
 export async function openPullRequest(
   runId: string,
   findingId: string,
@@ -41,7 +41,7 @@ export async function openPullRequest(
           ...f.remediation,
           status: "pr-abierto",
           prNumber: pr,
-          prUrl: `https://github.com/${run.scope.repository?.slug ?? "repo"}/pull/${pr}`,
+          prUrl: null,
         },
       }),
     );
@@ -51,23 +51,40 @@ export async function openPullRequest(
 /** Reejecuta las pruebas adversariales contra la rama parcheada. */
 export async function retest(runId: string, findingId: string): Promise<AuditRun> {
   return repository.update(runId, (run) =>
-    mutateFinding(run, findingId, (f) => ({
-      ...f,
-      remediation: {
-        ...f.remediation,
-        status: "retesteado",
-        retests: f.remediation.retests.map((r) => ({ ...r, passed: true })),
-      },
-    })),
+    mutateFinding(run, findingId, (f) => {
+      if (f.remediation.status === "propuesta") {
+        throw new Error("Genera el parche antes de retestear");
+      }
+      return {
+        ...f,
+        remediation: {
+          ...f.remediation,
+          status: "retesteado",
+          retests: f.remediation.retests.map((r) => ({ ...r, passed: true })),
+        },
+      };
+    }),
   );
 }
 
-/** Firma legal y técnica del hallazgo. Exige retesteo previo en verde. */
+/**
+ * Firma del abogado revisor. Exige retesteo previo en verde: VIGÍA propone el
+ * análisis, pero solo entra al informe cuando un abogado identificado lo asume.
+ */
 export async function signFinding(
   runId: string,
   findingId: string,
-  signedBy: string,
+  lawyer: { name: string; professionalCard: string },
+  note?: string | null,
 ): Promise<AuditRun> {
+  const name = lawyer.name.trim();
+  const card = lawyer.professionalCard.trim();
+  if (name.length < 3 || name.length > 120 || !/^\d{3,7}$/.test(card)) {
+    throw new Error("Indica el nombre y la tarjeta profesional del abogado revisor");
+  }
+  const signedBy = `${name} (T.P. ${card})`;
+  const signatureNote = note?.trim().slice(0, 500) || null;
+
   const run = await repository.find(runId);
   const finding = run?.findings.find((f) => f.id === findingId);
   if (!run || !finding) throw new Error("Hallazgo no encontrado");
@@ -87,13 +104,14 @@ export async function signFinding(
         status: "firmado",
         signedAt: new Date().toISOString(),
         signedBy,
+        signatureNote,
       },
     })),
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Certificado de conformidad                                          */
+/* Informe de responsabilidad demostrada                              */
 /* ------------------------------------------------------------------ */
 
 function hashCertificate(
@@ -106,7 +124,7 @@ function hashCertificate(
 }
 
 /**
- * Expide el certificado. La puntuación «antes» se recalcula con todos los
+ * Expide el informe. La puntuación «antes» se recalcula con todos los
  * hallazgos abiertos para que el documento muestre la mejora atribuible a la
  * auditoría, no una cifra declarativa.
  */
@@ -118,7 +136,7 @@ export async function issueCertificate(
 
   const signed = run.findings.filter((f) => f.remediation.status === "firmado");
   if (signed.length === 0) {
-    throw new Error("No hay hallazgos firmados: no procede expedir certificado");
+    throw new Error("No hay hallazgos firmados: no procede expedir el informe");
   }
 
   const scoreAfter = scoreRun(run).score;
@@ -132,14 +150,19 @@ export async function issueCertificate(
 
   const previousHash = await repository.latestCertificateHash();
   const base: Omit<ConformityCertificate, "hash"> = {
-    id: `VGI-CERT-${run.id.toUpperCase()}`,
+    id: `VGI-INF-${run.id.toUpperCase()}`,
     runId: run.id,
     issuedAt: new Date().toISOString(),
-    clientName: run.scope.clientName,
+    clientName: run.scope.client.name,
     scoreBefore,
     scoreAfter,
     frameworks: run.config.frameworks,
-    signedFindings: signed.map((f) => f.code),
+    /* El firmante y su salvedad entran al hash: alterarlos rompe la cadena. */
+    signedFindings: signed.map(
+      (f) =>
+        `${f.code} · ${f.remediation.signedBy}` +
+        (f.remediation.signatureNote ? ` · Salvedad: ${f.remediation.signatureNote}` : ""),
+    ),
     previousHash,
   };
 

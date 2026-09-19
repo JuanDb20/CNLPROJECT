@@ -8,8 +8,7 @@ import type { FrameworkId } from "@/domain/types";
 import {
   acceptClause,
   authorizeScope,
-  connectRepository,
-  createRun,
+  createRunFromForm,
   saveConfig,
   startExecution,
 } from "@/engine/orchestrator";
@@ -19,7 +18,10 @@ import {
   retest,
   signFinding,
 } from "@/engine/remediation";
-import { RUN_COOKIE, currentRunId } from "@/server/http";
+import { login, logout, register, requireUser } from "@/server/auth";
+import { RUN_COOKIE } from "@/server/http";
+import { requireRun } from "@/server/session";
+import { repository } from "@/server/store";
 
 /**
  * Acciones de servidor.
@@ -29,22 +31,72 @@ import { RUN_COOKIE, currentRunId } from "@/server/http";
  * interfaz no es el único cliente posible del producto.
  */
 
+/** Auditoría abierta del abogado de la sesión (redirige si no es suya). */
 async function runId(): Promise<string> {
-  const id = await currentRunId();
-  if (!id) redirect("/");
-  return id;
+  return (await requireRun()).id;
 }
 
-export async function iniciarAuditoria() {
-  const run = await createRun();
+async function openRun(id: string) {
   const store = await cookies();
-  store.set(RUN_COOKIE, run.id, { httpOnly: true, sameSite: "lax", path: "/" });
+  store.set(RUN_COOKIE, id, { httpOnly: true, sameSite: "lax", path: "/" });
+}
+
+/* ------------------------------ Cuenta ------------------------------ */
+
+export async function registrarse(form: FormData) {
+  try {
+    await register({
+      name: String(form.get("nombre") ?? ""),
+      email: String(form.get("correo") ?? ""),
+      professionalCard: String(form.get("tarjeta") ?? ""),
+      firm: String(form.get("firma") ?? ""),
+      password: String(form.get("clave") ?? ""),
+    });
+  } catch (error) {
+    redirect(`/registro?error=${error instanceof Error ? error.message : "datos"}`);
+  }
+  redirect("/panel");
+}
+
+export async function ingresar(form: FormData) {
+  const ok = await login(String(form.get("correo") ?? ""), String(form.get("clave") ?? ""));
+  redirect(ok ? "/panel" : "/ingresar?error=credenciales");
+}
+
+export async function salir() {
+  await logout();
+  redirect("/ingresar");
+}
+
+/* ---------------------------- Auditorías ---------------------------- */
+
+export async function crearAuditoria(form: FormData) {
+  const user = await requireUser();
+  let id: string;
+  try {
+    id = (await createRunFromForm(user, form)).id;
+  } catch {
+    redirect("/panel/nueva?error=1");
+  }
+  await openRun(id);
   redirect("/auditoria/alcance");
 }
 
-export async function conectarRepositorio() {
-  await connectRepository(await runId());
-  revalidatePath("/auditoria/alcance");
+const STEP_BY_STATUS = {
+  borrador: "alcance",
+  configurado: "configuracion",
+  ejecutando: "ejecucion",
+  analizado: "riesgos",
+  remediando: "remediacion",
+  certificado: "remediacion",
+} as const;
+
+export async function abrirAuditoria(id: string) {
+  const user = await requireUser();
+  const run = await repository.find(id);
+  if (!run || run.ownerId !== user.id) redirect("/panel");
+  await openRun(run.id);
+  redirect(`/auditoria/${STEP_BY_STATUS[run.status]}`);
 }
 
 export async function alternarClausula(clauseId: string, accepted: boolean) {
@@ -92,8 +144,16 @@ export async function retestear(findingId: string) {
   revalidatePath("/auditoria", "layout");
 }
 
-export async function firmarHallazgo(findingId: string) {
-  await signFinding(await runId(), findingId, "legal.ops@fintrex.ai");
+export async function firmarHallazgo(findingId: string, form: FormData) {
+  await signFinding(
+    await runId(),
+    findingId,
+    {
+      name: String(form.get("abogado") ?? ""),
+      professionalCard: String(form.get("tarjeta") ?? ""),
+    },
+    String(form.get("salvedad") ?? ""),
+  );
   revalidatePath("/auditoria", "layout");
 }
 

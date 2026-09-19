@@ -1,11 +1,13 @@
 import { openPullRequest, retest, signFinding } from "@/engine/remediation";
-import { fail, guard, present } from "@/server/http";
+import { fail, guard, ownedRun, present } from "@/server/http";
 
 type Params = { params: Promise<{ runId: string; findingId: string }> };
 
 interface Body {
   action: "abrir-pr" | "retestear" | "firmar";
-  signedBy?: string;
+  abogado?: string;
+  tarjetaProfesional?: string;
+  salvedad?: string;
 }
 
 /**
@@ -14,7 +16,8 @@ interface Body {
  */
 export async function POST(request: Request, { params }: Params) {
   const { runId, findingId } = await params;
-  const body = (await request.json()) as Body;
+  if (!(await ownedRun(runId))) return fail("Auditoría no encontrada", 404);
+  const body = (await request.json().catch(() => ({}))) as Body;
 
   switch (body.action) {
     case "abrir-pr":
@@ -24,7 +27,15 @@ export async function POST(request: Request, { params }: Params) {
     case "firmar":
       return guard(async () =>
         present(
-          await signFinding(runId, findingId, body.signedBy ?? "legal.ops@fintrex.ai"),
+          await signFinding(
+            runId,
+            findingId,
+            {
+              name: String(body.abogado ?? ""),
+              professionalCard: String(body.tarjetaProfesional ?? ""),
+            },
+            body.salvedad == null ? null : String(body.salvedad),
+          ),
         ),
       );
     default:

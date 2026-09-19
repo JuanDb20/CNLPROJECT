@@ -2,18 +2,17 @@ import { redirect } from "next/navigation";
 
 import type { AuditRun } from "@/domain/types";
 
+import { requireUser } from "./auth";
 import { currentRun } from "./http";
 
 /**
- * Garantiza que la pantalla tiene una auditoría en curso.
- *
- * Si la cookie de sesión apunta a una auditoría inexistente (por ejemplo tras
- * reiniciar el servidor), devuelve al usuario al inicio en lugar de renderizar
- * una pantalla vacía.
+ * Garantiza que la pantalla tiene una auditoría abierta y que pertenece al
+ * abogado de la sesión. Si no, lo devuelve a su panel de auditorías.
  */
 export async function requireRun(): Promise<AuditRun> {
+  const user = await requireUser();
   const run = await currentRun();
-  if (!run) redirect("/");
+  if (!run || run.ownerId !== user.id) redirect("/panel");
   return run;
 }
 
@@ -27,6 +26,7 @@ export async function requireAuthorizedRun(): Promise<AuditRun> {
 /** Exige que el análisis haya terminado para poder leer el mapa de riesgos. */
 export async function requireAnalyzedRun(): Promise<AuditRun> {
   const run = await requireAuthorizedRun();
-  if (run.findings.length === 0) redirect("/auditoria/ejecucion");
+  const analyzed = ["analizado", "remediando", "certificado"].includes(run.status);
+  if (!analyzed) redirect("/auditoria/ejecucion");
   return run;
 }

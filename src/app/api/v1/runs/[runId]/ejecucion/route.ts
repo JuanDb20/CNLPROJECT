@@ -1,5 +1,5 @@
 import { startExecution } from "@/engine/orchestrator";
-import { guard, present } from "@/server/http";
+import { fail, guard, ownedRun, present } from "@/server/http";
 
 type Params = { params: Promise<{ runId: string }> };
 
@@ -12,5 +12,6 @@ type Params = { params: Promise<{ runId: string }> };
  */
 export async function POST(_request: Request, { params }: Params) {
   const { runId } = await params;
+  if (!(await ownedRun(runId))) return fail("Auditoría no encontrada", 404);
   return guard(async () => present(await startExecution(runId)));
 }

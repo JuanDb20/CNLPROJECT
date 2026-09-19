@@ -1,5 +1,5 @@
 import { currentPhase, overallProgress } from "@/engine/orchestrator";
-import { fail, present } from "@/server/http";
+import { fail, ownedRun, present } from "@/server/http";
 import { bus, repository } from "@/server/store";
 
 type Params = { params: Promise<{ runId: string }> };
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(_request: Request, { params }: Params) {
   const { runId } = await params;
-  const run = await repository.find(runId);
+  const run = await ownedRun(runId);
   if (!run) return fail("Auditoría no encontrada", 404);
 
   const encoder = new TextEncoder();

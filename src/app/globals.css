@@ -1,46 +1,52 @@
 @import "tailwindcss";
 
 /*
- * Tokens de VIGÍA, derivados de los sketches de Figma.
- * Se declaran como variables de tema de Tailwind v4 para que las utilidades
- * (bg-canvas, text-ink-muted, …) salgan directamente de aquí.
+ * Tokens de VIGÍA — identidad "consola de operaciones ofensivas".
+ *
+ * Canvas oscuro real (no una franja decorativa), un solo acento funcional
+ * (naranja, "brand") usado con moderación sobre negro/blanco/gris, y los
+ * colores de severidad como el único otro color con significado. Se declaran
+ * como variables de tema de Tailwind v4 para que las utilidades (bg-canvas,
+ * text-ink-muted, …) salgan directamente de aquí — cambiar la identidad no
+ * exige tocar los componentes que las consumen.
  */
 @theme {
-  --color-canvas: #f4f5f7;
-  --color-surface: #ffffff;
-  --color-surface-muted: #fafbfc;
-  --color-line: #e5e7eb;
-  --color-line-strong: #d1d5db;
+  --color-canvas: #0b0c0d;
+  --color-surface: #141517;
+  --color-surface-muted: #1a1b1d;
+  --color-line: #26282b;
+  --color-line-strong: #37393c;
 
-  --color-ink: #0f1115;
-  --color-ink-soft: #3f4653;
-  --color-ink-muted: #6b7280;
-  --color-ink-faint: #9ca3af;
+  --color-ink: #f2f1ee;
+  --color-ink-soft: #c9c7c2;
+  --color-ink-muted: #8f8d89;
+  --color-ink-faint: #5c5a57;
 
-  --color-brand: #2563eb;
-  --color-brand-soft: #eff4ff;
-  --color-brand-strong: #1d4ed8;
+  --color-brand: #e2732a;
+  --color-brand-soft: #241a11;
+  --color-brand-strong: #c95f1d;
 
-  --color-safe: #059669;
-  --color-safe-soft: #ecfdf5;
+  --color-safe: #34a06b;
+  --color-safe-soft: #10231a;
 
-  --color-critical: #e11d48;
-  --color-critical-soft: #fff1f3;
-  --color-warning: #b45309;
-  --color-warning-soft: #fffbeb;
-  --color-info: #2563eb;
-  --color-info-soft: #eff6ff;
+  --color-critical: #e5534b;
+  --color-critical-soft: #2a1513;
+  --color-warning: #e2a33d;
+  --color-warning-soft: #2a2112;
+  --color-info: #6b96cf;
+  --color-info-soft: #171f2a;
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
 
-  --radius-card: 12px;
+  --radius-card: 10px;
 }
 
 html {
   -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
 }
 
 body {
@@ -88,9 +94,87 @@ body {
   animation: vigia-rise 0.22s ease-out both;
 }
 
+/* ------------------------- Portal de entrada (home) ------------------------ */
+/* Se monta una sola vez, en la puerta real de la app — no en cada pantalla. */
+@keyframes vigia-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes vigia-fade-up {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.portal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--color-canvas);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: opacity 0.5s ease;
+}
+.portal[data-hide="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.portal-mark path {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 140;
+  animation: vigia-draw 1s ease forwards;
+}
+.portal-mark .chev {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: vigia-draw 0.5s ease forwards 0.6s;
+}
+.portal-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  min-height: 16px;
+}
+.portal-bar {
+  width: 180px;
+  height: 2px;
+  background: var(--color-line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.portal-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-brand);
+  transition: width 0.4s ease;
+}
+
+/* Entrada en cascada del contenido real, después del portal. */
+.stagger {
+  opacity: 0;
+  transform: translateY(14px);
+}
+body[data-portal-done="true"] .stagger {
+  animation: vigia-fade-up 0.6s ease forwards;
+  animation-delay: var(--d, 0s);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pulse-dot,
   .rise {
     animation: none;
+  }
+  .portal {
+    display: none !important;
+  }
+  .stagger {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }

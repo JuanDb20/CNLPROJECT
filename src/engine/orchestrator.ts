@@ -1,28 +1,20 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
-import {
-  AUTHORIZED_BRANCHES,
-  DEFAULT_SCOPE,
-  DETECTED_PROVIDERS,
-  REPOSITORY_SLUG,
-  buildFindings,
-} from "@/domain/scenarios";
+import { buildClauses, detectProviders, runChecks } from "@/domain/checks";
 import { ALL_FRAMEWORK_IDS, getRules } from "@/domain/compliance";
 import type {
   AuditRun,
+  ClientInfo,
   FrameworkId,
   LogEntry,
   LogLevel,
   ModuleId,
+  User,
 } from "@/domain/types";
 import { bus, repository, runningRuns } from "@/server/store";
+import { readZip } from "@/server/zip";
 
-import {
-  MODULES,
-  initialModuleStates,
-  isModuleEnabled,
-  payloadsFor,
-} from "./modules";
+import { MODULES, initialModuleStates, isModuleEnabled } from "./modules";
 
 /**
  * Orquestador de la auditoría.
@@ -40,14 +32,65 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /* Creación y preparación                                              */
 /* ------------------------------------------------------------------ */
 
-export async function createRun(): Promise<AuditRun> {
+const MAX_ZIP_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Abre una auditoría con los datos del cliente y el código en .zip. Es la única
+ * puerta de entrada: la usan la interfaz y la API con el mismo formulario.
+ */
+export async function createRunFromForm(owner: User, form: FormData): Promise<AuditRun> {
+  const text = (key: string, max = 200) => String(form.get(key) ?? "").trim().slice(0, max);
+  const client: ClientInfo = {
+    name: text("cliente"),
+    nit: text("nit", 30),
+    legalRepresentative: text("representante"),
+    sector: text("sector", 60),
+    system: text("sistema", 1000),
+  };
+  if (client.name.length < 2 || client.nit.length < 5 || client.legalRepresentative.length < 3) {
+    throw new Error("Indica el cliente, su NIT y su representante legal");
+  }
+
+  const file = form.get("codigo");
+  if (!(file instanceof File) || !/\.zip$/i.test(file.name) || file.size === 0) {
+    throw new Error("Carga el código del sistema en un archivo .zip");
+  }
+  if (file.size > MAX_ZIP_BYTES) throw new Error("El .zip supera 10 MB");
+
+  const zip = Buffer.from(await file.arrayBuffer());
+  const files = readZip(zip);
+  if (files.length === 0) throw new Error("El .zip no contiene archivos de código legibles");
+
+  const id = randomUUID().slice(0, 8);
+  const now = new Date().toISOString();
   const run: AuditRun = {
-    id: randomUUID().slice(0, 8),
-    createdAt: new Date().toISOString(),
+    id,
+    ownerId: owner.id,
+    createdAt: now,
     status: "borrador",
     scope: {
-      ...DEFAULT_SCOPE,
-      clauses: DEFAULT_SCOPE.clauses.map((c) => ({ ...c })),
+      client,
+      source: {
+        fileName: file.name.slice(0, 200),
+        sha256: createHash("sha256").update(zip).digest("hex"),
+        bytes: zip.length,
+        fileCount: files.length,
+        uploadedAt: now,
+      },
+      clauses: buildClauses(client.name),
+      signatories: [
+        {
+          id: "sig-client",
+          role: `Representante legal de ${client.name}: ${client.legalRepresentative}. Autoriza las pruebas`,
+        },
+        {
+          id: "sig-abogado",
+          role: `Abogado revisor: ${owner.name} (T.P. ${owner.professionalCard}). Firma cada hallazgo`,
+        },
+      ],
+      sandboxId: `sandbox-${id}`,
+      dataMinimizationEnabled: true,
+      authorizedAt: null,
     },
     config: {
       frameworks: ALL_FRAMEWORK_IDS,
@@ -60,22 +103,7 @@ export async function createRun(): Promise<AuditRun> {
     findings: [],
     certificate: null,
   };
-  return repository.create(run);
-}
-
-export async function connectRepository(runId: string): Promise<AuditRun> {
-  return repository.update(runId, (run) => ({
-    ...run,
-    scope: {
-      ...run.scope,
-      repository: {
-        provider: "github",
-        slug: REPOSITORY_SLUG,
-        authorizedBranches: AUTHORIZED_BRANCHES,
-        connectedAt: new Date().toISOString(),
-      },
-    },
-  }));
+  return repository.create(run, files);
 }
 
 export async function acceptClause(
@@ -94,14 +122,12 @@ export async function acceptClause(
   }));
 }
 
-/** Cierra el paso 1: exige repositorio conectado y cláusulas obligatorias aceptadas. */
+/** Cierra el paso 1: exige las cláusulas obligatorias aceptadas. */
 export async function authorizeScope(runId: string): Promise<AuditRun> {
   const run = await repository.find(runId);
   if (!run) throw new Error("Auditoría no encontrada");
 
-  if (!run.scope.repository) {
-    throw new Error("No hay repositorio conectado");
-  }
+  const providers = detectProviders(await repository.files(runId));
   const pending = run.scope.clauses.filter((c) => c.required && !c.accepted);
   if (pending.length > 0) {
     throw new Error("Faltan cláusulas obligatorias del acuerdo de alcance");
@@ -111,7 +137,7 @@ export async function authorizeScope(runId: string): Promise<AuditRun> {
     ...current,
     status: "configurado",
     scope: { ...current.scope, authorizedAt: new Date().toISOString() },
-    config: { ...current.config, providers: DETECTED_PROVIDERS },
+    config: { ...current.config, providers },
   }));
 }
 
@@ -188,14 +214,14 @@ async function execute(runId: string): Promise<void> {
   if (!run) return;
 
   const selected = run.config.frameworks;
-  const intensity = run.config.intensity;
-  const catalog = buildFindings();
+  const files = await repository.files(runId);
+  const catalog = runChecks(files, run.scope.client.name);
 
   await log(
     runId,
     "system",
     "orchestrator",
-    `Inicializando conexión segura a ${run.scope.repository?.slug} en ${run.scope.sandboxId}`,
+    `Analizando ${run.scope.source.fileName} (${files.length} archivos, SHA-256 ${run.scope.source.sha256.slice(0, 12)}…) en ${run.scope.sandboxId}`,
   );
 
   if (run.config.piiMaskEnabled) {
@@ -222,7 +248,6 @@ async function execute(runId: string): Promise<void> {
     await setModule(runId, module.id, { status: "ejecutando", progress: 0 });
     await log(runId, "system", module.id, `Iniciando ${module.name.toLowerCase()}`);
 
-    const payloads = payloadsFor(module, intensity);
     const moduleFindings = catalog.filter(
       (f) => f.module === module.id && selectedCoversFinding(f.ruleIds, selected),
     );
@@ -234,15 +259,14 @@ async function execute(runId: string): Promise<void> {
       await sleep(module.durationMs / steps);
 
       const progress = Math.round((step / steps) * 100);
-      const sent = Math.round((payloads * step) / steps);
-      await setModule(runId, module.id, { progress, payloadsSent: sent });
+      await setModule(runId, module.id, { progress });
 
-      if (payloads > 0 && step < steps) {
+      if (step < steps) {
         await log(
           runId,
           "payload",
           module.id,
-          `Enviando lote adversarial ${step}/${steps} (${sent}/${payloads} payloads)`,
+          `Revisando lote ${step}/${steps} (${Math.round((files.length * step) / steps)}/${files.length} archivos)`,
         );
       }
 
@@ -267,7 +291,6 @@ async function execute(runId: string): Promise<void> {
     await setModule(runId, module.id, {
       status: "completado",
       progress: 100,
-      payloadsSent: payloads,
       findingsFound: found ?? 0,
     });
     await log(
@@ -339,7 +362,7 @@ export function currentPhase(run: AuditRun): string {
     case "remediando":
       return "Remediación en curso";
     case "certificado":
-      return "Auditoría certificada";
+      return "Informe expedido";
     default:
       return "En espera";
   }
