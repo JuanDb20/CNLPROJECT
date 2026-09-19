@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import type { FrameworkId } from "@/domain/types";
 import {
+  acceptAllClauses,
   acceptClause,
   acceptScopeAsClient,
   authorizeScope,
@@ -23,7 +24,7 @@ import {
   uploadCorrected,
 } from "@/engine/remediation";
 import { login, loginDemo, logout, register, requireUser } from "@/server/auth";
-import { RUN_COOKIE, clientRun } from "@/server/http";
+import { MODO_COOKIE, RUN_COOKIE, clientRun } from "@/server/http";
 import { requireRun } from "@/server/session";
 import { repository } from "@/server/store";
 
@@ -42,8 +43,14 @@ async function runId(): Promise<string> {
 
 async function openRun(id: string) {
   const store = await cookies();
-  store.set(RUN_COOKIE, id, { httpOnly: true, sameSite: "lax", path: "/" });
+  store.set(RUN_COOKIE, id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
 }
+
 
 /* ------------------------------ Cuenta ------------------------------ */
 
@@ -63,8 +70,8 @@ export async function registrarse(form: FormData) {
 }
 
 export async function ingresar(form: FormData) {
-  const ok = await login(String(form.get("correo") ?? ""), String(form.get("clave") ?? ""));
-  redirect(ok ? "/panel" : "/ingresar?error=credenciales");
+  const result = await login(String(form.get("correo") ?? ""), String(form.get("clave") ?? ""));
+  redirect(result === "ok" ? "/panel" : `/ingresar?error=${result}`);
 }
 
 export async function salir() {
@@ -84,8 +91,17 @@ export async function crearAuditoria(form: FormData) {
   let id: string;
   try {
     id = (await createRunFromForm(user, form)).id;
-  } catch {
-    redirect("/panel/nueva?error=1");
+  } catch (error) {
+    /* El motor da mensajes precisos ("el repositorio debe ser público", "el .zip
+       supera 4 MB"); se devuelven con los datos escritos para no rellenar todo otra vez. */
+    const back = new URLSearchParams({
+      error: error instanceof Error ? error.message : "datos",
+    });
+    for (const campo of ["cliente", "nit", "representante", "sector", "sistema", "repositorio"]) {
+      const valor = String(form.get(campo) ?? "").slice(0, 300);
+      if (valor) back.set(campo, valor);
+    }
+    redirect(`/panel/nueva?${back}`);
   }
   await openRun(id);
   redirect("/auditoria/alcance");
@@ -119,6 +135,12 @@ export async function abrirAuditoria(id: string) {
 export async function alternarClausula(clauseId: string, accepted: boolean) {
   await acceptClause(await runId(), clauseId, accepted);
   revalidatePath("/auditoria/alcance");
+}
+
+/** Marca aceptadas todas las cláusulas: el acuerdo ya se firmó por fuera de VIGÍA. */
+export async function aceptarTodasLasClausulas() {
+  await acceptAllClauses(await runId());
+  redirect("/auditoria/alcance");
 }
 
 export async function confirmarAlcance() {
@@ -169,8 +191,9 @@ export async function retestearVersion(form: FormData) {
   try {
     const { fileName, zip } = await sourceZip(String(form.get("repositorio") ?? "").trim(), form.get("codigo"));
     await uploadCorrected(id, fileName, zip);
-  } catch {
-    redirect(`${back}&error=version`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "version";
+    redirect(`${back}&error=${encodeURIComponent(message.slice(0, 300))}`);
   }
   redirect(back);
 }
@@ -191,6 +214,43 @@ export async function firmarHallazgo(findingId: string, form: FormData) {
 export async function expedirCertificado() {
   await issueCertificate(await runId());
   revalidatePath("/auditoria/remediacion");
+}
+
+/**
+ * Borra el código cargado una vez expedido el informe: la cláusula 4 del acuerdo
+ * promete que solo queda su SHA-256, y ese hash ya está dentro del informe.
+ */
+export async function borrarCodigo() {
+  const run = await requireRun();
+  if (run.status !== "certificado") redirect("/auditoria/remediacion");
+  await repository.deleteSource(run.id);
+  await repository.update(run.id, (current) => ({
+    ...current,
+    scope: {
+      ...current.scope,
+      source: { ...current.scope.source, deletedAt: new Date().toISOString() },
+    },
+  }));
+  revalidatePath("/auditoria", "layout");
+  redirect("/auditoria/remediacion");
+}
+
+/* --------------------------- Modo aprendizaje -------------------------- */
+
+/** Alterna las explicaciones paso a paso. Se guarda en una cookie, no en la auditoría. */
+export async function alternarModoAprendizaje() {
+  const store = await cookies();
+  if (store.get(MODO_COOKIE)) {
+    store.delete(MODO_COOKIE);
+  } else {
+    store.set(MODO_COOKIE, "aprendizaje", {
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+  revalidatePath("/", "layout");
 }
 
 /* ------------------------- Portal del cliente ------------------------- */

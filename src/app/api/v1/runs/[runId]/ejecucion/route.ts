@@ -3,6 +3,9 @@ import { fail, guard, ownedRun, present } from "@/server/http";
 
 type Params = { params: Promise<{ runId: string }> };
 
+/** El análisis sigue corriendo en `after()` tras responder: sin esto vale el tope del proyecto. */
+export const maxDuration = 300;
+
 /**
  * POST /api/v1/runs/:runId/ejecucion — paso 3: encola la ejecución.
  *

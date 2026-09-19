@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
 
-import type { AuditRun, ConformityCertificate, RepoFile, User } from "@/domain/types";
+import type {
+  AuditRun,
+  ConformityCertificate,
+  PublicCertificate,
+  RepoFile,
+  User,
+} from "@/domain/types";
 
 import { readZip } from "./zip";
 
@@ -19,6 +25,8 @@ import { readZip } from "./zip";
 export interface AccountRepository {
   create(user: User): Promise<User>;
   find(id: string): Promise<User | null>;
+  /** Reescribe la cuenta (p. ej. la tarjeta profesional tras la primera firma). */
+  update(user: User): Promise<User>;
   findByEmail(email: string): Promise<User | null>;
   /** Abre una sesión y devuelve su token opaco. */
   openSession(userId: string): Promise<string>;
@@ -34,10 +42,18 @@ export interface AuditRepository {
   /** Archivos del .zip original o, con `corregido`, de la versión corregida. */
   files(runId: string, version?: "corregido"): Promise<RepoFile[]>;
   saveCorrected(runId: string, zip: Buffer): Promise<void>;
+  /** Borra el código cargado (original y corregido). Queda su SHA-256 en la auditoría. */
+  deleteSource(runId: string): Promise<void>;
   /** Lee, aplica la mutación y guarda el nuevo estado. */
   update(id: string, mutate: (run: AuditRun) => AuditRun): Promise<AuditRun>;
-  saveCertificate(cert: ConformityCertificate): Promise<ConformityCertificate>;
-  latestCertificateHash(): Promise<string>;
+  saveCertificate(cert: ConformityCertificate, ownerId: string): Promise<ConformityCertificate>;
+  latestCertificateHash(ownerId: string): Promise<string>;
+  /** Informe público por identificador VGI-INF-… o por hash, para /verificar. */
+  findCertificate(q: string): Promise<PublicCertificate | null>;
+  /** Escribe y relee una clave para que el proyecto de Supabase no se pause. */
+  keepAlive(stamp: string): Promise<boolean>;
+  /** Borra del almacén lo que ya venció. Solo Supabase la necesita. */
+  purge(): Promise<void>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -48,6 +64,8 @@ interface KV {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds?: number): Promise<void>;
   del(key: string): Promise<void>;
+  /** Borrado real de lo vencido. Redis y memoria caducan solos; Postgres no. */
+  purge?(): Promise<void>;
 }
 
 function redis(url: string, token: string): KV {
@@ -108,15 +126,33 @@ function supabase(url: string, serviceKey: string): KV {
       });
       if (!res.ok) throw new Error(`Supabase: ${res.status} ${await res.text()}`);
     },
+    // El `expires_at` de Postgres solo filtra la lectura: sin este DELETE la fila
+    // (con el .zip en base64) se quedaría para siempre, contra la cláusula 4 del acuerdo.
+    async purge() {
+      const res = await fetch(`${base}?expires_at=lt.${new Date().toISOString()}`, {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Supabase: ${res.status} ${await res.text()}`);
+    },
   };
 }
 
-// ponytail: en memoria las sesiones no caducan; la cookie sí (8 h).
 function memory(): KV {
-  const map = new Map<string, string>();
+  const map = new Map<string, { value: string; expiresAt: number }>();
   return {
-    get: async (key) => map.get(key) ?? null,
-    set: async (key, value) => void map.set(key, value),
+    get: async (key) => {
+      const row = map.get(key);
+      if (!row) return null;
+      if (row.expiresAt && row.expiresAt < Date.now()) {
+        map.delete(key);
+        return null;
+      }
+      return row.value;
+    },
+    set: async (key, value, ttl) =>
+      void map.set(key, { value, expiresAt: ttl ? Date.now() + ttl * 1000 : 0 }),
     del: async (key) => void map.delete(key),
   };
 }
@@ -154,6 +190,10 @@ export const accounts: AccountRepository = {
     return user;
   },
   find: (id) => json<User>(`user:${id}`),
+  async update(user) {
+    await put(`user:${user.id}`, user);
+    return user;
+  },
   async findByEmail(email) {
     const id = await kv.get(`email:${email}`);
     return id ? json<User>(`user:${id}`) : null;
@@ -165,6 +205,16 @@ export const accounts: AccountRepository = {
   },
   sessionUser: (token) => kv.get(`session:${token}`),
   closeSession: (token) => kv.del(`session:${token}`),
+};
+
+/** Intentos fallidos de ingreso por correo, para frenar la fuerza bruta. */
+export const loginAttempts = {
+  failures: async (email: string) => Number(await kv.get(`login:fallos:${email}`)) || 0,
+  async fail(email: string, ttlSeconds: number) {
+    const key = `login:fallos:${email}`;
+    await kv.set(key, String((Number(await kv.get(key)) || 0) + 1), ttlSeconds);
+  },
+  reset: (email: string) => kv.del(`login:fallos:${email}`),
 };
 
 // ponytail: update es leer-modificar-escribir sin bloqueo; basta porque cada
@@ -189,6 +239,10 @@ export const repository: AuditRepository = {
     return zip ? readZip(Buffer.from(zip, "base64")) : [];
   },
   saveCorrected: (runId, zip) => kv.set(`zip:${runId}:corregido`, zip.toString("base64"), ZIP_SECONDS),
+  async deleteSource(runId) {
+    await kv.del(`zip:${runId}`);
+    await kv.del(`zip:${runId}:corregido`);
+  },
   async update(id, mutate) {
     const current = await json<AuditRun>(`run:${id}`);
     if (!current) throw new Error(`Auditoría no encontrada: ${id}`);
@@ -196,9 +250,49 @@ export const repository: AuditRepository = {
     await put(`run:${id}`, next);
     return next;
   },
-  async saveCertificate(cert) {
-    await kv.set("certificado:ultimo", cert.hash);
+  /* La cadena de hash es POR ABOGADO (`certificado:ultimo:<ownerId>`): un informe
+     encadenado al de otro cliente no lo puede verificar nadie, porque su eslabón
+     anterior es un documento que el destinatario nunca va a ver. */
+  async saveCertificate(cert, ownerId) {
+    await kv.set(`certificado:ultimo:${ownerId}`, cert.hash);
+    const publicRecord: PublicCertificate = {
+      id: cert.id,
+      issuedAt: cert.issuedAt,
+      hash: cert.hash,
+      previousHash: cert.previousHash,
+      timestamp: cert.timestamp ?? null,
+      scoreBefore: cert.scoreBefore,
+      scoreAfter: cert.scoreAfter,
+      sourceSha256: cert.sourceSha256,
+      retestSha256: cert.retestSha256,
+      signedCount: cert.signedFindings.length,
+      findingsCount: cert.findingsCount,
+      // "VGI-011 · Ana Ruiz (T.P. 123456) · Salvedad: …" → "Ana Ruiz (T.P. 123456)"
+      signers: [
+        ...new Set(
+          cert.signedFindings
+            .map((f) => /·\s*([^·]*\(T\.P\.\s*\d+\))/.exec(f)?.[1].trim())
+            .filter((s): s is string => Boolean(s)),
+        ),
+      ],
+    };
+    await put(`cert:id:${cert.id}`, publicRecord);
+    await put(`cert:hash:${cert.hash}`, publicRecord);
     return cert;
   },
-  latestCertificateHash: async () => (await kv.get("certificado:ultimo")) ?? "0".repeat(16),
+  latestCertificateHash: async (ownerId) =>
+    (await kv.get(`certificado:ultimo:${ownerId}`)) ?? "0".repeat(64),
+  async findCertificate(q) {
+    const key = q.trim();
+    if (!key) return null;
+    return (
+      (await json<PublicCertificate>(`cert:id:${key.toUpperCase()}`)) ??
+      (await json<PublicCertificate>(`cert:hash:${key.toLowerCase()}`))
+    );
+  },
+  async keepAlive(stamp) {
+    await kv.set("keepalive", stamp);
+    return (await kv.get("keepalive")) === stamp;
+  },
+  purge: async () => kv.purge?.(),
 };

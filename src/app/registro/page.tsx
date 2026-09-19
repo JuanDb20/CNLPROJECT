@@ -6,11 +6,12 @@ import { Logo } from "@/components/shell";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
 
+/* `existe` no tiene entrada a propósito: decir «ese correo ya tiene cuenta»
+   convierte el formulario en un oráculo para saber quién está registrado. */
 const ERRORS: Record<string, string> = {
   nombre: "Escribe tu nombre completo.",
   correo: "Escribe un correo válido.",
   clave: "La contraseña debe tener al menos 8 caracteres.",
-  existe: "Ya existe una cuenta con ese correo. Ingresa con ella.",
   politica: "Para crear la cuenta debes autorizar el tratamiento de tus datos.",
 };
 

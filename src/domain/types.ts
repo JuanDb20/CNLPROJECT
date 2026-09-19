@@ -69,6 +69,8 @@ export interface SourceUpload {
   bytes: number;
   fileCount: number;
   uploadedAt: string;
+  /** Fecha en que se borró el código cargado; queda solo su SHA-256. */
+  deletedAt?: string;
 }
 
 /** Archivo de texto del código cargado. Se guarda aparte de la auditoría. */
@@ -132,8 +134,6 @@ export interface AuditConfig {
   providers: DetectedProvider[];
   /** Sustituye registros reales por datos sintéticos (principio de minimización). */
   piiMaskEnabled: boolean;
-  /** Intensidad del red team: cuántos payloads por módulo. */
-  intensity: "baja" | "media" | "alta";
 }
 
 /* ------------------------------------------------------------------ */
@@ -269,6 +269,8 @@ export interface ConformityCertificate {
   scoreAfter: number;
   frameworks: FrameworkId[];
   signedFindings: string[];
+  /** Total de hallazgos de la auditoría (firmados y no firmados). */
+  findingsCount: number;
   /** SHA-256 del .zip auditado: el informe queda atado a esa versión exacta del código. */
   sourceSha256: string;
   /** SHA-256 de evidencia, análisis y estado de todos los hallazgos. */
@@ -280,6 +282,26 @@ export interface ConformityCertificate {
   hash: string;
   /** Sello de tiempo RFC 3161 de un tercero sobre `hash`; null si la TSA no respondió. */
   timestamp?: { tsa: string; at: string; token: string } | null;
+}
+
+/**
+ * Subconjunto del informe que cualquiera puede consultar en /verificar sin
+ * sesión: acredita integridad y fecha cierta, no revela de quién es la auditoría.
+ */
+export interface PublicCertificate {
+  id: string;
+  issuedAt: string;
+  hash: string;
+  previousHash: string;
+  timestamp: { tsa: string; at: string; token: string } | null;
+  scoreBefore: number;
+  scoreAfter: number;
+  sourceSha256: string;
+  retestSha256: string | null;
+  signedCount: number;
+  findingsCount: number;
+  /** Nombre y tarjeta profesional de cada abogado firmante. */
+  signers: string[];
 }
 
 /* ------------------------------------------------------------------ */

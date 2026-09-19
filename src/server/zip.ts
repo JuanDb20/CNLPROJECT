@@ -24,34 +24,48 @@ export function readZip(buffer: Buffer): RepoFile[] {
   let offset = buffer.readUInt32LE(eocd + 16);
   let total = 0;
 
-  for (let i = 0; i < count; i += 1) {
-    if (buffer.readUInt32LE(offset) !== 0x02014b50) throw new Error("El .zip está dañado");
-    const encrypted = buffer.readUInt16LE(offset + 8) & 1;
-    const method = buffer.readUInt16LE(offset + 10);
-    const compressed = buffer.readUInt32LE(offset + 20);
-    const size = buffer.readUInt32LE(offset + 24);
-    const nameLength = buffer.readUInt16LE(offset + 28);
-    const local = buffer.readUInt32LE(offset + 42);
-    const path = buffer.toString("utf8", offset + 46, offset + 46 + nameLength);
-    offset +=
-      46 + nameLength + buffer.readUInt16LE(offset + 30) + buffer.readUInt16LE(offset + 32);
+  /* Un desplazamiento corrupto hace que Buffer lance un RangeError técnico de
+     Node; envolver el recorrido lo convierte en un error del dominio. */
+  try {
+    for (let i = 0; i < count; i += 1) {
+      if (buffer.readUInt32LE(offset) !== 0x02014b50) throw new Error("El .zip está dañado");
+      const encrypted = buffer.readUInt16LE(offset + 8) & 1;
+      const method = buffer.readUInt16LE(offset + 10);
+      const compressed = buffer.readUInt32LE(offset + 20);
+      const size = buffer.readUInt32LE(offset + 24);
+      const nameLength = buffer.readUInt16LE(offset + 28);
+      const local = buffer.readUInt32LE(offset + 42);
+      const path = buffer.toString("utf8", offset + 46, offset + 46 + nameLength);
+      offset +=
+        46 + nameLength + buffer.readUInt16LE(offset + 30) + buffer.readUInt16LE(offset + 32);
 
-    if (encrypted || path.endsWith("/") || SKIP.test(path) || size > MAX_FILE_BYTES) continue;
-    total += size;
-    if (total > MAX_TOTAL_BYTES) throw new Error("El código descomprimido supera 20 MB");
+      if (encrypted || path.endsWith("/") || SKIP.test(path)) continue;
+      /* `size` lo declara quien arma el .zip, así que no se puede creer: solo
+         sirve para descartar entradas enormes antes de gastar CPU. Los topes de
+         verdad se aplican abajo, sobre los bytes que salen descomprimidos. */
+      if (size > MAX_FILE_BYTES && method !== 0) continue;
 
-    const start = local + 30 + buffer.readUInt16LE(local + 26) + buffer.readUInt16LE(local + 28);
-    const raw = buffer.subarray(start, start + compressed);
-    let data: Buffer;
-    try {
-      if (method === 0) data = raw;
-      else if (method === 8) data = inflateRawSync(raw, { maxOutputLength: MAX_FILE_BYTES });
-      else continue;
-    } catch {
-      continue;
+      const start = local + 30 + buffer.readUInt16LE(local + 26) + buffer.readUInt16LE(local + 28);
+      const raw = buffer.subarray(start, start + compressed);
+      let data: Buffer;
+      try {
+        if (method === 0) {
+          if (raw.length > MAX_FILE_BYTES) continue; // "stored": el tope va sobre el tamaño real
+          data = raw;
+        } else if (method === 8) {
+          data = inflateRawSync(raw, { maxOutputLength: MAX_FILE_BYTES });
+        } else continue;
+      } catch {
+        continue;
+      }
+      if (data.includes(0)) continue; // binario: imágenes, fuentes, compilados
+      total += data.length;
+      if (total > MAX_TOTAL_BYTES) throw new Error("El código descomprimido supera 20 MB");
+      files.push({ path, content: data.toString("utf8") });
     }
-    if (data.includes(0)) continue; // binario: imágenes, fuentes, compilados
-    files.push({ path, content: data.toString("utf8") });
+  } catch (error) {
+    if (error instanceof RangeError) throw new Error("El .zip está dañado");
+    throw error;
   }
 
   return stripRoot(files);

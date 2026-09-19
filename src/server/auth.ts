@@ -2,9 +2,10 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypt
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { POLITICA_VERSION, POLITICA_VIGENCIA } from "@/app/privacidad/datos";
 import type { User } from "@/domain/types";
 
-import { accounts } from "./store";
+import { accounts, loginAttempts } from "./store";
 
 /**
  * Cuentas de abogado y sesiones.
@@ -14,8 +15,6 @@ import { accounts } from "./store";
  */
 
 export const SESSION_COOKIE = "vigia_sesion";
-/** Versión de la política de tratamiento (/privacidad) que acepta cada abogado al registrarse. */
-export const POLITICA_VERSION = "1.0, vigente desde el 18 de septiembre de 2026";
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -60,16 +59,39 @@ export async function register(input: {
     email,
     firm: input.firm.trim().slice(0, 120),
     passwordHash: hashPassword(input.password),
-    privacyAcceptance: { version: POLITICA_VERSION, at: new Date().toISOString() },
+    privacyAcceptance: {
+      version: `${POLITICA_VERSION}, vigente desde el ${POLITICA_VIGENCIA}`,
+      at: new Date().toISOString(),
+    },
   });
   await startSession(user.id);
 }
 
-export async function login(email: string, password: string): Promise<boolean> {
-  const user = await accounts.findByEmail(email.trim().toLowerCase());
-  if (!user || !verifyPassword(password, user.passwordHash)) return false;
+/** Hash de descarte: se verifica contra él cuando el correo no existe, para que
+ * el tiempo de respuesta no revele qué cuentas están registradas. */
+const DECOY_HASH = hashPassword(randomBytes(16).toString("hex"));
+
+export const LOGIN_MAX_FAILURES = 5;
+export const LOGIN_BLOCK_SECONDS = 15 * 60;
+
+/** `bloqueado` cuando el correo acumuló demasiados intentos fallidos. */
+export async function login(
+  email: string,
+  password: string,
+): Promise<"ok" | "credenciales" | "bloqueado"> {
+  const address = email.trim().toLowerCase();
+  if ((await loginAttempts.failures(address)) >= LOGIN_MAX_FAILURES) return "bloqueado";
+
+  const user = await accounts.findByEmail(address);
+  // Verificar siempre, exista o no la cuenta: el tiempo de scrypt es el mismo.
+  const valid = verifyPassword(password, user?.passwordHash ?? DECOY_HASH);
+  if (!user || !valid) {
+    await loginAttempts.fail(address, LOGIN_BLOCK_SECONDS);
+    return "credenciales";
+  }
+  await loginAttempts.reset(address);
   await startSession(user.id);
-  return true;
+  return "ok";
 }
 
 /**

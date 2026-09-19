@@ -3,6 +3,7 @@ import { after } from "next/server";
 
 import { buildClauses, detectProviders, runChecks } from "@/domain/checks";
 import { ALL_FRAMEWORK_IDS, getRules } from "@/domain/compliance";
+import { executionLabel } from "@/domain/format";
 import type {
   AuditRun,
   ClientInfo,
@@ -71,9 +72,9 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
 }
 
 const EXAMPLE_CLIENT: ClientInfo = {
-  name: "Fintrex S.A.S.",
+  name: "Crediveloz S.A.S.",
   // NIT ficticio con dígito de verificación correcto y sin registro en el RUES.
-  nit: "902.999.990-6",
+  nit: "902.999.874-1",
   legalRepresentative: "Camila Rueda Ospina",
   sector: "Financiero y fintech",
   system: "Asistente de chat para clientes, con vinculación digital por selfie y cédula.",
@@ -86,7 +87,7 @@ const EXAMPLE_CLIENT: ClientInfo = {
  */
 export async function createExampleRun(owner: User): Promise<AuditRun> {
   const zip = writeZip(EXAMPLE_FILES);
-  return createRun(owner, EXAMPLE_CLIENT, "ejemplo-fintrex.zip", zip, EXAMPLE_FILES);
+  return createRun(owner, EXAMPLE_CLIENT, "ejemplo-crediveloz.zip", zip, EXAMPLE_FILES);
 }
 
 function createRun(
@@ -136,7 +137,6 @@ function createRun(
       frameworks: ALL_FRAMEWORK_IDS,
       providers: [],
       piiMaskEnabled: true,
-      intensity: "media",
     },
     modules: initialModuleStates(),
     logs: [],
@@ -158,19 +158,23 @@ export function nitCheckDigit(nit: string): number {
  * datos.gov.co (sin llave). undefined si no responde: la auditoría no depende de ello.
  */
 async function ruesLookup(nit: string): Promise<ClientInfo["rues"]> {
-  try {
-    const res = await fetch(
-      `https://www.datos.gov.co/resource/c82u-588k.json?nit=${nit}&$select=razon_social,estado_matricula,cod_ciiu_act_econ_pri,ultimo_ano_renovado&$order=ultimo_ano_renovado DESC&$limit=1`,
-      { signal: AbortSignal.timeout(5000), cache: "no-store" },
-    );
-    if (!res.ok) return undefined;
-    const [row] = (await res.json()) as Array<Record<string, string>>;
-    return row
-      ? { name: row.razon_social, status: row.estado_matricula, ciiu: row.cod_ciiu_act_econ_pri, renewed: row.ultimo_ano_renovado }
-      : null;
-  } catch {
-    return undefined;
+  // datos.gov.co tarda o devuelve 503 con frecuencia: un reintento cubre el caso común.
+  for (let intento = 0; intento < 2; intento += 1) {
+    try {
+      const res = await fetch(
+        `https://www.datos.gov.co/resource/c82u-588k.json?nit=${nit}&$select=razon_social,estado_matricula,cod_ciiu_act_econ_pri,ultimo_ano_renovado&$order=ultimo_ano_renovado DESC&$limit=1`,
+        { signal: AbortSignal.timeout(10_000), cache: "no-store" },
+      );
+      if (!res.ok) continue;
+      const [row] = (await res.json()) as Array<Record<string, string>>;
+      return row
+        ? { name: row.razon_social, status: row.estado_matricula, ciiu: row.cod_ciiu_act_econ_pri, renewed: row.ultimo_ano_renovado }
+        : null;
+    } catch {
+      // siguiente intento
+    }
   }
+  return undefined;
 }
 
 /** El código llega en .zip o se descarga de un repositorio público de GitHub. */
@@ -215,6 +219,17 @@ export async function acceptClause(
       clauses: run.scope.clauses.map((c) =>
         c.id === clauseId ? { ...c, accepted } : c,
       ),
+    },
+  }));
+}
+
+/** Marca aceptadas todas las cláusulas: el acuerdo se firmó por fuera de VIGÍA. */
+export async function acceptAllClauses(runId: string): Promise<AuditRun> {
+  return repository.update(runId, (run) => ({
+    ...run,
+    scope: {
+      ...run.scope,
+      clauses: run.scope.clauses.map((c) => ({ ...c, accepted: true })),
     },
   }));
 }
@@ -317,6 +332,10 @@ export async function startExecution(runId: string): Promise<AuditRun> {
   if (!run.scope.authorizedAt) {
     throw new Error("La auditoría no tiene alcance autorizado");
   }
+  // Reejecutar borraría hallazgos, firmas e informe: no se permite una vez firmado.
+  if (run.certificate || run.findings.some((f) => f.remediation.status === "firmado")) {
+    throw new Error("La auditoría tiene hallazgos firmados: no se puede reejecutar");
+  }
   // Una ejecución sin traza en el último minuto se da por caída y se relanza.
   const lastActivity = Date.parse(run.logs.at(-1)?.at ?? run.createdAt);
   if (run.status === "ejecutando" && Date.now() - lastActivity < 60_000) return run;
@@ -324,7 +343,18 @@ export async function startExecution(runId: string): Promise<AuditRun> {
   const started = await repository.update(runId, (current) => ({
     ...current,
     status: "ejecutando",
-    logs: [],
+    /* La traza arranca aquí, no en execute(): sin esta primera entrada la guarda
+       de 60 s cae al createdAt de la auditoría y el segundo clic lanza un
+       orquestador paralelo. execute() continúa la numeración (log usa logs.length). */
+    logs: [
+      {
+        seq: 1,
+        at: new Date().toISOString(),
+        level: "system" as const,
+        module: "orchestrator" as const,
+        message: "Ejecución encolada",
+      },
+    ],
     findings: [],
     modules: initialModuleStates(),
     certificate: null,
@@ -346,7 +376,7 @@ async function execute(runId: string): Promise<void> {
     runId,
     "system",
     "orchestrator",
-    `Analizando ${run.scope.source.fileName} (${files.length} archivos, SHA-256 ${run.scope.source.sha256.slice(0, 12)}…) en ${run.scope.sandboxId}`,
+    `Analizando ${run.scope.source.fileName} (${files.length} archivos, SHA-256 ${run.scope.source.sha256.slice(0, 12)}…) en ${executionLabel(run.scope.sandboxId)}`,
   );
 
   if (run.config.piiMaskEnabled) {

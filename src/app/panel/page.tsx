@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { abrirAuditoria, crearAuditoriaEjemplo } from "@/app/actions";
 import { Card, Tag, buttonClass } from "@/components/ui";
+import { formatDate } from "@/domain/format";
 import { scoreRun } from "@/domain/scoring";
 import type { RunStatus } from "@/domain/types";
 import { requireUser } from "@/server/auth";
@@ -30,7 +31,8 @@ export default async function PanelPage() {
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-ink">Mis auditorías</h1>
           <p className="mt-1.5 text-[13px] text-ink-muted">
-            {user.firm || "Ejercicio independiente"} · {runs.length} auditoría(s)
+            {user.firm || "Ejercicio independiente"} · {runs.length}{" "}
+            {runs.length === 1 ? "auditoría" : "auditorías"}
           </p>
         </div>
         <Link href="/panel/nueva" className={buttonClass("brand")}>
@@ -61,11 +63,7 @@ export default async function PanelPage() {
         <ul className="divide-y divide-line overflow-hidden rounded-[12px] border border-line bg-surface">
           {runs.map((run) => {
             const status = STATUS[run.status];
-            const date = new Date(run.createdAt).toLocaleDateString("es-CO", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            });
+            const date = formatDate(run.createdAt);
             return (
               <li key={run.id}>
                 <form action={abrirAuditoria.bind(null, run.id)}>

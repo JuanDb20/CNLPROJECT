@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "autoauditoria": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/alias.mjs scripts/autoauditoria.mts"
   },
   "dependencies": {
     "next": "^15.5.25",
@@ -20,5 +20,8 @@
     "@types/react-dom": "^19.1.7",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.6"
   }
 }

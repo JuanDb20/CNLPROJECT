@@ -26,7 +26,12 @@ export async function POST(request: Request) {
   try {
     const run = await createRunFromForm(user, form);
     const response = NextResponse.json(present(run), { status: 201 });
-    response.cookies.set(RUN_COOKIE, run.id, { httpOnly: true, sameSite: "lax", path: "/" });
+    response.cookies.set(RUN_COOKIE, run.id, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
     return response;
   } catch (error) {
     return fail(error instanceof Error ? error.message : "Error inesperado");

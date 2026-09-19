@@ -5,6 +5,8 @@ import { requireAuthorizedRun } from "@/server/session";
 import { ConfigForm } from "./config-form";
 
 export const dynamic = "force-dynamic";
+/** Aquí corre el server action que lanza el análisis, que sigue en `after()`. */
+export const maxDuration = 300;
 
 const CLASSIFICATION_LABEL = {
   "third-party-llm": "LLM de terceros",
@@ -22,7 +24,7 @@ export default async function ConfiguracionPage() {
           Configuración del análisis técnico-legal
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Configura vectores de prueba, proveedores de IA y marcos de cumplimiento
+          Proveedores de IA detectados en el código y marcos normativos a evaluar
         </p>
       </div>
 
@@ -55,7 +57,9 @@ export default async function ConfiguracionPage() {
                         {provider.country} ·{" "}
                         {provider.role === "responsable"
                           ? "Responsable → transferencia (art. 26)"
-                          : "Encargado → transmisión (contrato)"}
+                          : provider.role === "encargado"
+                            ? "Encargado → transmisión (contrato)"
+                            : "Por determinar (verificar términos del proveedor)"}
                       </p>
                     )}
                   </div>
@@ -86,9 +90,9 @@ export default async function ConfiguracionPage() {
                 Enmascaramiento de datos personales
               </p>
               <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
-                VIGÍA inyectará simulaciones en lugar de consultar registros reales de
-                usuarios de {run.scope.client.name}, para mantener el cumplimiento
-                estricto del principio de minimización de datos.
+                Las llaves y los números de documento que aparezcan en el código de{" "}
+                {run.scope.client.name} se enmascaran antes de entrar a la evidencia, en
+                cumplimiento estricto del principio de minimización de datos.
               </p>
             </div>
           </div>

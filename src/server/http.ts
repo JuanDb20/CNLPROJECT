@@ -11,6 +11,14 @@ import { repository } from "./store";
 /** Cookie que identifica la auditoría abierta en esta sesión del navegador. */
 export const RUN_COOKIE = "vigia_run";
 
+/** Cookie del modo aprendizaje: mientras está puesta, cada pantalla explica el paso. */
+export const MODO_COOKIE = "vigia_modo";
+
+/** ¿Está activo el modo aprendizaje? */
+export async function learningMode(): Promise<boolean> {
+  return (await cookies()).get(MODO_COOKIE)?.value === "aprendizaje";
+}
+
 export function ok<T>(data: T, init?: ResponseInit) {
   return NextResponse.json(data, init);
 }
@@ -25,6 +33,12 @@ export async function guard<T>(fn: () => Promise<T>) {
     return ok(await fn());
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error inesperado";
+    // Un fallo del almacén no es culpa de quien llama, y su cuerpo (PostgREST,
+    // Upstash) no debe salir por la API: se registra y se responde en neutro.
+    if (/^(Supabase|Redis):/.test(message)) {
+      console.error(message);
+      return fail("El almacenamiento no respondió; inténtalo de nuevo", 500);
+    }
     return fail(message, /no encontrad/i.test(message) ? 404 : 400);
   }
 }

@@ -25,7 +25,11 @@ export default async function IngresarPage({
 
         {error ? (
           <Panel tone="critical" className="mt-4">
-            <p className="text-[12.5px] text-critical">Correo o contraseña incorrectos.</p>
+            <p className="text-[12.5px] text-critical">
+              {error === "bloqueado"
+                ? "Demasiados intentos; espera 15 minutos."
+                : "Correo o contraseña incorrectos."}
+            </p>
           </Panel>
         ) : null}
 

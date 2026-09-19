@@ -5,7 +5,7 @@ import { scoreRun } from "@/domain/scoring";
 import type { AuditRun, ConformityCertificate, Finding } from "@/domain/types";
 import { dependencyAdvisories } from "@/server/osv";
 import { readZip } from "@/server/zip";
-import { repository } from "@/server/store";
+import { accounts, repository } from "@/server/store";
 
 /**
  * Remediación y certificación.
@@ -74,6 +74,18 @@ const retestable = (f: Finding) => f.remediation.status === "pr-abierto" || f.re
 export async function uploadCorrected(runId: string, fileName: string, zip: Buffer): Promise<AuditRun> {
   const files = readZip(zip);
   if (files.length === 0) throw new Error("El .zip no contiene archivos de código legibles");
+  /* Un retesteo solo prueba algo si la versión corregida es el mismo proyecto:
+     con un repositorio ajeno ninguna prueba vuelve a encontrar su patrón y todo
+     queda en verde. */
+  const original = await repository.files(runId);
+  const paths = new Set(files.map((f) => f.path));
+  const shared = original.filter((f) => paths.has(f.path)).length;
+  if (original.length > 0 && shared / original.length < 0.5) {
+    throw new Error(
+      "La versión corregida no corresponde al proyecto auditado: solo comparte " +
+        `${shared} de ${original.length} archivos`,
+    );
+  }
   await repository.saveCorrected(runId, zip);
   const retestSource = {
     fileName,
@@ -137,6 +149,12 @@ export async function signFinding(
     throw new Error("No se puede firmar un hallazgo sin retesteo en verde");
   }
 
+  // La T.P. queda en la cuenta para no volver a teclearla en cada hallazgo.
+  const owner = await accounts.find(run.ownerId);
+  if (owner && owner.professionalCard !== card) {
+    await accounts.update({ ...owner, professionalCard: card });
+  }
+
   return repository.update(runId, (current) =>
     mutateFinding(current, findingId, (f) => ({
       ...f,
@@ -158,10 +176,7 @@ export async function signFinding(
 function hashCertificate(
   payload: Omit<ConformityCertificate, "hash">,
 ): string {
-  return createHash("sha256")
-    .update(JSON.stringify(payload))
-    .digest("hex")
-    .slice(0, 32);
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
 // Prototipo: FreeTSA. En producción, el estampado cronológico de una ECD acreditada por ONAC.
@@ -219,7 +234,8 @@ export async function issueCertificate(
     })),
   }).score;
 
-  const previousHash = await repository.latestCertificateHash();
+  // La cadena es por abogado: cada informe se encadena al anterior de quien lo expide.
+  const previousHash = await repository.latestCertificateHash(run.ownerId);
   const base: Omit<ConformityCertificate, "hash"> = {
     id: `VGI-INF-${run.id.toUpperCase()}`,
     runId: run.id,
@@ -229,6 +245,7 @@ export async function issueCertificate(
     scoreAfter,
     frameworks: run.config.frameworks,
     /* El firmante y su salvedad entran al hash: alterarlos rompe la cadena. */
+    findingsCount: run.findings.length,
     signedFindings: signed.map(
       (f) =>
         `${f.code} · ${f.remediation.signedBy}` +
@@ -249,7 +266,7 @@ export async function issueCertificate(
   const hash = hashCertificate(base);
   const certificate: ConformityCertificate = { ...base, hash, timestamp: await timestamp(hash) };
 
-  await repository.saveCertificate(certificate);
+  await repository.saveCertificate(certificate, run.ownerId);
   await repository.update(runId, (current) => ({
     ...current,
     status: "certificado",
