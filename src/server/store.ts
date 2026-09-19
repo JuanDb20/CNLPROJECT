@@ -9,9 +9,11 @@ import { readZip } from "./zip";
  *
  * `AccountRepository` y `AuditRepository` son las únicas puertas por las que la
  * aplicación toca estado. Ambas se apoyan en un almacén clave-valor: Redis
- * (Upstash, por su API REST) cuando el despliegue define sus variables de
- * entorno, y memoria en desarrollo local. En Vercel cada ruta puede correr en
- * una instancia distinta, así que en producción el estado vive en Redis.
+ * (Upstash, por su API REST) o Supabase (Postgres, vía PostgREST, en una sola
+ * tabla `kv_store`) cuando el despliegue define sus variables de entorno, y
+ * memoria en desarrollo local. En Vercel cada ruta puede correr en una
+ * instancia distinta, así que en producción el estado necesita vivir en uno
+ * de los dos.
  */
 
 export interface AccountRepository {
@@ -67,6 +69,48 @@ function redis(url: string, token: string): KV {
   };
 }
 
+/** Una sola tabla `key text primary key, value text, expires_at timestamptz`, con RLS
+ * activo y sin políticas: solo la service role (que lo salta) puede tocarla. */
+function supabase(url: string, serviceKey: string): KV {
+  const base = `${url}/rest/v1/kv_store`;
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+    "Content-Type": "application/json",
+  };
+  return {
+    async get(key) {
+      const res = await fetch(
+        `${base}?key=eq.${encodeURIComponent(key)}` +
+          `&or=(expires_at.is.null,expires_at.gte.${new Date().toISOString()})` +
+          `&select=value&limit=1`,
+        { headers, cache: "no-store" },
+      );
+      if (!res.ok) throw new Error(`Supabase: ${res.status} ${await res.text()}`);
+      const rows = (await res.json()) as Array<{ value: string }>;
+      return rows[0]?.value ?? null;
+    },
+    async set(key, value, ttl) {
+      const expires_at = ttl ? new Date(Date.now() + ttl * 1000).toISOString() : null;
+      const res = await fetch(base, {
+        method: "POST",
+        headers: { ...headers, Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify([{ key, value, expires_at }]),
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Supabase: ${res.status} ${await res.text()}`);
+    },
+    async del(key) {
+      const res = await fetch(`${base}?key=eq.${encodeURIComponent(key)}`, {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`Supabase: ${res.status} ${await res.text()}`);
+    },
+  };
+}
+
 // ponytail: en memoria las sesiones no caducan; la cookie sí (8 h).
 function memory(): KV {
   const map = new Map<string, string>();
@@ -79,11 +123,16 @@ function memory(): KV {
 
 const REDIS_URL = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /** En desarrollo Next recarga los módulos; la memoria se cuelga de `globalThis`. */
 const globalRef = globalThis as typeof globalThis & { __vigiaKV?: KV };
-const kv: KV =
-  REDIS_URL && REDIS_TOKEN ? redis(REDIS_URL, REDIS_TOKEN) : (globalRef.__vigiaKV ??= memory());
+const kv: KV = REDIS_URL && REDIS_TOKEN
+  ? redis(REDIS_URL, REDIS_TOKEN)
+  : SUPABASE_URL && SUPABASE_SERVICE_KEY
+    ? supabase(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    : (globalRef.__vigiaKV ??= memory());
 
 const json = async <T>(key: string): Promise<T | null> => {
   const value = await kv.get(key);
