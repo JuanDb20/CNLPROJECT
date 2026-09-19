@@ -52,7 +52,6 @@ export async function registrarse(form: FormData) {
     await register({
       name: String(form.get("nombre") ?? ""),
       email: String(form.get("correo") ?? ""),
-      professionalCard: String(form.get("tarjeta") ?? ""),
       firm: String(form.get("firma") ?? ""),
       password: String(form.get("clave") ?? ""),
       privacyAccepted: form.get("politica") === "on",
@@ -177,12 +176,13 @@ export async function retestearVersion(form: FormData) {
 }
 
 export async function firmarHallazgo(findingId: string, form: FormData) {
-  // Firma quien inició sesión: el nombre y la tarjeta no se toman del formulario.
+  // Firma quien inició sesión: el nombre no se toma del formulario, la tarjeta
+  // profesional sí, porque VIGÍA solo la exige en este paso, no al registrarse.
   const user = await requireUser();
   await signFinding(
     await runId(),
     findingId,
-    { name: user.name, professionalCard: user.professionalCard },
+    { name: user.name, professionalCard: String(form.get("tarjeta") ?? "") },
     String(form.get("salvedad") ?? ""),
   );
   revalidatePath("/auditoria", "layout");

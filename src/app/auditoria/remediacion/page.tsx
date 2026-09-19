@@ -309,12 +309,23 @@ export default async function RemediacionPage({
                             inputMode="numeric"
                             pattern="[0-9]{3,7}"
                             title="Solo números, de 3 a 7 dígitos"
-                            readOnly
-                            defaultValue={user.professionalCard}
+                            defaultValue={user.professionalCard ?? ""}
                             className={fieldClass}
                           />
                         </label>
                       </div>
+                      <p className="text-[10.5px] leading-relaxed text-ink-faint">
+                        Dato autodeclarado: VIGÍA no la verifica contra el Registro Nacional
+                        de Abogados.{" "}
+                        <a
+                          href="https://vigenciaspublicas.ramajudicial.gov.co/Certificados.aspx"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-ink-muted underline underline-offset-2 hover:text-brand"
+                        >
+                          Verificar vigencia en el registro oficial ↗
+                        </a>
+                      </p>
                       <label className="block text-[11.5px] text-ink-muted">
                         Salvedad o ajuste al análisis (opcional)
                         <textarea name="salvedad" rows={2} maxLength={500} className={fieldClass} />

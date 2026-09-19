@@ -120,7 +120,10 @@ function createRun(
         },
         {
           id: "sig-abogado",
-          role: `Abogado revisor: ${owner.name} (T.P. ${owner.professionalCard}). Firma cada hallazgo`,
+          role:
+            `Abogado revisor: ${owner.name}` +
+            (owner.professionalCard ? ` (T.P. ${owner.professionalCard})` : "") +
+            ". Firma cada hallazgo con su tarjeta profesional",
         },
       ],
       sandboxId: `sandbox-${id}`,

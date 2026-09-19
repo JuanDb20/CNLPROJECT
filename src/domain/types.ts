@@ -317,7 +317,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  professionalCard: string;
+  /** Solo se exige al firmar un hallazgo, no al crear la cuenta (ver signFinding). */
+  professionalCard?: string;
   firm: string;
   /** scrypt: "sal:hash" en hexadecimal. */
   passwordHash: string;

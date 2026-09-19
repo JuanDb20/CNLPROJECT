@@ -53,7 +53,10 @@ export function AccountChip({ user }: { user: User }) {
           {user.name.charAt(0).toUpperCase()}
         </span>
         <span>
-          {user.name} <span className="text-ink-faint">· T.P. {user.professionalCard}</span>
+          {user.name}
+          {user.professionalCard ? (
+            <span className="text-ink-faint"> · T.P. {user.professionalCard}</span>
+          ) : null}
         </span>
       </span>
       <form action={salir}>

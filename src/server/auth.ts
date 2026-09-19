@@ -41,17 +41,14 @@ async function startSession(userId: string): Promise<void> {
 export async function register(input: {
   name: string;
   email: string;
-  professionalCard: string;
   firm: string;
   password: string;
   privacyAccepted: boolean;
 }): Promise<void> {
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
-  const card = input.professionalCard.trim();
   if (name.length < 3 || name.length > 120) throw new Error("nombre");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) throw new Error("correo");
-  if (!/^\d{3,7}$/.test(card)) throw new Error("tarjeta");
   if (input.password.length < 8 || input.password.length > 200) throw new Error("clave");
   // Prueba de la autorización (Decreto 1377, art. 8): versión de la política y fecha.
   if (!input.privacyAccepted) throw new Error("politica");
@@ -61,7 +58,6 @@ export async function register(input: {
     id: randomUUID(),
     name,
     email,
-    professionalCard: card,
     firm: input.firm.trim().slice(0, 120),
     passwordHash: hashPassword(input.password),
     privacyAcceptance: { version: POLITICA_VERSION, at: new Date().toISOString() },
@@ -86,7 +82,6 @@ export async function loginDemo(): Promise<void> {
     id,
     name: "Usuario de prueba",
     email: `demo-${id.slice(0, 8)}@vigia.test`,
-    professionalCard: "000000",
     firm: "VIGÍA (demo)",
     passwordHash: hashPassword(randomBytes(16).toString("hex")),
   });

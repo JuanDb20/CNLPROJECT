@@ -7,6 +7,8 @@ type Params = { params: Promise<{ runId: string; findingId: string }> };
 interface Body {
   action: "abrir-pr" | "retestear" | "firmar";
   salvedad?: string;
+  /** Solo para "firmar": VIGÍA la exige en este paso, no al registrar la cuenta. */
+  professionalCard?: string;
 }
 
 /**
@@ -31,7 +33,7 @@ export async function POST(request: Request, { params }: Params) {
             runId,
             findingId,
             // Firma el abogado autenticado; la API no acepta un firmante distinto.
-            { name: user.name, professionalCard: user.professionalCard },
+            { name: user.name, professionalCard: String(body.professionalCard ?? "") },
             body.salvedad == null ? null : String(body.salvedad),
           ),
         ),

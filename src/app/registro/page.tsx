@@ -9,7 +9,6 @@ import { currentUser } from "@/server/auth";
 const ERRORS: Record<string, string> = {
   nombre: "Escribe tu nombre completo.",
   correo: "Escribe un correo válido.",
-  tarjeta: "La tarjeta profesional debe tener entre 3 y 7 dígitos.",
   clave: "La contraseña debe tener al menos 8 caracteres.",
   existe: "Ya existe una cuenta con ese correo. Ingresa con ella.",
   politica: "Para crear la cuenta debes autorizar el tratamiento de tus datos.",
@@ -33,8 +32,8 @@ export default async function RegistroPage({
           Crear cuenta de abogado
         </h1>
         <p className="mt-1 text-[12.5px] leading-relaxed text-ink-muted">
-          Tu nombre y tu tarjeta profesional identifican cada hallazgo que firmes en el
-          informe.
+          Tu nombre identifica la cuenta. La tarjeta profesional se pide después, al
+          firmar tu primer hallazgo.
         </p>
 
         {error ? (
@@ -57,23 +56,10 @@ export default async function RegistroPage({
               className={fieldClass}
             />
           </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-[12px] text-ink-soft">
-              Tarjeta profesional
-              <input
-                name="tarjeta"
-                required
-                pattern="[0-9]{3,7}"
-                inputMode="numeric"
-                title="Entre 3 y 7 dígitos"
-                className={fieldClass}
-              />
-            </label>
-            <label className="block text-[12px] text-ink-soft">
-              Firma o despacho <span className="text-ink-faint">(opcional)</span>
-              <input name="firma" maxLength={120} autoComplete="organization" className={fieldClass} />
-            </label>
-          </div>
+          <label className="block text-[12px] text-ink-soft">
+            Firma o despacho <span className="text-ink-faint">(opcional)</span>
+            <input name="firma" maxLength={120} autoComplete="organization" className={fieldClass} />
+          </label>
           <label className="block text-[12px] text-ink-soft">
             Correo
             <input name="correo" type="email" required autoComplete="email" className={fieldClass} />
