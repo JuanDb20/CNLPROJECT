@@ -70,6 +70,23 @@ export async function login(email: string, password: string): Promise<boolean> {
   return true;
 }
 
+const DEMO_EMAIL = "demo@vigia.test";
+
+/** Usuario de prueba fijo, para no tener que registrar una cuenta real solo para probar el flujo. */
+export async function loginDemo(): Promise<void> {
+  const user =
+    (await accounts.findByEmail(DEMO_EMAIL)) ??
+    (await accounts.create({
+      id: randomUUID(),
+      name: "Usuario de prueba",
+      email: DEMO_EMAIL,
+      professionalCard: "000000",
+      firm: "VIGÍA (demo)",
+      passwordHash: hashPassword(randomBytes(16).toString("hex")),
+    }));
+  await startSession(user.id);
+}
+
 export async function logout(): Promise<void> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;

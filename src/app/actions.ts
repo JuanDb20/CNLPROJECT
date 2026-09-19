@@ -18,7 +18,7 @@ import {
   retest,
   signFinding,
 } from "@/engine/remediation";
-import { login, logout, register, requireUser } from "@/server/auth";
+import { login, loginDemo, logout, register, requireUser } from "@/server/auth";
 import { RUN_COOKIE } from "@/server/http";
 import { requireRun } from "@/server/session";
 import { repository } from "@/server/store";
@@ -66,6 +66,11 @@ export async function ingresar(form: FormData) {
 export async function salir() {
   await logout();
   redirect("/ingresar");
+}
+
+export async function ingresarPrueba() {
+  await loginDemo();
+  redirect("/panel");
 }
 
 /* ---------------------------- Auditorías ---------------------------- */

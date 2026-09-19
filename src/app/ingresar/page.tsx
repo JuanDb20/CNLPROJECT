@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ingresar } from "@/app/actions";
+import { ingresar, ingresarPrueba } from "@/app/actions";
 import { Logo } from "@/components/shell";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
@@ -47,6 +47,21 @@ export default async function IngresarPage({
           <button type="submit" className={buttonClass("primary", true)}>
             Ingresar
           </button>
+        </form>
+
+        <div className="mt-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-line" />
+          <span className="text-[11px] text-ink-faint">o</span>
+          <span className="h-px flex-1 bg-line" />
+        </div>
+
+        <form action={ingresarPrueba} className="mt-5">
+          <button type="submit" className={buttonClass("secondary", true)}>
+            Entrar con usuario de prueba
+          </button>
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-ink-faint">
+            Sin registro. Para probar el flujo, no para uso real.
+          </p>
         </form>
       </Card>
       <p className="text-center text-[12.5px] text-ink-muted">
