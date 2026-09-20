@@ -446,6 +446,11 @@ export const RULES: ComplianceRule[] = [
       "peticiones y reclamos de los titulares. La Superintendencia tiene en cuenta su " +
       "existencia al evaluar la imposición de sanciones.",
   },
+  /* El umbral de 100.000 UVT y la inclusión de las personas jurídicas de naturaleza
+     pública están tomados de la SIC (guía del RNBD y Circular Única, Título V); el
+     texto del Capítulo 26 del Decreto 1074 no se pudo leer en fuente oficial:
+     POR CONFIRMAR antes de usar la cifra en un informe firmado. Lo que sí está
+     verificado en la Ley 1581 (art. 25) es la definición del registro. */
   {
     id: "col-1581-rnbd",
     framework: "col-1581",
