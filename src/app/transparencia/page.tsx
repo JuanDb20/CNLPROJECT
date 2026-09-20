@@ -26,7 +26,7 @@ export default function TransparenciaPage() {
   const hallazgos = resultado.hallazgos as Hallazgo[];
 
   return (
-    <div className="mx-auto w-full max-w-[760px] space-y-6 px-5 py-12">
+    <div id="contenido" role="main" className="mx-auto w-full max-w-[760px] space-y-6 px-5 py-12">
       <Link href="/" aria-label="VIGÍA, inicio" className="inline-block">
         <Logo />
       </Link>

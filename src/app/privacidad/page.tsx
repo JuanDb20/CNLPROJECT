@@ -41,7 +41,7 @@ const SECTIONS: Array<[string, string[]]> = [
 /** La política de tratamiento de VIGÍA, sujeta a los mismos requisitos que audita (Decreto 1074 de 2015, art. 2.2.2.25.3.1). */
 export default function PrivacidadPage() {
   return (
-    <main className="mx-auto max-w-[720px] space-y-6 px-5 py-10">
+    <main id="contenido" className="mx-auto max-w-[720px] space-y-6 px-5 py-10">
       <Logo />
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">Política de tratamiento de datos personales</h1>

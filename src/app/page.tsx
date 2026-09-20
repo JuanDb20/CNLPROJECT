@@ -11,7 +11,7 @@ export default async function Home() {
   if (await currentUser()) redirect("/panel");
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-5 py-14 text-center">
+    <div id="contenido" role="main" className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-5 py-14 text-center">
       <PortalBoot />
 
       <div

@@ -72,7 +72,7 @@ export default async function ClientePage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[860px] space-y-5 px-5 py-8 print:max-w-none print:p-0">
+      <main id="contenido" className="mx-auto max-w-[860px] space-y-5 px-5 py-8 print:max-w-none print:p-0">
         <div className="print:hidden">
           <h1 className="text-[22px] font-semibold tracking-tight text-ink">
             Auditoría de {client.name}

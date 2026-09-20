@@ -17,7 +17,7 @@ export default async function IngresarPage({
   const { error } = await searchParams;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[400px] flex-col justify-center gap-6 px-5 py-12">
+    <div id="contenido" role="main" className="mx-auto flex min-h-dvh w-full max-w-[400px] flex-col justify-center gap-6 px-5 py-12">
       <Link href="/" aria-label="VIGÍA, inicio" className="self-center">
         <Logo />
       </Link>
