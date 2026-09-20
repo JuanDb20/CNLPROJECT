@@ -81,10 +81,14 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
     jurisdiction: "Colombia",
     kind: "interfaz",
     citation:
-      "Ley 1618 de 2013, art. 14; Resolución 1519 de 2020 de MinTIC (anexo 1, accesibilidad web); NTC 5854; WCAG 2.1 (referencia técnica)",
+      "Ley 1618 de 2013, art. 14; Resolución 1519 de 2020 de MinTIC, art. 3 y anexo 1 " +
+      "(WCAG 2.1 nivel AA desde el 1.º de enero de 2022 para los sujetos obligados de la " +
+      "Ley 1712 de 2014); NTC 5854 (norma técnica colombiana de accesibilidad web)",
     description:
-      "La obligación de accesibilidad web recae sobre las entidades públicas y los prestadores " +
-      "de servicios públicos; para las empresas privadas es una buena práctica que previene " +
+      "La obligación de accesibilidad web recae sobre las entidades públicas y sobre las " +
+      "entidades públicas y privadas encargadas de la prestación de servicios públicos (art. 14 " +
+      "num. 1 de la Ley 1618 de 2013); a ellas la Resolución 1519 de 2020 les exige cumplir los " +
+      "estándares AA de las WCAG 2.1. Para una empresa privada es buena práctica que previene " +
       "reclamos por discriminación (art. 13 de la Constitución) y amplía el mercado. Se " +
       "reporta con severidad informativa salvo que el cliente sea una entidad obligada.",
   },
@@ -414,6 +418,47 @@ export const RULES: ComplianceRule[] = [
       "período de vigencia de la base de datos. Los cambios sustanciales deben " +
       "comunicarse a los titulares antes de implementarse.",
   },
+  {
+    id: "col-1074-demostracion",
+    framework: "col-1581",
+    label: "Decreto 1074/2015 Art. 2.2.2.25.6.1 (Decreto 1377/2013, art. 26)",
+    title: "Responsabilidad demostrada",
+    obligation:
+      "Los responsables deben ser capaces de demostrar, a petición de la Superintendencia " +
+      "de Industria y Comercio, que han implementado medidas apropiadas y efectivas para " +
+      "cumplir la Ley 1581 de 2012 y su reglamento, de manera proporcional a su naturaleza " +
+      "jurídica y tamaño empresarial, a la naturaleza de los datos, al tipo de tratamiento " +
+      "y a los riesgos potenciales sobre los derechos de los titulares. Ante un " +
+      "requerimiento deben describir los procedimientos de recolección y las finalidades, " +
+      "y aportar evidencia de la implementación efectiva de las medidas de seguridad.",
+  },
+  {
+    id: "col-1074-estructura",
+    framework: "col-1581",
+    label: "Decreto 1074/2015 Art. 2.2.2.25.6.2 (Decreto 1377/2013, art. 27)",
+    title: "Políticas internas efectivas: área responsable",
+    obligation:
+      "Las políticas internas deben garantizar la existencia de una estructura " +
+      "administrativa proporcional a la estructura y tamaño empresarial del responsable " +
+      "para adoptar e implementar políticas consistentes con la ley; mecanismos internos " +
+      "para ponerlas en práctica, incluidas herramientas de implementación, entrenamiento " +
+      "y programas de educación; y procesos para la atención y respuesta a consultas, " +
+      "peticiones y reclamos de los titulares. La Superintendencia tiene en cuenta su " +
+      "existencia al evaluar la imposición de sanciones.",
+  },
+  {
+    id: "col-1581-rnbd",
+    framework: "col-1581",
+    label:
+      "Ley 1581 Art. 25; Decreto 1074/2015, Capítulo 26 (compila el Decreto 886 de 2014)",
+    title: "Registro Nacional de Bases de Datos",
+    obligation:
+      "El Registro Nacional de Bases de Datos es el directorio público de las bases de " +
+      "datos sujetas a tratamiento, administrado por la Superintendencia de Industria y " +
+      "Comercio. Deben inscribir sus bases de datos las sociedades y entidades sin ánimo " +
+      "de lucro con activos totales superiores a 100.000 UVT y, sin umbral de activos, las " +
+      "personas jurídicas de naturaleza pública.",
+  },
   /* ---------------- Colombia · otros regímenes ---------------- */
   {
     id: "col-1266-circulacion",
@@ -458,6 +503,98 @@ export const RULES: ComplianceRule[] = [
       "actualizada, su identidad —nombre o razón social, NIT, dirección de notificación " +
       "judicial, teléfono y correo— y suministrar información cierta y actualizada sobre " +
       "los productos o servicios que ofrecen.",
+  },
+  {
+    id: "col-1480-precio",
+    framework: "col-1480",
+    label: "Ley 1480 Art. 50 lit. c",
+    title: "Precio total, medios de pago y retracto en la oferta electrónica",
+    obligation:
+      "El proveedor debe informar, en el medio de comercio electrónico utilizado, los " +
+      "medios de que dispone para realizar los pagos, el tiempo de entrega del bien o la " +
+      "prestación del servicio, el derecho de retracto que le asiste al consumidor y el " +
+      "procedimiento para ejercerlo, y cualquier otra información relevante para que el " +
+      "consumidor pueda adoptar una decisión de compra libremente y sin ser inducido en " +
+      "error. Igualmente deberá informar el precio total del producto incluyendo todos " +
+      "los impuestos, costos y gastos que deba pagar el consumidor para adquirirlo y, " +
+      "cuando proceda, por separado los gastos de envío.",
+  },
+  {
+    id: "col-1480-retracto",
+    framework: "col-1480",
+    label: "Ley 1480 Art. 47",
+    title: "Derecho de retracto en ventas a distancia y no tradicionales",
+    obligation:
+      "En los contratos de venta de bienes y prestación de servicios mediante sistemas de " +
+      "financiación otorgada por el productor o proveedor, venta de tiempos compartidos o " +
+      "ventas que utilizan métodos no tradicionales o a distancia, que por su naturaleza " +
+      "no deban consumirse o no hayan comenzado a ejecutarse antes de cinco (5) días, se " +
+      "entiende pactado el derecho de retracto. El término máximo para ejercerlo es de " +
+      "cinco (5) días hábiles contados a partir de la entrega del bien o de la celebración " +
+      "del contrato en el caso de los servicios; ejercido, se resuelve el contrato y el " +
+      "proveedor debe devolver en dinero todas las sumas pagadas, sin descuentos ni " +
+      "retenciones, en un plazo que no puede exceder de treinta (30) días calendario. La " +
+      "norma exceptúa, entre otros, los servicios cuya prestación ya comenzó con acuerdo " +
+      "del consumidor y los bienes personalizados o perecederos.",
+  },
+  {
+    id: "col-1480-reversion",
+    framework: "col-1480",
+    label: "Ley 1480 Art. 51",
+    title: "Reversión del pago en comercio electrónico",
+    obligation:
+      "Cuando la venta se realiza por mecanismos de comercio electrónico y el pago se hizo " +
+      "con tarjeta de crédito, débito o cualquier otro instrumento de pago electrónico, " +
+      "los participantes del proceso de pago deben reversar los pagos que solicite el " +
+      "consumidor cuando sea objeto de fraude, corresponda a una operación no solicitada, " +
+      "el producto no sea recibido, no corresponda a lo solicitado o sea defectuoso. Para " +
+      "que proceda, el consumidor debe presentar la queja ante el proveedor, devolver el " +
+      "producto cuando sea procedente y notificar al emisor del instrumento de pago dentro " +
+      "de los cinco (5) días hábiles siguientes a la fecha en que tuvo noticia del hecho.",
+  },
+  {
+    id: "col-1480-atencion",
+    framework: "col-1480",
+    label: "Ley 1480 Art. 50 lit. g (modificado por la Ley 2439 de 2024)",
+    title: "Canales de atención y trazabilidad de las reclamaciones",
+    obligation:
+      "El proveedor debe disponer, en el mismo medio en que realiza comercio electrónico, " +
+      "de canales de fácil acceso y de atención que garanticen la orientación y asistencia " +
+      "a los consumidores y la trazabilidad de las reclamaciones presentadas, de forma que " +
+      "al consumidor le quede constancia de la atención mediante un número de registro o " +
+      "radicado, con fecha y hora, y un mecanismo para su posterior seguimiento.",
+  },
+  /* ---------------- Accesibilidad e inclusión ---------------- */
+  {
+    id: "col-inclusion-web",
+    framework: "col-inclusion",
+    label:
+      "Ley 1618 de 2013 Art. 14 num. 1; Resolución 1519 de 2020 de MinTIC, Art. 3 y anexo 1",
+    title: "Accesibilidad web de las entidades obligadas",
+    obligation:
+      "Las entidades del orden nacional, departamental, distrital y local garantizarán el " +
+      "acceso de las personas con discapacidad, en igualdad de condiciones, a la " +
+      "información y a las comunicaciones, incluidos los sistemas y tecnologías de la " +
+      "información. Corresponde a las entidades públicas y privadas encargadas de la " +
+      "prestación de servicios públicos desarrollar sus actividades siguiendo los " +
+      "postulados del diseño universal, de manera que no se excluya ni se limite el acceso " +
+      "de ninguna persona en razón de su discapacidad. Los sujetos obligados de la Ley " +
+      "1712 de 2014 deben cumplir, desde el 1.º de enero de 2022, como mínimo los " +
+      "estándares AA de las WCAG 2.1 conforme al anexo 1 de la Resolución 1519 de 2020.",
+  },
+  {
+    id: "col-inclusion-igualdad",
+    framework: "col-inclusion",
+    label: "Constitución Política Art. 13",
+    title: "Igualdad y no discriminación (accesibilidad en el sector privado)",
+    obligation:
+      "Todas las personas nacen libres e iguales ante la ley y gozan de los mismos " +
+      "derechos sin discriminación; el Estado protege especialmente a quienes se " +
+      "encuentran en circunstancias de debilidad manifiesta. Para un responsable privado, " +
+      "que no es sujeto obligado de la Resolución 1519 de 2020, la accesibilidad de la " +
+      "interfaz no es una obligación reglamentaria, pero una barrera que excluye a una " +
+      "persona con discapacidad del servicio puede fundar un reclamo por trato " +
+      "discriminatorio y se corrige con un ajuste de pocas líneas.",
   },
   /* ---------------- Propiedad intelectual y licencias ---------------- */
   {
