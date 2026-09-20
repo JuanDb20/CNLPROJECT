@@ -51,7 +51,7 @@ export const CHECKS_GOBERNANZA: Check[] = [
       "incidente, ni demostrar, como le exige el art. 2.2.2.25.6.1 del Decreto 1074 de " +
       "2015, que implementó medidas apropiadas y efectivas: la prueba de la diligencia se " +
       "construye antes del incidente, no después.",
-    ruleIds: ["col-sic-ia-eip", "col-sic-ia-seguridad", "col-1074-demostracion"],
+    ruleIds: ["col-sic-ia-eip", "col-sic-ia-seguridad", "col-1074-responsabilidad"],
     probe:
       "Búsqueda de la definición del prompt del sistema en archivos que no llevan número " +
       "de versión, en repositorios sin archivo de histórico de cambios.",
@@ -153,7 +153,7 @@ export const CHECKS_GOBERNANZA: Check[] = [
       "2.2.2.25.3.1). Un sistema de IA sin dueño declarado deja esas obligaciones sin " +
       "titular dentro de {cliente}: nadie autoriza los cambios del modelo, nadie responde " +
       "el requerimiento de la Superintendencia y nadie atiende al titular que reclama.",
-    ruleIds: ["col-1074-estructura", "col-1377-politicas", "col-1074-demostracion"],
+    ruleIds: ["col-1074-estructura", "col-1377-politicas", "col-1074-responsabilidad"],
     probe:
       "Búsqueda en la documentación del repositorio de la persona o área responsable del " +
       "sistema, del tratamiento o de la atención de peticiones, consultas y reclamos.",

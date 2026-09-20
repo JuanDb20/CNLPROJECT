@@ -419,7 +419,7 @@ export const RULES: ComplianceRule[] = [
       "comunicarse a los titulares antes de implementarse.",
   },
   {
-    id: "col-1074-demostracion",
+    id: "col-1074-responsabilidad",
     framework: "col-1581",
     label: "Decreto 1074/2015 Art. 2.2.2.25.6.1 (Decreto 1377/2013, art. 26)",
     title: "Responsabilidad demostrada",
