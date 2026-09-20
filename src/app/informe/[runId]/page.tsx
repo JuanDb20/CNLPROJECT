@@ -23,7 +23,21 @@ export default async function InformePage({ params }: { params: Promise<{ runId:
         <Link href="/auditoria/remediacion" className="text-[13px] text-neutral-700 hover:text-neutral-950">
           ← Volver a la auditoría
         </Link>
-        <PrintButton />
+        <div className="flex flex-wrap items-center gap-4">
+          <a
+            href={`/api/v1/runs/${run.id}/informe`}
+            className="text-[13px] text-neutral-700 underline hover:text-neutral-950"
+          >
+            Descargar en Word
+          </a>
+          <a
+            href={`/api/v1/runs/${run.id}/calendario`}
+            className="text-[13px] text-neutral-700 underline hover:text-neutral-950"
+          >
+            Calendario de obligaciones (.ics)
+          </a>
+          <PrintButton />
+        </div>
       </div>
       <Informe run={run} />
     </main>
