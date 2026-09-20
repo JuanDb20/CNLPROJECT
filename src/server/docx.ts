@@ -1,4 +1,4 @@
-import { crc32, deflateRawSync } from "node:zlib";
+import { writeZip } from "./zip";
 
 /**
  * Genera un .docx mínimo válido a partir de líneas de texto, sin dependencias.
@@ -82,64 +82,8 @@ function documentXml(lines: string[]): string {
   );
 }
 
-/**
- * Empaqueta las partes del .docx en un .zip.
- *
- * No reutiliza `writeZip` de `@/server/zip`: esa función deja el CRC-32 en 0
- * (nadie lo nota al releer con su propio `readZip`), pero Word y python-docx
- * (que abre el .docx como .zip con el `zipfile` de Python) rechazan un
- * archivo así con "Bad CRC-32", comprobado al validar este módulo. Esta copia
- * mínima solo añade el CRC real con `zlib.crc32`.
- */
-function zip(files: { path: string; content: string }[]): Buffer {
-  const locals: Buffer[] = [];
-  const central: Buffer[] = [];
-  let offset = 0;
-
-  for (const { path, content } of files) {
-    const name = Buffer.from(path, "utf8");
-    const data = Buffer.from(content, "utf8");
-    const compressed = deflateRawSync(data);
-    const crc = crc32(data);
-
-    const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4);
-    local.writeUInt16LE(8, 8);
-    local.writeUInt32LE(crc, 14);
-    local.writeUInt32LE(compressed.length, 18);
-    local.writeUInt32LE(data.length, 22);
-    local.writeUInt16LE(name.length, 26);
-    locals.push(local, name, compressed);
-
-    const header = Buffer.alloc(46);
-    header.writeUInt32LE(0x02014b50, 0);
-    header.writeUInt16LE(20, 4);
-    header.writeUInt16LE(20, 6);
-    header.writeUInt16LE(8, 10);
-    header.writeUInt32LE(crc, 16);
-    header.writeUInt32LE(compressed.length, 20);
-    header.writeUInt32LE(data.length, 24);
-    header.writeUInt16LE(name.length, 28);
-    header.writeUInt32LE(offset, 42);
-    central.push(header, name);
-
-    offset += local.length + name.length + compressed.length;
-  }
-
-  const centralBuf = Buffer.concat(central);
-  const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(files.length, 8);
-  eocd.writeUInt16LE(files.length, 10);
-  eocd.writeUInt32LE(centralBuf.length, 12);
-  eocd.writeUInt32LE(offset, 16);
-
-  return Buffer.concat([...locals, centralBuf, eocd]);
-}
-
 export function docxFromLines(lines: string[]): Buffer {
-  return zip([
+  return writeZip([
     { path: "[Content_Types].xml", content: CONTENT_TYPES },
     { path: "_rels/.rels", content: ROOT_RELS },
     { path: "word/_rels/document.xml.rels", content: DOCUMENT_RELS },

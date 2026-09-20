@@ -1,4 +1,4 @@
-import { deflateRawSync, inflateRawSync } from "node:zlib";
+import { crc32, deflateRawSync, inflateRawSync } from "node:zlib";
 
 import type { RepoFile } from "@/domain/types";
 
@@ -79,9 +79,9 @@ function stripRoot(files: RepoFile[]): RepoFile[] {
 }
 
 /**
- * Empaqueta archivos en memoria como un .zip que `readZip` puede leer, para
- * auditorías de ejemplo que no vienen de una carga real. No valida CRC (nadie
- * más abre este archivo), así que lo deja en 0.
+ * Empaqueta archivos en memoria como un .zip válido: lo lee `readZip` (auditorías
+ * de ejemplo) y también Word y Python (los .docx que exporta VIGÍA), que sí
+ * comprueban el CRC-32 de cada entrada.
  */
 export function writeZip(files: RepoFile[]): Buffer {
   const locals: Buffer[] = [];
@@ -92,11 +92,13 @@ export function writeZip(files: RepoFile[]): Buffer {
     const name = Buffer.from(file.path, "utf8");
     const data = Buffer.from(file.content, "utf8");
     const compressed = deflateRawSync(data);
+    const crc = crc32(data);
 
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
     local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(crc, 14);
     local.writeUInt32LE(compressed.length, 18);
     local.writeUInt32LE(data.length, 22);
     local.writeUInt16LE(name.length, 26);
@@ -107,6 +109,7 @@ export function writeZip(files: RepoFile[]): Buffer {
     header.writeUInt16LE(20, 4);
     header.writeUInt16LE(20, 6);
     header.writeUInt16LE(8, 10);
+    header.writeUInt32LE(crc, 16);
     header.writeUInt32LE(compressed.length, 20);
     header.writeUInt32LE(data.length, 24);
     header.writeUInt16LE(name.length, 28);

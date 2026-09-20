@@ -89,7 +89,9 @@ export function buildClauses(client: string): ScopeClause[] {
       detail:
         "VIGÍA opera únicamente sobre el código cargado y sobre el entorno aislado que " +
         `${client} declare. No establece conexión con bases de datos activas ni con ` +
-        "infraestructura productiva; no intercepta ni captura tráfico en tránsito (art. " +
+        "infraestructura productiva, salvo la inspección de solo lectura del despliegue público " +
+        "que el cliente autorice de forma expresa en la cláusula correspondiente; no intercepta " +
+        "ni captura tráfico en tránsito (art. " +
         "269C de la Ley 1273 de 2009, que exige orden judicial previa); no ejecuta " +
         "pruebas de denegación de servicio, agotamiento de recursos ni cualquier otra que " +
         "pueda impedir u obstaculizar el funcionamiento normal del sistema (art. 269B); y " +
