@@ -11,8 +11,10 @@ const UI = /\.(tsx|jsx|html|vue|svelte)$/i;
 /**
  * Busca una etiqueta de apertura a la que le falta un atributo. Mira la línea de
  * la etiqueta y las dos siguientes, porque en JSX los atributos se reparten en
- * varias líneas, y las dos anteriores para reconocer un `<label>` que envuelve
- * el campo. Es una heurística de texto: no construye el árbol de accesibilidad.
+ * varias líneas, y hasta seis anteriores para reconocer un `<label>` que envuelve
+ * el campo (el texto de la etiqueta puede ocupar varias líneas): cuenta como
+ * envuelto si el último marcador de label antes del campo no es un cierre.
+ * Es una heurística de texto: no construye el árbol de accesibilidad.
  */
 const tagSin = (files: RepoFile[], abre: RegExp, atributo: RegExp, envuelve?: RegExp): Hit[] =>
   files
@@ -27,8 +29,10 @@ const tagSin = (files: RepoFile[], abre: RegExp, atributo: RegExp, envuelve?: Re
         const ventana = lines.slice(i, i + 3).join(" ").slice(text.search(abre));
         const cierra = ventana.indexOf(">");
         const etiqueta = cierra < 0 ? ventana : ventana.slice(0, cierra + 1);
-        const anterior = lines.slice(Math.max(0, i - 2), i).join(" ");
-        return atributo.test(etiqueta) || (envuelve && envuelve.test(anterior))
+        const anterior = lines.slice(Math.max(0, i - 6), i).join(" ");
+        const marcas = envuelve ? [...anterior.matchAll(new RegExp(envuelve.source, "gi"))] : [];
+        const envuelto = marcas.length > 0 && !marcas[marcas.length - 1][0].startsWith("</");
+        return atributo.test(etiqueta) || envuelto
           ? []
           : [{ path: f.path, line: i + 1, text: text.trim() }];
       });
@@ -129,7 +133,7 @@ export const CHECKS_INCLUSION: Check[] = [
       ruleIds: ["col-inclusion-web", "col-inclusion-igualdad", "col-1581-autorizacion"],
       probe:
         "Búsqueda en los archivos de interfaz de campos <input>, <select> y <textarea> sin " +
-        "aria-label, aria-labelledby, placeholder ni <label> en las dos líneas anteriores.",
+        "aria-label, aria-labelledby, placeholder ni un <label> que los envuelva.",
       detect: ({ files }: Ctx) =>
         tagSin(
           files,

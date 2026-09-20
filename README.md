@@ -79,7 +79,8 @@ clave-valor y elige en este orden:
    actúa como encargado, suscribe el contrato de transmisión.
 4. **Paso 2 — Configuración.** Proveedores de IA detectados en el código, con país,
    rol y si el país está en la lista de la SIC. Seleccionar los marcos normativos.
-5. **Paso 3 — Ejecución.** Los cuatro módulos corren las 28 pruebas sobre el código y la consola recibe
+5. **Paso 3 — Ejecución.** Los cuatro módulos corren las 61 pruebas sobre el código (y, si el
+   cliente lo autorizó, la inspección de solo lectura del despliegue) y la consola recibe
    la traza por SSE.
 6. **Paso 4 — Mapa de riesgos** y **paso 5 — Detalle**: cada hallazgo muestra la
    prueba, la línea exacta del código que lo sustenta, la trazabilidad normativa,
@@ -120,7 +121,7 @@ scripts/       Autoauditoría (corre el catálogo sobre el propio código de VIG
 Cuatro decisiones sostienen la escalabilidad sin complicar el MVP:
 
 - **El catálogo normativo es dato, no código.** `src/domain/compliance.ts`
-  declara hoy **6 marcos y 39 obligaciones** citables. Incorporar una jurisdicción
+  declara hoy **8 marcos y 52 obligaciones** citables. Incorporar una jurisdicción
   nueva es añadir entradas, no tocar el motor. Se expone completo en
   `GET /api/v1/normativa`.
 - **Los módulos están registrados, no codificados en el flujo.**
@@ -141,7 +142,8 @@ Cuatro decisiones sostienen la escalabilidad sin complicar el MVP:
 
 ## Motor de análisis
 
-`src/domain/checks.ts` es el catálogo de **28 pruebas**. Cada prueba declara qué busca en
+`src/domain/checks.ts` es el catálogo base y concatena los catálogos por dimensión
+(`src/domain/checks-*.ts`): **61 pruebas** en total. Cada prueba declara qué busca en
 el código cargado, las obligaciones que se incumplen si lo encuentra, el análisis
 jurídico y el parche que propone. Un hallazgo solo aparece si su prueba encuentra
 la falla, y la evidencia es la línea exacta del código (con llaves y números de
@@ -210,10 +212,44 @@ El eje es el derecho colombiano:
 - Circular Única de la SIC, Título V, num. 3.2 (países con nivel adecuado; EE. UU.
   desde la Circular Externa 008 de 2017) y Circular Externa 002 de 2024
   (tratamiento de datos personales con IA).
-- Ley 1266 de 2008 (habeas data financiero) y Ley 1480 de 2011 (consumidor).
+- Ley 1266 de 2008 (habeas data financiero) y Ley 1480 de 2011 (consumidor: arts. 23,
+  47, 50 y 51).
+- Propiedad intelectual: Decisión Andina 351 de 1993, Ley 23 de 1982 (modificada por la
+  Ley 1915 de 2018) y las licencias de cada dependencia.
+- Accesibilidad: Ley 1618 de 2013 (art. 14), Resolución 1519 de 2020 de MinTIC y NTC 5854
+  (obligatorias para entidades públicas; buena práctica para privados).
 - Estándar técnico: OWASP Top 10:2025 y OWASP Top 10 for LLM Applications 2025.
 - Referencia comparada, no reportada como incumplimiento: Reglamento (UE)
   2024/1689 (AI Act), Reglamento (UE) 2016/679 (RGPD) y Directrices EDPB 03/2022.
+
+## Rama de ideas: VIGÍA como auditor legal integral
+
+La rama `ideas/auditor-legal-integral` (no desplegada) añade, sobre la base anterior:
+
+- **Parche de tipo `documento`**: cuando la corrección no es código sino un documento,
+  VIGÍA lo redacta a partir del código auditado (política de tratamiento con los seis
+  contenidos mínimos, aviso de privacidad, cláusulas de transmisión por proveedor,
+  procedimiento de consultas y reclamos, ficha de transparencia del sistema de IA). Sin
+  IA generativa: plantillas en `src/domain/documentos.ts`. Se revisan, retestean y firman
+  como cualquier parche; `/auditoria/documentos` los lista y se descargan en Word.
+- **Coherencia política ↔ código** (VGI-089/090, `src/domain/checks-coherencia.ts`):
+  contrasta la política publicada con lo que hace el código (proveedores y países,
+  biometría, crédito, terceros, plazos) y propone los párrafos que faltan.
+- **Inventario de tratamientos** (`/auditoria/inventario`, `src/domain/inventario.ts`):
+  registro de actividades derivado del código, exportable a CSV y anexado al informe.
+- **Base curada de proveedores de IA** (`src/domain/proveedores.ts`): entrenamiento por
+  defecto, retención y retención cero, verificados con fecha y fuente.
+- **Calendario de obligaciones** (`GET /api/v1/runs/:id/calendario`, iCalendar) y
+  **exportación a Word** del informe y de cada documento (`src/server/docx.ts`, sin
+  dependencias).
+- **Paquetes por sector** (`src/domain/sectores.ts`), **consumidor y comercio electrónico**,
+  **gobernanza del sistema de IA** y **accesibilidad** de la app auditada
+  (`checks-consumidor.ts`, `checks-gobernanza.ts`, `checks-inclusion.ts`).
+- **Otros backends** (reglas de Firebase, Prisma, Drizzle, Mongo) y **licencias y origen
+  del código** (registro de npm, términos de las herramientas de IA generadora).
+- **Inspección de solo lectura del despliegue** declarado en el alcance (campo opcional
+  del formulario; cláusula específica del acuerdo; guardas anti-SSRF en
+  `src/server/inspeccion.ts`; pruebas VGI-115 a VGI-123).
 
 ## Aviso
 
