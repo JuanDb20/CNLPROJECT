@@ -39,7 +39,8 @@ import { CHECKS_DESPLIEGUE } from "./checks-despliegue";
 import { CHECKS_GOBERNANZA } from "./checks-gobernanza";
 import { CHECKS_INCLUSION } from "./checks-inclusion";
 import { CHECKS_LICENCIAS } from "./checks-licencias";
-import { PROVIDERS, detectProviders } from "./proveedores";
+import { generarDocumento, puntosDeRecoleccion } from "./documentos";
+import { PROVIDERS, detectProviders, providerTerms } from "./proveedores";
 
 export { mask } from "./check-kit";
 
@@ -599,29 +600,12 @@ const CHECKS: Check[] = [
       }
       return PROVIDERS.flatMap((p) => grep(files.filter((f) => isSource(f) && !/(^|\/)\.github\//.test(f.path)), /./, p.pattern).slice(0, 1));
     },
-    patch: (_hits, { providers }) => ({
-      kind: "config",
-      target: "docs/registro-encargados.md",
-      removed: [],
-      added: [
-        "## Proveedores de IA (registro de encargados)",
-        "| Proveedor | País | ¿Adecuado SIC? | Rol | Contrato de transmisión |",
-        ...providers.map(
-          (p) =>
-            `| ${p.vendor} | ${p.country} | ${p.adequateCountry ? "Sí" : "No"} | ` +
-            "Por determinar (verificar términos del proveedor) | " +
-            (p.adequateCountry
-              ? "Acuerdo del proveedor: verificar art. 2.2.2.25.5.2 |"
-              : "Zona gris: decisión jurídica pendiente |"),
-        ),
-      ],
-      expectedImpact:
-        "Documenta país, rol y contrato de cada proveedor, y deja en manos del abogado la " +
-        "calificación del rol y la decisión sobre los que están en zona gris antes de " +
-        "seguir enviándoles datos.",
-    }),
+    /* El parche es el contrato que falta, con un bloque por proveedor detectado. */
+    patch: (hits, ctx) => generarDocumento("transmision", ctx, hits),
     branch: "vigia-patch/processor-registry",
-    changeNote: "Registro documental en el repositorio. No modifica el flujo de datos.",
+    changeNote:
+      "Documento contractual nuevo en el repositorio. No modifica el flujo de datos ni el " +
+      "código que llama a los proveedores.",
     retests: [
       "Cada proveedor tiene país, rol calificado por el abogado y contrato documentados",
       "Los proveedores en zona gris tienen decisión jurídica registrada",
@@ -954,6 +938,53 @@ const CHECKS: Check[] = [
     ],
   },
   {
+    code: "VGI-087",
+    module: "consent-ux",
+    severity: "advertencia",
+    title: "Punto de recolección sin aviso de privacidad publicado",
+    summary:
+      "La aplicación recoge datos personales en formularios y pantallas, y el repositorio " +
+      "no contiene el texto del aviso de privacidad que debe mostrarse en ese momento.",
+    legalAnalysis:
+      "Cuando el responsable no pone a disposición del titular la política de tratamiento " +
+      "en el momento de la recolección, debe informarle mediante aviso de privacidad la " +
+      "existencia de esa política, la forma de acceder a ella y la finalidad del " +
+      "tratamiento (Decreto 1074 de 2015, arts. 2.2.2.25.3.2 y 2.2.2.25.3.3, que compilan " +
+      "los arts. 14 y 15 del Decreto 1377 de 2013). El aviso debe contener, como mínimo, " +
+      "el nombre o razón social y los datos de contacto del responsable, el tratamiento y " +
+      "su finalidad, los derechos del titular y los mecanismos para conocer la política; " +
+      "si se recolectan datos sensibles, debe señalar expresamente el carácter facultativo " +
+      "de la respuesta. En el repositorio de {cliente} no existe ese texto: sin él, la " +
+      "autorización que se obtiene en el punto de recolección no es informada (art. 9 de " +
+      "la Ley 1581 de 2012), no se cumple el deber de informar del art. 12, y el " +
+      "responsable tampoco puede conservar el modelo del aviso exhibido, que es la prueba " +
+      "de qué se le informó al titular y cuándo (art. 16 del Decreto 1377 de 2013).",
+    ruleIds: ["col-1377-aviso", "col-1581-autorizacion", "col-1581-informar"],
+    probe:
+      "Búsqueda en el repositorio del texto del aviso de privacidad, cruzada con las " +
+      "pantallas y formularios donde la aplicación recoge datos del titular.",
+    /* Solo si el sistema trata datos personales: un repositorio sin esquema con
+       datos del titular no necesita aviso. */
+    detect: ({ files }) => {
+      if (personalColumns(files).length === 0) return [];
+      const publicado = files.some(
+        (f) =>
+          /aviso[-_ ]?(de[-_ ]?)?privacidad/i.test(f.path) ||
+          /^#\s*Aviso de privacidad/im.test(f.content),
+      );
+      return publicado ? [] : puntosDeRecoleccion(files);
+    },
+    patch: (hits, ctx) => generarDocumento("aviso", ctx, hits),
+    branch: "vigia-patch/privacy-notice-text",
+    changeNote:
+      "Documento nuevo en el repositorio. No modifica ninguna pantalla: dónde se muestra " +
+      "el aviso lo decide el equipo del cliente con el abogado.",
+    retests: [
+      "El repositorio publica el texto del aviso de privacidad",
+      "El aviso identifica al responsable, la finalidad, los derechos y cómo conocer la política",
+    ],
+  },
+  {
     code: "VGI-079",
     module: "static-scan",
     severity: "advertencia",
@@ -1096,34 +1127,15 @@ const CHECKS: Check[] = [
       if (api.length === 0 || personalColumns(files).length === 0) return [];
       return hasRightsChannel(files) ? [] : api.slice(0, 1);
     },
-    patch: (hits) => ({
-      kind: "codigo",
-      target: "app/api/habeas-data/route.ts",
-      removed: [],
-      added: [
-        "// Canal de consultas y reclamos (arts. 14 y 15 de la Ley 1581 de 2012).",
-        "export async function POST(request: Request) {",
-        "  const { tipo, titular, descripcion } = await request.json();",
-        "  // El plazo se calcula al recibir, no cuando alguien se acuerda de responder.",
-        "  const limite = diasHabiles(tipo === \"consulta\" ? 10 : 15);",
-        "  await db.solicitudes_titular.insert({",
-        "    tipo, titular, descripcion, recibida: new Date(), limite, estado: \"en_tramite\",",
-        "  });",
-        "  return Response.json({ radicado: true, limite });",
-        "}",
-        `// Ruta de referencia detectada: ${hits[0]?.path ?? "app/api"}`,
-      ],
-      expectedImpact:
-        "Habilita el canal y deja registro de la fecha de recepción y del plazo de cada " +
-        "solicitud, que es la prueba que la SIC pide cuando pregunta si se cumplieron " +
-        "los términos de los arts. 14 y 15.",
-    }),
+    /* El procedimiento escrito es lo que la SIC pide primero; la ruta que lo
+       implemente la escribe el equipo del cliente siguiendo este documento. */
+    patch: (hits, ctx) => generarDocumento("consultas-reclamos", ctx, hits),
     branch: "vigia-patch/rights-channel",
     changeNote:
-      "Ruta nueva y tabla de solicitudes. No modifica las tablas existentes ni sus datos.",
+      "Documento nuevo en el repositorio. No modifica las tablas existentes ni sus datos.",
     retests: [
-      "Una consulta radicada queda registrada con fecha de recepción y plazo",
-      "El reclamo en trámite queda marcado en la base de datos",
+      "El repositorio publica el procedimiento de consultas y reclamos con sus plazos",
+      "El procedimiento fija el canal, el registro de la fecha de recepción y la leyenda «reclamo en trámite»",
     ],
   },
   {
@@ -1275,9 +1287,20 @@ const CHECKS: Check[] = [
       removed: [],
       added: [
         "## Exclusión de entrenamiento por proveedor",
-        "| Proveedor | ¿Exclusión activada? | Cláusula del acuerdo que la sustenta |",
-        "| --- | --- | --- |",
-        ...providers.map((p) => `| ${p.vendor} | por acreditar | por citar |`),
+        "| Proveedor | ¿Entrena con los datos de la API? | Retención por defecto | Cláusula que lo sustenta |",
+        "| --- | --- | --- | --- |",
+        ...providers.map((p) => {
+          const t = providerTerms(p.vendor);
+          const entrena =
+            t === undefined
+              ? "por verificar en los términos del proveedor"
+              : t.trainsOnApiData === null
+                ? "sus términos no lo aclaran"
+                : t.trainsOnApiData
+                  ? "sí, por defecto: hay que excluirlo"
+                  : "no";
+          return `| ${p.vendor} | ${entrena} | ${t?.retention ?? "por verificar"} | ${t?.termsUrl ?? "por citar"} |`;
+        }),
         "",
         `Contexto con datos del titular detectado en ${hits[0]?.path ?? "el código"}:`,
         "activar la opción de no entrenamiento en la configuración del SDK y citar aquí",
@@ -1512,26 +1535,67 @@ const CHECKS: Check[] = [
             !/procedimiento|radicar|c[oó]mo ejercer|reclamo/i.test(f.content),
         )
         .flatMap((f) => grep([f], /./, /\S/).slice(0, 1)),
-    patch: edit(
-      "config",
-      [
-        "$linea",
-        "",
-        "Versión 1.0, vigente desde AAAA-MM-DD. Período de vigencia de la base de datos: el",
-        "que corresponda a la finalidad. Responsable: {cliente}, domicilio, dirección, correo",
-        "y teléfono. Área responsable de peticiones, consultas y reclamos: <área o cargo>.",
-        "Procedimiento para ejercer los derechos: qué enviar, cómo se identifica el titular y",
-        "qué plazos aplican. Histórico de cambios en /politica/historico",
-      ],
-      "Completa los seis contenidos mínimos del art. 2.2.2.25.3.1 y permite acreditar " +
-        "qué texto estaba vigente cuando el titular otorgó su autorización.",
-    ),
+    /* El parche reemplaza el documento incompleto por la política completa, en su
+       misma ruta: así el retesteo comprueba lo mismo que exige el reglamento. */
+    patch: (hits, ctx) => generarDocumento("politica", ctx, hits),
     branch: "vigia-patch/policy-version",
-    changeNote: "Encabezado de versión, datos de contacto, procedimiento y enlace al histórico.",
+    changeNote:
+      "Política completa en la misma ruta del documento incompleto, con los campos que " +
+      "solo el abogado puede diligenciar marcados como pendientes.",
     retests: [
       "Versión y fecha de vigencia visibles en el documento publicado",
       "Datos de contacto y área responsable identificables",
       "Procedimiento de consultas y reclamos descrito con sus plazos",
+    ],
+  },
+
+  {
+    code: "VGI-088",
+    module: "transparency",
+    severity: "informativo",
+    title: "Sistema de IA sin ficha de transparencia para el titular",
+    summary:
+      "El sistema envía datos personales a modelos de lenguaje de terceros y el " +
+      "repositorio no publica ninguna descripción comprensible de qué modelo se usa, qué " +
+      "datos recibe, qué no puede hacer y cómo se llega a una persona.",
+    legalAnalysis:
+      "Colombia no tiene todavía una norma que obligue a publicar una ficha técnica del " +
+      "sistema de IA, por lo que este hallazgo es informativo y no se reporta como " +
+      "incumplimiento de una obligación vigente. Sí son exigibles el deber de informar al " +
+      "titular el tratamiento y su finalidad (art. 12 de la Ley 1581 de 2012) y el examen " +
+      "de la Circular Externa 002 de 2024 de la SIC: el tratamiento con IA debe ser " +
+      "idóneo, necesario, razonable y proporcional (num. I) y los datos tratados deben ser " +
+      "veraces, exactos, comprobables y comprensibles, prohibiéndose los que induzcan a " +
+      "error (num. V). Una ficha de transparencia es la forma más económica de acreditar " +
+      "ambas cosas ante la autoridad y de responderle al titular qué hace el sistema con " +
+      "sus datos. El proyecto de ley 025 de 2026 Cámara, en trámite, propone obligaciones " +
+      "de información equivalentes, y el art. 50 del AI Act europeo ya las exige: se citan " +
+      "como referencia, no como norma vigente en Colombia.",
+    ruleIds: ["col-sic-ia", "col-1581-informar", "eu-ai-act-art50"],
+    probe:
+      "Búsqueda en el repositorio de una ficha, tarjeta de modelo o documento equivalente " +
+      "que describa el sistema de IA detectado en el código.",
+    /* Solo si el sistema de IA trata datos personales del titular: el deber de
+       informar del que cuelga la ficha es el de la Ley 1581. */
+    detect: ({ files, providers }) => {
+      if (providers.length === 0 || personalColumns(files).length === 0) return [];
+      const publicada = files.some(
+        (f) =>
+          /ficha[-_ ]?(de[-_ ]?)?transparencia|model[-_ ]?card/i.test(f.path) ||
+          /^#\s*Ficha de transparencia/im.test(f.content),
+      );
+      if (publicada) return [];
+      return PROVIDERS.flatMap((p) =>
+        grep(files.filter(isSource), /./, p.pattern).slice(0, 1),
+      );
+    },
+    patch: (hits, ctx) => generarDocumento("ficha-transparencia", ctx, hits),
+    branch: "vigia-patch/ai-transparency-card",
+    changeNote:
+      "Documento nuevo en el repositorio. No cambia el comportamiento del asistente.",
+    retests: [
+      "El repositorio publica la ficha de transparencia del sistema de IA",
+      "La ficha identifica modelo, proveedor, datos que recibe, límites y canal humano",
     ],
   },
 ];

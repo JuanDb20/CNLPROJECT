@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { abrirPullRequest } from "@/app/actions";
+import { DescargasDocumento, Documento } from "@/components/documento";
 import { LearningCard } from "@/components/learning-card";
 import {
   Card,
@@ -53,6 +54,8 @@ export default async function HallazgoPage({
   const rules = getRules(finding.ruleIds);
   const { remediation } = finding;
   const prOpen = remediation.prNumber !== null;
+  /* Un documento jurídico no se lee como diff: se lee como documento. */
+  const esDocumento = remediation.patch.kind === "documento";
 
   const ordered = sortFindings(run.findings);
   const idx = ordered.findIndex((f) => f.id === finding.id);
@@ -171,30 +174,62 @@ export default async function HallazgoPage({
           </div>
 
           <p className="text-[12.5px] leading-relaxed text-ink-muted">
-            VIGÍA modifica{" "}
-            <span className="font-mono text-[11.5px] text-ink-soft">
-              {remediation.patch.target}
-            </span>{" "}
-            para aplicar la mitigación identificada, sin tocar el código central de la
-            aplicación del cliente, hecha con vibecoding (código generado con IA).
+            {esDocumento ? (
+              <>
+                VIGÍA redacta el documento que falta y lo deja listo en{" "}
+                <span className="font-mono text-[11.5px] text-ink-soft">
+                  {remediation.patch.target}
+                </span>
+                , prellenado con lo que leyó del código. El abogado lo revisa, ajusta y
+                firma: VIGÍA propone, el abogado firma.
+              </>
+            ) : (
+              <>
+                VIGÍA modifica{" "}
+                <span className="font-mono text-[11.5px] text-ink-soft">
+                  {remediation.patch.target}
+                </span>{" "}
+                para aplicar la mitigación identificada, sin tocar el código central de la
+                aplicación del cliente, hecha con vibecoding (código generado con IA).
+              </>
+            )}
           </p>
 
           <div className="mt-4">
             <Label>{PATCH_LABEL[remediation.patch.kind]}</Label>
-            <Panel tone="neutral">
-              {remediation.patch.removed.map((line, i) => (
-                <Mono key={`r-${i}`} tone="removed">
-                  {"- "}
-                  {line}
-                </Mono>
-              ))}
-              {remediation.patch.added.map((line, i) => (
-                <Mono key={`a-${i}`} tone="added">
-                  {"+ "}
-                  {line}
-                </Mono>
-              ))}
-            </Panel>
+            {esDocumento ? (
+              <>
+                <Panel tone="neutral" className="max-h-[420px] overflow-y-auto">
+                  <Documento lines={remediation.patch.added} />
+                </Panel>
+                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
+                  Borrador generado desde el código: el abogado lo revisa, ajusta y firma.
+                  Lo resaltado son los datos que solo él puede diligenciar.
+                </p>
+                <DescargasDocumento
+                  code={finding.code}
+                  lines={remediation.patch.added}
+                  runId={run.id}
+                  findingId={finding.id}
+                  className="mt-2"
+                />
+              </>
+            ) : (
+              <Panel tone="neutral">
+                {remediation.patch.removed.map((line, i) => (
+                  <Mono key={`r-${i}`} tone="removed">
+                    {"- "}
+                    {line}
+                  </Mono>
+                ))}
+                {remediation.patch.added.map((line, i) => (
+                  <Mono key={`a-${i}`} tone="added">
+                    {"+ "}
+                    {line}
+                  </Mono>
+                ))}
+              </Panel>
+            )}
           </div>
 
           <div className="mt-4">

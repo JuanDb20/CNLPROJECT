@@ -7,6 +7,7 @@ import {
   retestear,
   retestearVersion,
 } from "@/app/actions";
+import { DescargasDocumento, Documento } from "@/components/documento";
 import { DownloadPatch } from "@/components/download-patch";
 import {
   Card,
@@ -20,6 +21,7 @@ import {
   cx,
   fieldClass,
 } from "@/components/ui";
+import { documentosGenerados } from "@/domain/documentos";
 import { formatDate } from "@/domain/format";
 import { scoreRun, sortFindings } from "@/domain/scoring";
 import { requireUser } from "@/server/auth";
@@ -42,6 +44,7 @@ export default async function RemediacionPage({
   const withPr = sortFindings(run.findings).filter(
     (f) => f.remediation.prNumber !== null,
   );
+  const documentos = documentosGenerados(run);
 
   const selected =
     withPr.find((f) => f.id === hallazgo) ??
@@ -64,6 +67,14 @@ export default async function RemediacionPage({
         <p className="mt-1.5 text-[13px] text-ink-muted">
           Trazabilidad y aprobación segura de cambios
         </p>
+        {documentos.length > 0 ? (
+          <Link
+            href="/auditoria/documentos"
+            className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-brand transition-colors hover:text-ink"
+          >
+            Documentos jurídicos generados ({documentos.length}) <span aria-hidden>→</span>
+          </Link>
+        ) : null}
       </div>
 
       {withPr.length === 0 ? (
@@ -141,7 +152,9 @@ export default async function RemediacionPage({
                     </Tag>
                   </div>
                   <p className="mt-3 border-t border-line pt-3 text-[11.5px] leading-relaxed text-ink-muted">
-                    Cambio propuesto sobre{" "}
+                    {selected.remediation.patch.kind === "documento"
+                      ? "Documento propuesto para publicar en "
+                      : "Cambio propuesto sobre "}
                     <span className="font-mono">
                       {selected.remediation.patch.target}
                     </span>
@@ -159,28 +172,50 @@ export default async function RemediacionPage({
                 </div>
 
                 <div className="mt-4">
-                  <Label>Cambios propuestos</Label>
-                  <Panel tone="neutral" className="overflow-x-auto">
-                    {selected.remediation.patch.removed.map((line, i) => (
-                      <Mono key={`r-${i}`} tone="removed">
-                        {"- "}
-                        {line}
-                      </Mono>
-                    ))}
-                    {selected.remediation.patch.added.map((line, i) => (
-                      <Mono key={`a-${i}`} tone="added">
-                        {"+ "}
-                        {line}
-                      </Mono>
-                    ))}
-                  </Panel>
-                  <DownloadPatch
-                    code={selected.code}
-                    target={selected.remediation.patch.target}
-                    removed={selected.remediation.patch.removed}
-                    added={selected.remediation.patch.added}
-                    className="mt-2"
-                  />
+                  {selected.remediation.patch.kind === "documento" ? (
+                    <>
+                      <Label>Documento jurídico propuesto</Label>
+                      <Panel tone="neutral" className="max-h-[420px] overflow-y-auto">
+                        <Documento lines={selected.remediation.patch.added} />
+                      </Panel>
+                      <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
+                        Borrador generado desde el código: el abogado lo revisa, ajusta y
+                        firma.
+                      </p>
+                      <DescargasDocumento
+                        code={selected.code}
+                        lines={selected.remediation.patch.added}
+                        runId={run.id}
+                        findingId={selected.id}
+                        className="mt-2"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Label>Cambios propuestos</Label>
+                      <Panel tone="neutral" className="overflow-x-auto">
+                        {selected.remediation.patch.removed.map((line, i) => (
+                          <Mono key={`r-${i}`} tone="removed">
+                            {"- "}
+                            {line}
+                          </Mono>
+                        ))}
+                        {selected.remediation.patch.added.map((line, i) => (
+                          <Mono key={`a-${i}`} tone="added">
+                            {"+ "}
+                            {line}
+                          </Mono>
+                        ))}
+                      </Panel>
+                      <DownloadPatch
+                        code={selected.code}
+                        target={selected.remediation.patch.target}
+                        removed={selected.remediation.patch.removed}
+                        added={selected.remediation.patch.added}
+                        className="mt-2"
+                      />
+                    </>
+                  )}
                 </div>
 
                 <div className="mt-4 flex items-center gap-2.5">

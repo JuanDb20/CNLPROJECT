@@ -260,7 +260,16 @@ export async function issueCertificate(
     findingsDigest: createHash("sha256")
       .update(
         JSON.stringify(
-          run.findings.map((f) => [f.code, f.severity, f.legalAnalysis, f.evidence.response, f.remediation.status]),
+          run.findings.map((f) => [
+            f.code,
+            f.severity,
+            f.legalAnalysis,
+            f.evidence.response,
+            f.remediation.status,
+            /* El informe acredita también qué documento jurídico se entregó: si el
+               texto cambia después de firmar, la cadena de hash lo delata. */
+            ...(f.remediation.patch.kind === "documento" ? [f.remediation.patch.added.join("\n")] : []),
+          ]),
         ),
       )
       .digest("hex"),
