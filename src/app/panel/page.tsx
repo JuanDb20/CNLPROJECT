@@ -8,6 +8,8 @@ import type { RunStatus } from "@/domain/types";
 import { requireUser } from "@/server/auth";
 import { repository } from "@/server/store";
 
+export const metadata = { title: "Mis auditorías" };
+
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<RunStatus, { label: string; tone: "neutral" | "brand" | "required" | "safe" }> = {

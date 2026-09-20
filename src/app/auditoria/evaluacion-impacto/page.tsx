@@ -6,6 +6,8 @@ import { isResolved, riskCell, sortFindings } from "@/domain/scoring";
 import type { RemediationStatus } from "@/domain/types";
 import { requireRun } from "@/server/session";
 
+export const metadata = { title: "Evaluación de impacto" };
+
 export const dynamic = "force-dynamic";
 
 /* Borrador de evaluación de impacto de privacidad (CE 002/2024 de la SIC, num. IV).

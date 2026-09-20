@@ -5,6 +5,8 @@ import { requireAuthorizedRun } from "@/server/session";
 
 import { LiveRun } from "./live-run";
 
+export const metadata = { title: "Ejecución de pruebas" };
+
 export const dynamic = "force-dynamic";
 
 export default async function EjecucionPage() {

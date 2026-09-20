@@ -137,7 +137,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         {/* Módulos */}
         <Card>
-          <CardHeader title={done ? "Análisis completado" : "Módulos en progreso"} />
+          <CardHeader title={done ? "Resultado por módulo" : "Módulos en progreso"} />
           <ul className="space-y-2.5">
             {run.modules.map((module) => (
               <li

@@ -5,7 +5,7 @@ import { Logo } from "@/components/shell";
 
 import { CONTACTO, DIRECCION_Y_TELEFONO, DOMICILIO, POLITICA_VERSION, POLITICA_VIGENCIA } from "./datos";
 
-export const metadata: Metadata = { title: "Política de tratamiento de datos · VIGÍA" };
+export const metadata: Metadata = { title: "Política de tratamiento de datos" };
 
 const SECTIONS: Array<[string, string[]]> = [
   ["Responsable", [

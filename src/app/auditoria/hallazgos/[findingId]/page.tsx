@@ -21,6 +21,8 @@ import type { PatchKind } from "@/domain/types";
 import { learningMode } from "@/server/http";
 import { requireAnalyzedRun } from "@/server/session";
 
+export const metadata = { title: "Detalle del hallazgo" };
+
 export const dynamic = "force-dynamic";
 
 const PATCH_LABEL: Record<PatchKind, string> = {

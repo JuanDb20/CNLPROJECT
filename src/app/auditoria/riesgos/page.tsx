@@ -11,6 +11,8 @@ import { RiskList, type FilterOption, type RiskRow, type RiskState } from "./ris
 
 const fmt = (n: number) => n.toLocaleString("es-CO");
 
+export const metadata = { title: "Mapa de riesgos" };
+
 export const dynamic = "force-dynamic";
 
 const KIND_LABEL = {
@@ -105,7 +107,7 @@ export default async function RiesgosPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card className="p-4 sm:p-5">
+        <Card className="col-span-2 p-4 sm:p-5 lg:col-span-1">
           <div className="flex items-center gap-3">
             <RiskGauge score={score.score} level={score.level} />
             <p className="text-[11px] leading-tight text-ink-muted">

@@ -22,6 +22,8 @@ const SECTORS = [
 
 const FINTREX_SECTOR = SECTORS.find((s) => s.startsWith("Financiero y fintech")) ?? SECTORS[0];
 
+export const metadata = { title: "Nueva auditoría" };
+
 export default async function NuevaAuditoriaPage({
   searchParams,
 }: {

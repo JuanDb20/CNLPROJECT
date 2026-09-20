@@ -3,7 +3,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VIGÍA — Equipo rojo legal y técnico para IA",
+  title: {
+    default: "VIGÍA — Equipo rojo legal y técnico para IA",
+    template: "%s · VIGÍA",
+  },
   description:
     "Auditoría adversarial de aplicaciones de IA con trazabilidad jurídica: " +
     "Ley 1581, Ley 1266, EU AI Act, RGPD y OWASP LLM.",

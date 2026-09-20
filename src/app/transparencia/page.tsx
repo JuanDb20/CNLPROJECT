@@ -18,7 +18,7 @@ interface Hallazgo {
  * VIGÍA se audita a sí misma con su propio catálogo de pruebas. El resultado es
  * un archivo generado (`npm run autoauditoria`), no una declaración escrita a mano.
  */
-export const metadata = { title: "VIGÍA se audita a sí misma" };
+export const metadata = { title: { absolute: "VIGÍA se audita a sí misma" } };
 
 export default function TransparenciaPage() {
   const { fecha, sha256, archivos, avisosOsv } = resultado;

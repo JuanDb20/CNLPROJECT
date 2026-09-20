@@ -10,6 +10,8 @@ import { repository } from "@/server/store";
  * la auditoría: solo lo que hace falta para comprobar que el documento no se
  * alteró y que existía en la fecha del sello.
  */
+export const metadata = { title: "Verificar un informe" };
+
 export const dynamic = "force-dynamic";
 
 function Dato({ label, children }: { label: string; children: React.ReactNode }) {

@@ -15,6 +15,8 @@ const ERRORS: Record<string, string> = {
   politica: "Para crear la cuenta debes autorizar el tratamiento de tus datos.",
 };
 
+export const metadata = { title: "Crear cuenta" };
+
 export default async function RegistroPage({
   searchParams,
 }: {

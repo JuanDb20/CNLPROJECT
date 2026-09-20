@@ -14,7 +14,10 @@ import { clientRun } from "@/server/http";
 import "../../../informe/print.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export const metadata: Metadata = {
+  title: "Portal del cliente",
+  robots: { index: false, follow: false },
+};
 
 const STATUS_TEXT: Record<RunStatus, string> = {
   borrador: "Pendiente de tu autorización.",
@@ -56,7 +59,7 @@ export default async function ClientePage({
 
   /* El estado que ve la clienta es el de SU autorización, no el del flujo del abogado. */
   const estado = clientAcceptance
-    ? `Autorización registrada el ${formatDate(clientAcceptance.at, { time: true })}.` +
+    ? `Autorización registrada el ${formatDate(clientAcceptance.at, { time: true })}` +
       (run.certificate ? " Informe expedido." : "")
     : STATUS_TEXT[run.status];
 

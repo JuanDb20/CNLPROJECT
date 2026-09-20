@@ -6,6 +6,8 @@ import { Logo } from "@/components/shell";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
 
+export const metadata = { title: "Ingresar" };
+
 export default async function IngresarPage({
   searchParams,
 }: {

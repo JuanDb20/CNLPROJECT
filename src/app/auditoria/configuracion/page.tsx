@@ -4,6 +4,8 @@ import { requireAuthorizedRun } from "@/server/session";
 
 import { ConfigForm } from "./config-form";
 
+export const metadata = { title: "Configuración del análisis" };
+
 export const dynamic = "force-dynamic";
 /** Aquí corre el server action que lanza el análisis, que sigue en `after()`. */
 export const maxDuration = 300;

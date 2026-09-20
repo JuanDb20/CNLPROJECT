@@ -13,7 +13,10 @@ import {
   cx,
   fieldClass,
 } from "@/components/ui";
+import { formatDate } from "@/domain/format";
 import { requireRun } from "@/server/session";
+
+export const metadata = { title: "Alcance y autorización" };
 
 export const dynamic = "force-dynamic";
 
@@ -206,7 +209,7 @@ export default async function AlcancePage() {
               <p className="text-[12px] text-safe">
                 Aceptado por {clientAcceptance.name} (C.C. {clientAcceptance.idNumber}) desde
                 el portal del cliente, el{" "}
-                {new Date(clientAcceptance.at).toLocaleString("es-CO", { timeZone: "America/Bogota" })}
+                {formatDate(clientAcceptance.at, { time: true })}
               </p>
             </Panel>
           ) : (

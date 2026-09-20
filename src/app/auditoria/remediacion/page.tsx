@@ -25,6 +25,8 @@ import { scoreRun, sortFindings } from "@/domain/scoring";
 import { requireUser } from "@/server/auth";
 import { requireAnalyzedRun } from "@/server/session";
 
+export const metadata = { title: "Remediación y firma" };
+
 export const dynamic = "force-dynamic";
 
 
@@ -158,7 +160,7 @@ export default async function RemediacionPage({
 
                 <div className="mt-4">
                   <Label>Cambios propuestos</Label>
-                  <Panel tone="neutral">
+                  <Panel tone="neutral" className="overflow-x-auto">
                     {selected.remediation.patch.removed.map((line, i) => (
                       <Mono key={`r-${i}`} tone="removed">
                         {"- "}
@@ -439,7 +441,7 @@ export default async function RemediacionPage({
                   </div>
                 ) : run.scope.source.deletedAt ? (
                   <p className="text-[11.5px] text-ink-muted sm:col-span-2">
-                    Código borrado el {formatDate(run.scope.source.deletedAt, { time: true })}.
+                    Código borrado el {formatDate(run.scope.source.deletedAt, { time: true })}
                   </p>
                 ) : null}
               </div>

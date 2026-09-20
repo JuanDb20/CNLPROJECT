@@ -401,7 +401,7 @@ async function execute(runId: string): Promise<void> {
     }
 
     await setModule(runId, module.id, { status: "ejecutando", progress: 0 });
-    await log(runId, "system", module.id, `Iniciando ${module.name.toLowerCase()}`);
+    await log(runId, "system", module.id, `Iniciando módulo: ${module.name}`);
 
     const moduleFindings = catalog.filter(
       (f) => f.module === module.id && selectedCoversFinding(f.ruleIds, selected),
@@ -452,7 +452,7 @@ async function execute(runId: string): Promise<void> {
       runId,
       "ok",
       module.id,
-      `${module.name} completado: ${found ?? 0} hallazgos`,
+      `Módulo terminado: ${module.name} · ${found ?? 0} hallazgos`,
     );
   }
 

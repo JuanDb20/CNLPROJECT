@@ -81,7 +81,7 @@ export function buildClauses(client: string): ScopeClause[] {
       label: "Contrato de transmisión, secreto profesional, minimización y retención",
       detail:
         "Respecto del código y de los datos personales que contenga, VIGÍA actúa como " +
-        `encargado de ${client}. Este acuerdo hace las veces de contrato de transmisión: ` +
+        `encargado de ${client.replace(/\.$/, "")}. Este acuerdo hace las veces de contrato de transmisión: ` +
         "señala como alcance el análisis técnico-jurídico del código identificado por su " +
         `SHA-256, y obliga a VIGÍA a dar tratamiento a los datos a nombre de ${client} ` +
         "conforme a los principios de la ley y a su política de tratamiento, a " +

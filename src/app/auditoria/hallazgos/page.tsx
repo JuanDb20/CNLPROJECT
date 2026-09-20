@@ -5,6 +5,8 @@ import { sortFindings } from "@/domain/scoring";
 import type { RemediationStatus } from "@/domain/types";
 import { requireAnalyzedRun } from "@/server/session";
 
+export const metadata = { title: "Hallazgos" };
+
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<RemediationStatus, string> = {
