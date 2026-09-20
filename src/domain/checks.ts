@@ -1,13 +1,48 @@
-import type {
-  DetectedProvider,
-  Finding,
-  ModuleId,
-  Patch,
-  PatchKind,
-  RepoFile,
-  ScopeClause,
-  Severity,
-} from "./types";
+import type { ClientInfo, Finding, RepoFile, ScopeClause } from "./types";
+import type { LiveInspection } from "./live";
+
+import {
+  AUDIT_TRAIL,
+  type Check,
+  type Ctx,
+  FULL_RECORD,
+  HIGH_RISK,
+  type Hit,
+  IMPACT_STUDY,
+  NO_TRAINING,
+  PERSONAL,
+  PLACEHOLDER,
+  PROMPT,
+  PUBLIC_VAR,
+  SCHEMA,
+  SCHEMA_FILE,
+  SCRAPING,
+  SERVER_ONLY,
+  THIRD_PARTY_SECRET,
+  TOOLS,
+  edit,
+  grep,
+  hasRightsChannel,
+  isCode,
+  isSource,
+  lacking,
+  mask,
+  nextFix,
+  personalColumns,
+  serviceRoleJwt,
+  tableName,
+} from "./check-kit";
+import { CHECKS_BACKENDS } from "./checks-backends";
+import { CHECKS_COHERENCIA } from "./checks-coherencia";
+import { CHECKS_CONSUMIDOR } from "./checks-consumidor";
+import { CHECKS_DESPLIEGUE } from "./checks-despliegue";
+import { CHECKS_GOBERNANZA } from "./checks-gobernanza";
+import { CHECKS_INCLUSION } from "./checks-inclusion";
+import { CHECKS_LICENCIAS } from "./checks-licencias";
+import { PROVIDERS, detectProviders } from "./proveedores";
+
+export { mask } from "./check-kit";
+
 
 /**
  * Catálogo de pruebas de VIGÍA.
@@ -101,237 +136,6 @@ export function buildClauses(client: string): ScopeClause[] {
       accepted: false,
     },
   ];
-}
-
-/* ------------------------------------------------------------------ */
-/* Proveedores de IA                                                   */
-/* ------------------------------------------------------------------ */
-
-/** País de tratamiento y si figura en la lista de la SIC (Circular Única, Título V, num. 3.2). */
-const PROVIDERS = [
-  {
-    vendor: "OpenAI",
-    pattern: /api\.openai\.com|from ["']openai["']|@ai-sdk\/openai/,
-    country: "Estados Unidos",
-    adequate: true,
-  },
-  {
-    vendor: "Anthropic",
-    pattern: /api\.anthropic\.com|@anthropic-ai\/sdk|@ai-sdk\/anthropic/,
-    country: "Estados Unidos",
-    adequate: true,
-  },
-  {
-    vendor: "Google",
-    pattern: /generativelanguage\.googleapis\.com|@google\/genai|@google\/generative-ai|@ai-sdk\/google/,
-    country: "Estados Unidos",
-    adequate: true,
-  },
-  {
-    vendor: "DeepSeek",
-    pattern: /api\.deepseek\.com/,
-    country: "China",
-    adequate: false,
-  },
-];
-
-const isCode = (f: RepoFile) => !/\.(md|mdx|txt)$/i.test(f.path);
-/** Código fuente, sin manifiestos de dependencias. */
-const isSource = (f: RepoFile) =>
-  isCode(f) && !/(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/.test(f.path);
-
-export function detectProviders(files: RepoFile[]): DetectedProvider[] {
-  return PROVIDERS.flatMap((p) => {
-    const file = files.find((f) => isSource(f) && p.pattern.test(f.content));
-    if (!file) return [];
-    const model = /model:\s*["'`]([\w.:/-]+)["'`]/.exec(file.content)?.[1];
-    return [
-      {
-        id: `prov-${p.vendor.toLowerCase()}`,
-        vendor: p.vendor,
-        model: model ?? "Modelo no declarado",
-        surface: file.path,
-        classification: "third-party-llm",
-        country: p.country,
-        adequateCountry: p.adequate,
-        /* El rol depende de los términos del proveedor, no del software: VIGÍA lo
-           deja por determinar y el abogado lo califica. */
-        role: null,
-      } satisfies DetectedProvider,
-    ];
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Búsqueda en el código                                               */
-/* ------------------------------------------------------------------ */
-
-interface Hit {
-  path: string;
-  line: number;
-  text: string;
-}
-
-interface Ctx {
-  files: RepoFile[];
-  providers: DetectedProvider[];
-  /** Dependencias con avisos publicados (OSV.dev), consultadas antes por el servidor. */
-  advisories: Hit[];
-}
-
-/** Líneas que coinciden con `line` en los archivos cuya ruta coincide con `path`. */
-function grep(files: RepoFile[], path: RegExp, line: RegExp): Hit[] {
-  return files
-    .filter((f) => path.test(f.path))
-    .flatMap((f) =>
-      f.content
-        .split(/\r?\n/)
-        .flatMap((text, i) =>
-          line.test(text) ? [{ path: f.path, line: i + 1, text: text.trim() }] : [],
-        ),
-    );
-}
-
-/** Archivos cuya ruta coincide con `path` y que NO contienen `missing`; señala la línea `at`. */
-function lacking(files: RepoFile[], path: RegExp, missing: RegExp, at = /\S/): Hit[] {
-  return files
-    .filter((f) => path.test(f.path) && !missing.test(f.content))
-    .flatMap((f) => grep([f], /./, at).slice(0, 1));
-}
-
-/**
- * Números de documento: 5 a 12 dígitos, con o sin puntos o espacios de miles.
- * Debe dejar intactas las citas normativas ("Resolución 52185", "CVE-2025-48757",
- * "art. 2.2.2.25.5.2") y las cifras en pesos ("$214.405.120"), que viven en el
- * mismo texto que se enmascara.
- */
-const DOCUMENT = /(?<![-.\d$])\b(?:\d{1,3}(?:[.\s]\d{3}){1,3}|\d{5,12})\b/g;
-/** Palabra que convierte el número siguiente en una cita, no en un documento. */
-const CITED = /(\b(?:ley|decreto|resoluci[oó]n|circular|sentencia|acuerdo|cve|art[ií]?culos?|num|apartado)|\$)\S*\s*$/i;
-
-/** Enmascara llaves, secretos, correos y números de documento antes de mostrarlos. */
-export function mask(text: string): string {
-  return text
-    .replace(/\b(sk-(?:proj-)?|sk_live_|AIza)[\w-]{8,}/g, "$1[ENMASCARADO]")
-    .replace(
-      /((?:KEY|SECRET|TOKEN|PASSWORD)\w*\s*[=:]\s*["'`]?)(?!process\.env|\[ENMASCARADO)[^\s"'`,;]{6,}/gi,
-      "$1[ENMASCARADO]",
-    )
-    // JWT en cualquier posición, no solo asignado a una variable con nombre de llave.
-    .replace(/\beyJ[\w-]+\.eyJ[\w-]+\.[\w-]+/g, "[ENMASCARADO]")
-    // usuario:clave@host de cadenas de conexión (va antes que el correo: lo contiene).
-    .replace(/\b\w+:\/\/[^\s"'`]+:[^\s"'`@/]+@[^\s"'`]+/g, "[ENMASCARADO]")
-    .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/gi, "[ENMASCARADO]")
-    .replace(DOCUMENT, (m, offset: number, full: string) =>
-      CITED.test(full.slice(Math.max(0, offset - 32), offset)) ? m : "[ENMASCARADO]",
-    );
-}
-
-/** Parche que reemplaza la primera línea encontrada. `$linea` repite la línea original. */
-function edit(kind: PatchKind, added: string[], expectedImpact: string) {
-  return (hits: Hit[]): Patch => ({
-    kind,
-    target: hits[0].path,
-    removed: [hits[0].text],
-    added: added.map((l) => (l === "$linea" ? hits[0].text : l)),
-    expectedImpact,
-  });
-}
-
-const tableName = (sql: string) =>
-  /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)/i.exec(sql)?.[1]?.toLowerCase();
-
-/** CVE-2025-29927: corregida en 12.3.5, 13.5.9, 14.2.25 y 15.2.3. */
-const NEXT_FIXED: Record<number, [number, number]> = {
-  12: [3, 5],
-  13: [5, 9],
-  14: [2, 25],
-  15: [2, 3],
-};
-
-function nextFix(text: string): string | null {
-  const m = /(\d+)\.(\d+)\.(\d+)/.exec(text);
-  if (!m) return null;
-  const [major, minor, patch] = m.slice(1).map(Number);
-  const fixed = NEXT_FIXED[major];
-  if (!fixed) return null;
-  const vulnerable = minor < fixed[0] || (minor === fixed[0] && patch < fixed[1]);
-  return vulnerable ? `${major}.${fixed[0]}.${fixed[1]}` : null;
-}
-
-const TOOLS = /(^|\/)tools?\//i;
-/** Migraciones y esquemas SQL (no scripts de prueba ni ejemplos). */
-const SCHEMA = /(^|\/)(supabase|migrations?)\/.*\.sql$|(^|\/)schema\.sql$/i;
-/** Columnas que delatan datos personales en una tabla. */
-const PERSONAL = /\b(email|correo|phone|tel[eé]fono|celular|c[eé]dula|document\w*|address|direcci[oó]n|birth\w*|nacimiento|salar\w*|passport|pasaporte|medical|diagn\w*|health|salud)\b/i;
-const PUBLIC_VAR = /(NEXT_PUBLIC_|VITE_|REACT_APP_|EXPO_PUBLIC_)\w*(KEY|TOKEN)|dangerouslyAllowBrowser/;
-/** Código que no llega al navegador. */
-const SERVER_ONLY = /(^|\/)(supabase\/functions|server|backend|scripts?|api|_?tests?)\//i;
-
-/** Carga útil de un JWT de Supabase con rol de servicio (salta todo el RLS). */
-const serviceRoleJwt = (text: string) =>
-  [...text.matchAll(/eyJ[\w-]+\.(eyJ[\w-]+)\.[\w-]+/g)].some((m) =>
-    /"role"\s*:\s*"service_role"/.test(Buffer.from(m[1], "base64url").toString()),
-  );
-const PROMPT = /prompt/i;
-/** El registro completo del titular viajando entero hacia el modelo. */
-const FULL_RECORD =
-  /=\s*\{\s*(customer|cliente|user|usuario)\s*\}|JSON\.stringify\(\s*(customer|cliente|user|usuario)\s*\)/;
-/** Esquemas de base de datos, en SQL o en Prisma. */
-const SCHEMA_FILE = (f: RepoFile) => SCHEMA.test(f.path) || /\.prisma$/i.test(f.path);
-/** Tratamiento de alto riesgo: biometría, salud o decisiones sobre personas. */
-const HIGH_RISK =
-  /\b(biometr\w*|selfie\w*|face_?template|huella\w*|iris|voiceprint|salud|diagn\w*|scoring|puntaje|riesgo_credit\w*|elegibilidad)\b/i;
-/** Estudio de impacto de privacidad, por nombre de archivo o por contenido. */
-const IMPACT_STUDY =
-  /\b(eip|dpia|pia)\b|evaluaci[oó]n\s*de\s*impacto|estudio\s*de\s*impacto|privacy\s*impact/i;
-/** Ingesta masiva de datos de terceros sitios. */
-const SCRAPING = /puppeteer|playwright|cheerio|scrapy|crawlee|firecrawl|apify|serpapi/i;
-/** Registro auditable de accesos a datos personales. */
-const AUDIT_TRAIL =
-  /\b(audit|auditor[ií]a|audit_log|access_log|activity_log|event_log|pgaudit)\w*\b|createAuditLog|logAccess/i;
-/** Exclusión de entrenamiento o acuerdo de tratamiento con el proveedor. */
-const NO_TRAINING =
-  /zero.?retention|no.?training|sin.?entrenamiento|opt.?out|data.?processing.?(agreement|addendum)|\bzdr\b|enterprise/i;
-/** Secretos de terceros con forma reconocible (catálogo público de Gitleaks, MIT). */
-const THIRD_PARTY_SECRET =
-  /AKIA[0-9A-Z]{16}|\bsk_live_[0-9a-zA-Z]{24,}|\bSG\.[\w-]{22}\.[\w-]{43}|\bxox[baprs]-[0-9a-zA-Z-]{10,}|\bgh[pousr]_[A-Za-z0-9]{36,}|-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/;
-/** Marcadores de ejemplo: no son una llave viva. */
-const PLACEHOLDER = /your|xxxx|example|placeholder|reemplazar|aqu[ií]|<[^>]+>/i;
-
-/** Columnas de esquema que delatan datos personales; sirven de evidencia, no solo de señal. */
-const personalColumns = (files: RepoFile[]) =>
-  grep(files.filter(SCHEMA_FILE), /./, PERSONAL);
-
-/** ¿Existe ruta, tabla o documento para atender consultas y reclamos del titular? */
-const hasRightsChannel = (files: RepoFile[]) =>
-  files.some(
-    (f) =>
-      /(habeas|reclamo|derechos|arco|supresi[oó]n|petici[oó]n)/i.test(f.path) ||
-      (SCHEMA_FILE(f) && /create\s+table[^;(]*\b(habeas|reclamo|solicitud|petici)/i.test(f.content)) ||
-      (/\.(md|mdx|html|txt)$/i.test(f.path) &&
-        /habeas|reclamo|consultas y reclamos|derecho de supresi/i.test(f.content)),
-  );
-
-/* ------------------------------------------------------------------ */
-/* Catálogo                                                            */
-/* ------------------------------------------------------------------ */
-
-interface Check {
-  code: string;
-  module: ModuleId;
-  severity: Severity;
-  title: string;
-  summary: string;
-  /** `{cliente}` se sustituye por el nombre del cliente auditado. */
-  legalAnalysis: string;
-  ruleIds: string[];
-  probe: string;
-  detect: (ctx: Ctx) => Hit[];
-  patch: (hits: Hit[], ctx: Ctx) => Patch;
-  branch: string;
-  changeNote: string;
-  retests: string[];
 }
 
 const CHECKS: Check[] = [
@@ -1732,19 +1536,47 @@ const CHECKS: Check[] = [
   },
 ];
 
+/* Las pruebas de cada dimensión viven en su archivo; el orden fija el de ejecución. */
+const ALL_CHECKS: Check[] = [
+  ...CHECKS,
+  ...CHECKS_COHERENCIA,
+  ...CHECKS_CONSUMIDOR,
+  ...CHECKS_GOBERNANZA,
+  ...CHECKS_INCLUSION,
+  ...CHECKS_BACKENDS,
+  ...CHECKS_LICENCIAS,
+  ...CHECKS_DESPLIEGUE,
+];
+
 /** Códigos de las pruebas del catálogo, en el orden en que se ejecutan. */
-export const CHECK_CODES: readonly string[] = CHECKS.map((c) => c.code);
+export const CHECK_CODES: readonly string[] = ALL_CHECKS.map((c) => c.code);
 
 /** Aplica el catálogo al código cargado. Solo devuelve lo que encuentra. */
-export function runChecks(files: RepoFile[], clientName: string, advisories: Hit[] = []): Finding[] {
-  const ctx: Ctx = { files, providers: detectProviders(files), advisories };
-  const fill = (text: string) => mask(text.replaceAll("{cliente}", clientName));
+export function runChecks(
+  files: RepoFile[],
+  client: ClientInfo,
+  advisories: Hit[] = [],
+  extra: { licenses?: Hit[]; live?: LiveInspection | null } = {},
+): Finding[] {
+  const ctx: Ctx = {
+    files,
+    providers: detectProviders(files),
+    advisories,
+    client,
+    licenses: extra.licenses ?? [],
+    live: extra.live ?? null,
+  };
+  const fill = (text: string) => mask(text.replaceAll("{cliente}", client.name));
+  /* Un documento jurídico generado no se enmascara: lleva el NIT y los datos del
+     cliente a propósito, y sus plantillas no citan líneas de código. */
+  const fillDocument = (text: string) => text.replaceAll("{cliente}", client.name);
 
-  return CHECKS.flatMap((check) => {
+  return ALL_CHECKS.flatMap((check) => {
     const hits = check.detect(ctx);
     if (hits.length === 0) return [];
     const shown = hits.slice(0, 4);
     const patch = check.patch(hits, ctx);
+    const fillPatch = patch.kind === "documento" ? fillDocument : fill;
     return [
       {
         id: check.code.toLowerCase(),
@@ -1762,7 +1594,7 @@ export function runChecks(files: RepoFile[], clientName: string, advisories: Hit
         },
         remediation: {
           status: "propuesta",
-          patch: { ...patch, removed: patch.removed.map(fill), added: patch.added.map(fill) },
+          patch: { ...patch, removed: patch.removed.map(fillPatch), added: patch.added.map(fillPatch) },
           branch: check.branch,
           prNumber: null,
           prUrl: null,

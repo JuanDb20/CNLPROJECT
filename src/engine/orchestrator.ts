@@ -1,9 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { after } from "next/server";
 
-import { buildClauses, detectProviders, runChecks } from "@/domain/checks";
+import { buildClauses, runChecks } from "@/domain/checks";
 import { ALL_FRAMEWORK_IDS, getRules } from "@/domain/compliance";
 import { executionLabel } from "@/domain/format";
+import { buildInventory } from "@/domain/inventario";
+import { buildLiveClause } from "@/domain/live";
+import { detectProviders } from "@/domain/proveedores";
 import type {
   AuditRun,
   ClientInfo,
@@ -15,10 +18,10 @@ import type {
   User,
 } from "@/domain/types";
 import { EXAMPLE_FILES } from "@/server/example-repo";
-import { dependencyAdvisories } from "@/server/osv";
 import { repository } from "@/server/store";
 import { readZip, writeZip } from "@/server/zip";
 
+import { collectInputs } from "./inputs";
 import { MODULES, initialModuleStates, isModuleEnabled } from "./modules";
 
 /**
@@ -64,11 +67,18 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
   const rues = await ruesLookup(nit);
   if (rues !== undefined) client.rues = rues;
 
+  /* URL pública del despliegue (opcional): solo se inspecciona en lectura, y solo
+     si el cliente acepta la cláusula que la nombra. */
+  const liveUrl = text("despliegue", 300);
+  if (liveUrl && !/^https?:\/\/[^\s/?#]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(liveUrl)) {
+    throw new Error("La URL del despliegue debe ser pública y empezar por https://");
+  }
+
   const { fileName, zip } = await sourceZip(text("repositorio", 300), form.get("codigo"));
   const files = readZip(zip);
   if (files.length === 0) throw new Error("El .zip no contiene archivos de código legibles");
 
-  return createRun(owner, client, fileName, zip, files);
+  return createRun(owner, client, fileName, zip, files, liveUrl || undefined);
 }
 
 const EXAMPLE_CLIENT: ClientInfo = {
@@ -96,6 +106,7 @@ function createRun(
   fileName: string,
   zip: Buffer,
   files: RepoFile[],
+  liveUrl?: string,
 ): Promise<AuditRun> {
   const id = randomUUID().replaceAll("-", "").slice(0, 12);
   const now = new Date().toISOString();
@@ -113,7 +124,7 @@ function createRun(
         fileCount: files.length,
         uploadedAt: now,
       },
-      clauses: buildClauses(client.name),
+      clauses: [...buildClauses(client.name), ...(liveUrl ? [buildLiveClause(liveUrl)] : [])],
       signatories: [
         {
           id: "sig-client",
@@ -132,6 +143,7 @@ function createRun(
       authorizedAt: null,
       clientToken: randomUUID().replaceAll("-", ""),
       clientAcceptance: null,
+      ...(liveUrl ? { liveUrl } : {}),
     },
     config: {
       frameworks: ALL_FRAMEWORK_IDS,
@@ -370,7 +382,8 @@ async function execute(runId: string): Promise<void> {
 
   const selected = run.config.frameworks;
   const files = await repository.files(runId);
-  const catalog = runChecks(files, run.scope.client.name, await dependencyAdvisories(files));
+  const inputs = await collectInputs(run, files);
+  const catalog = runChecks(files, run.scope.client, inputs.advisories, inputs);
 
   await log(
     runId,
@@ -385,6 +398,19 @@ async function execute(runId: string): Promise<void> {
       "info",
       "orchestrator",
       "Máscara de datos personales activa: los registros reales se sustituyen por datos sintéticos",
+    );
+  }
+  if (inputs.licenses.length > 0) {
+    await log(runId, "info", "orchestrator", `Licencias consultadas en el registro de npm: ${inputs.licenses.length} dependencias`);
+  }
+  if (run.scope.liveUrl) {
+    await log(
+      runId,
+      "info",
+      "orchestrator",
+      inputs.live
+        ? `Inspección de solo lectura del despliegue ${run.scope.liveUrl}: ${inputs.live.pages.length} rutas consultadas`
+        : `El despliegue ${run.scope.liveUrl} no respondió a la inspección de solo lectura`,
     );
   }
 
@@ -456,7 +482,11 @@ async function execute(runId: string): Promise<void> {
     );
   }
 
-  await repository.update(runId, (current) => ({ ...current, status: "analizado" }));
+  await repository.update(runId, (current) => ({
+    ...current,
+    status: "analizado",
+    inventory: buildInventory(files, current.config.providers),
+  }));
   await log(
     runId,
     "ok",

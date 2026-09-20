@@ -50,7 +50,11 @@ const sha256 = createHash("sha256")
   .digest("hex");
 
 const advisories = await dependencyAdvisories(files);
-const findings = runChecks(files, "VIGÍA", advisories);
+const findings = runChecks(
+  files,
+  { name: "VIGÍA", nit: "", legalRepresentative: "", sector: "Legal tech", system: "Auditor técnico-jurídico" },
+  advisories,
+);
 
 const resultado = {
   fecha: new Date().toISOString(),

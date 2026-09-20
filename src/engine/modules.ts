@@ -24,7 +24,7 @@ export const MODULES: ModuleDefinition[] = [
     id: "static-scan",
     name: "Análisis de código estático",
     description: "Llaves expuestas, control de acceso a la base de datos, dependencias y flujos de datos hacia proveedores de IA",
-    frameworks: ["owasp", "col-1581", "gdpr"],
+    frameworks: ["owasp", "col-1581", "col-pi", "gdpr"],
     durationMs: 300,
   },
   {
@@ -38,7 +38,7 @@ export const MODULES: ModuleDefinition[] = [
     id: "consent-ux",
     name: "Verificación de consentimiento y UX",
     description: "Detección de patrones oscuros y de la validez de la autorización",
-    frameworks: ["col-1581", "col-1480", "gdpr"],
+    frameworks: ["col-1581", "col-1480", "col-inclusion", "gdpr"],
     durationMs: 300,
   },
   {

@@ -31,6 +31,7 @@ const PATCH_LABEL: Record<PatchKind, string> = {
   config: "Cambio en la configuración",
   interfaz: "Cambio en la interfaz",
   dependencia: "Cambio en las dependencias",
+  documento: "Documento jurídico propuesto",
 };
 
 /** Ruta y línea en su propio renglón monoespaciado, separadas del código. */

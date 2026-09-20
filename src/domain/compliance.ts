@@ -59,6 +59,35 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
       "quien ofrece productos por medios electrónicos (art. 50). Se aplica a lo que el " +
       "asistente afirma sobre sí mismo y sobre el producto.",
   },
+  "col-pi": {
+    id: "col-pi",
+    shortName: "Propiedad intelectual",
+    name: "Derecho de autor sobre el software y licencias",
+    jurisdiction: "Colombia y Comunidad Andina",
+    kind: "juridico",
+    citation:
+      "Ley 23 de 1982 (modificada por la Ley 1915 de 2018); Decisión Andina 351 de 1993; " +
+      "licencias de software libre y de código abierto; términos de las herramientas de generación de código",
+    description:
+      "El software se protege como obra literaria. Las dependencias de la aplicación y el " +
+      "código generado con herramientas de IA se usan bajo licencias y términos que imponen " +
+      "obligaciones (publicar el código, atribuir, no usar comercialmente). Autoridad: " +
+      "Dirección Nacional de Derecho de Autor; los conflictos de licencia se resuelven por vía civil.",
+  },
+  "col-inclusion": {
+    id: "col-inclusion",
+    shortName: "Accesibilidad",
+    name: "Accesibilidad e inclusión digital",
+    jurisdiction: "Colombia",
+    kind: "interfaz",
+    citation:
+      "Ley 1618 de 2013, art. 14; Resolución 1519 de 2020 de MinTIC (anexo 1, accesibilidad web); NTC 5854; WCAG 2.1 (referencia técnica)",
+    description:
+      "La obligación de accesibilidad web recae sobre las entidades públicas y los prestadores " +
+      "de servicios públicos; para las empresas privadas es una buena práctica que previene " +
+      "reclamos por discriminación (art. 13 de la Constitución) y amplía el mercado. Se " +
+      "reporta con severidad informativa salvo que el cliente sea una entidad obligada.",
+  },
   owasp: {
     id: "owasp",
     shortName: "OWASP",
@@ -103,6 +132,30 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
 
 export const RULES: ComplianceRule[] = [
   /* ---------------- Colombia · Ley 1581 y reglamentación ---------------- */
+  {
+    id: "col-1581-veracidad",
+    framework: "col-1581",
+    label: "Ley 1581 Art. 4 lit. d",
+    title: "Principio de veracidad o calidad",
+    obligation:
+      "La información sujeta a tratamiento debe ser veraz, completa, exacta, actualizada, " +
+      "comprobable y comprensible; se prohíbe el tratamiento de datos parciales, incompletos, " +
+      "fraccionados o que induzcan a error. Una política de tratamiento que no describe el " +
+      "tratamiento real (proveedores, transferencias, datos sensibles, plazos) induce a error " +
+      "al titular sobre lo que se hace con sus datos.",
+  },
+  {
+    id: "col-1581-informar",
+    framework: "col-1581",
+    label: "Ley 1581 Arts. 12 y 17 lit. k",
+    title: "Deber de informar al titular",
+    obligation:
+      "Al solicitar la autorización, el responsable debe informar de manera clara y expresa " +
+      "el tratamiento al que serán sometidos los datos y su finalidad, el carácter facultativo " +
+      "de las respuestas sobre datos sensibles o de menores, los derechos del titular y la " +
+      "identificación, dirección y teléfono del responsable (art. 12); y debe informar, a " +
+      "solicitud del titular, sobre el uso dado a sus datos (art. 17 lit. k).",
+  },
   {
     id: "col-1581-seguridad",
     framework: "col-1581",
@@ -405,6 +458,30 @@ export const RULES: ComplianceRule[] = [
       "actualizada, su identidad —nombre o razón social, NIT, dirección de notificación " +
       "judicial, teléfono y correo— y suministrar información cierta y actualizada sobre " +
       "los productos o servicios que ofrecen.",
+  },
+  /* ---------------- Propiedad intelectual y licencias ---------------- */
+  {
+    id: "col-pi-licencias",
+    framework: "col-pi",
+    label: "Decisión Andina 351/1993 Arts. 4 y 23; Ley 23/1982; licencia de cada dependencia",
+    title: "Licencias del software de terceros",
+    obligation:
+      "El software se protege como obra literaria y solo puede reproducirse, modificarse o " +
+      "distribuirse en los términos de la licencia que concede su titular. Las licencias " +
+      "copyleft de red (AGPL-3.0, cláusula 13) obligan a ofrecer el código fuente completo a " +
+      "los usuarios que interactúan con la aplicación a través de la red, y las copyleft " +
+      "fuertes (GPL) condicionan la distribución de la obra derivada.",
+  },
+  {
+    id: "col-pi-origen",
+    framework: "col-pi",
+    label: "Decisión Andina 351/1993 Art. 3; términos de uso de la herramienta generadora",
+    title: "Titularidad del código generado con IA",
+    obligation:
+      "Solo la persona natural que realiza la creación intelectual es autora; la titularidad " +
+      "del código generado con herramientas de IA la fijan los términos de cada herramienta. " +
+      "El responsable debe poder acreditar de quién es el código que explota y bajo qué " +
+      "condiciones antes de licenciarlo, venderlo o registrarlo.",
   },
   /* ---------------- Estándares técnicos ---------------- */
   {

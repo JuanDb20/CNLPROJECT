@@ -1,3 +1,5 @@
+import type { InventoryRow } from "./inventario";
+
 /**
  * Modelo de dominio de VIGÍA.
  *
@@ -16,6 +18,8 @@ export type FrameworkId =
   | "col-1581"
   | "col-1266"
   | "col-1480"
+  | "col-pi"
+  | "col-inclusion"
   | "owasp"
   | "eu-ai-act"
   | "gdpr";
@@ -108,6 +112,8 @@ export interface AuditScope {
   /** Aceptación del acuerdo por el representante legal desde su portal. */
   /** `clausesSha256` fija el texto exacto aceptado: cualquier cambio posterior en las cláusulas se nota. */
   clientAcceptance: { name: string; idNumber: string; at: string; clausesSha256?: string } | null;
+  /** URL pública del despliegue que el cliente autoriza a inspeccionar en solo lectura (opcional). */
+  liveUrl?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -193,7 +199,8 @@ export interface Evidence {
 }
 
 /** Naturaleza del cambio propuesto. Determina qué artefacto se modifica. */
-export type PatchKind = "codigo" | "prompt" | "config" | "interfaz" | "dependencia";
+/** `documento`: el parche no es un diff sino un documento jurídico prellenado (política, aviso, autorización, cláusulas). */
+export type PatchKind = "codigo" | "prompt" | "config" | "interfaz" | "dependencia" | "documento";
 
 export interface Patch {
   kind: PatchKind;
@@ -322,6 +329,8 @@ export interface AuditRun {
   /** Versión corregida del código contra la que se retestea. */
   retestSource?: SourceUpload | null;
   certificate: ConformityCertificate | null;
+  /** Inventario de tratamientos derivado del código al terminar el análisis; sobrevive al borrado del código. */
+  inventory?: InventoryRow[];
 }
 
 /** Resumen calculado; nunca se persiste, se deriva de los hallazgos. */

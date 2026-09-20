@@ -3,9 +3,10 @@ import { createHash } from "node:crypto";
 import { nextPrNumber, runChecks } from "@/domain/checks";
 import { scoreRun } from "@/domain/scoring";
 import type { AuditRun, ConformityCertificate, Finding } from "@/domain/types";
-import { dependencyAdvisories } from "@/server/osv";
 import { readZip } from "@/server/zip";
 import { accounts, repository } from "@/server/store";
+
+import { collectInputs } from "./inputs";
 
 /**
  * Remediación y certificación.
@@ -94,9 +95,11 @@ export async function uploadCorrected(runId: string, fileName: string, zip: Buff
     fileCount: files.length,
     uploadedAt: new Date().toISOString(),
   };
-  const advisories = await dependencyAdvisories(files);
+  const current = await repository.find(runId);
+  if (!current) throw new Error("Auditoría no encontrada");
+  const inputs = await collectInputs(current, files);
   return repository.update(runId, (run) => {
-    const detected = runChecks(files, run.scope.client.name, advisories);
+    const detected = runChecks(files, run.scope.client, inputs.advisories, inputs);
     return {
       ...run,
       retestSource,
@@ -114,7 +117,8 @@ export async function retest(runId: string, findingId: string): Promise<AuditRun
   if (!run.retestSource) throw new Error("Carga la versión corregida del código para retestear");
   const files = await repository.files(runId, "corregido");
   if (files.length === 0) throw new Error("La versión corregida ya no está disponible: cárgala de nuevo");
-  const detected = runChecks(files, run.scope.client.name, await dependencyAdvisories(files));
+  const inputs = await collectInputs(run, files);
+  const detected = runChecks(files, run.scope.client, inputs.advisories, inputs);
   return repository.update(runId, (current) =>
     mutateFinding(current, findingId, (f) => evaluate(f, detected, run.retestSource!.fileName)),
   );
