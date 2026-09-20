@@ -151,14 +151,14 @@ export const RULES: ComplianceRule[] = [
   {
     id: "col-1581-informar",
     framework: "col-1581",
-    label: "Ley 1581 Arts. 12 y 17 lit. k",
+    label: "Ley 1581 Arts. 12 y 17 lit. m",
     title: "Deber de informar al titular",
     obligation:
       "Al solicitar la autorización, el responsable debe informar de manera clara y expresa " +
       "el tratamiento al que serán sometidos los datos y su finalidad, el carácter facultativo " +
       "de las respuestas sobre datos sensibles o de menores, los derechos del titular y la " +
       "identificación, dirección y teléfono del responsable (art. 12); y debe informar, a " +
-      "solicitud del titular, sobre el uso dado a sus datos (art. 17 lit. k).",
+      "solicitud del titular, sobre el uso dado a sus datos (art. 17 lit. m).",
   },
   {
     id: "col-1581-seguridad",
