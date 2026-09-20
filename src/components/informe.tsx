@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from "react";
 import { CHECK_CODES } from "@/domain/checks";
 import { getFramework, getRules } from "@/domain/compliance";
 import { formatDate, lawyerName } from "@/domain/format";
+import { providerSummary } from "@/domain/proveedores";
 import { SEVERITY_LABEL, isResolved, riskCell, scoreRun, sortFindings } from "@/domain/scoring";
 import type { AuditRun, Finding, RemediationStatus } from "@/domain/types";
 
@@ -92,6 +93,9 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
   const open = run.findings.filter((f) => !isResolved(f));
   const categories = dataCategories(run.findings);
   const providers = run.config.providers;
+  /* Documentos jurídicos que VIGÍA generó como borrador (anexo 10): el parche no es un diff. */
+  const documentFindings = sortFindings(run.findings.filter((f) => f.remediation.patch.kind === "documento"));
+  const inventory = run.inventory ?? [];
 
   /* Un solo h1 por página: en el portal del cliente el informe va embebido. */
   const Titulo = embedded ? "h2" : "h1";
@@ -132,6 +136,11 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
           de su personal, sus contratos con encargados, sus procesos de atención a consultas y reclamos de los titulares,
           ni ningún tratamiento de datos que no se refleje en el código analizado. Las afirmaciones sobre esos elementos
           se marcan como «no verificado» y requieren verificación documental aparte.
+        </p>
+        <p className="mt-2">
+          Sí incluye, como anexos derivados del mismo código, los documentos jurídicos que VIGÍA generó como borrador
+          (sección 10) y el inventario de tratamientos que pudo derivar de él (sección 11); ninguno de los dos
+          reemplaza los procesos, contratos o registros internos de la empresa auditada que no consten en el código.
         </p>
       </Section>
 
@@ -259,6 +268,22 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
           reflejen en él quedan fuera del alcance (sección 0). La lista de países con nivel adecuado es la de la Circular
           Única de la SIC (Circular Externa 005 de 2017, adicionada por la 008 de 2017).
         </p>
+        {providers.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[11.5px] font-semibold text-neutral-700">Términos de tratamiento verificados</p>
+            <ul className="mt-1.5 space-y-1">
+              {providers.map((p) => (
+                <li key={p.id} className="break-inside-avoid text-[11.5px] text-neutral-700">
+                  {providerSummary(p)}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11.5px] text-neutral-500">
+              Términos públicos verificados en la fecha indicada para cada proveedor; el rol (encargado o
+              responsable) lo califica el abogado a partir de esos términos, no este informe.
+            </p>
+          </div>
+        )}
       </Section>
 
       <Section title="5. Estado de las políticas internas">
@@ -403,8 +428,80 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
         />
       </Section>
 
+      <Section title="10. Documentos jurídicos generados">
+        {documentFindings.length === 0 ? (
+          <p>No se generaron documentos.</p>
+        ) : (
+          <div className="overflow-x-auto print:overflow-x-visible">
+            <table className="w-full min-w-[30rem] border-collapse text-[11.5px] print:min-w-0">
+              <thead>
+                <tr className="border-b border-neutral-300 text-left text-neutral-500">
+                  <th className="py-1.5 pr-3 font-medium">Código</th>
+                  <th className="py-1.5 pr-3 font-medium">Documento</th>
+                  <th className="py-1.5 pr-3 font-medium">Ruta</th>
+                  <th className="py-1.5 pr-3 font-medium">Estado</th>
+                  <th className="py-1.5 font-medium">Firmante</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documentFindings.map((f) => (
+                  <tr key={f.id} className="break-inside-avoid border-b border-neutral-200 align-top">
+                    <td className="py-1.5 pr-3 font-mono">{f.code}</td>
+                    <td className="py-1.5 pr-3">{f.title}</td>
+                    <td className="py-1.5 pr-3 font-mono text-[10.5px]">{f.remediation.patch.target}</td>
+                    <td className="py-1.5 pr-3">{STATUS[f.remediation.status]}</td>
+                    <td className="py-1.5">{f.remediation.signedBy ?? "Sin firmar"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-2 text-[11.5px] text-neutral-500">
+          Son borradores que VIGÍA generó a partir de lo detectado en el código, no documentos vigentes: solo tienen
+          valor si el abogado los revisó y los firmó, lo que consta en la columna «Firmante» y en el estado.
+        </p>
+      </Section>
+
+      <Section title="11. Inventario de tratamientos">
+        {inventory.length === 0 ? (
+          <p>No se derivó un inventario de tratamientos del código analizado.</p>
+        ) : (
+          <div className="overflow-x-auto print:overflow-x-visible">
+            <table className="w-full min-w-[36rem] border-collapse text-[11.5px] print:min-w-0">
+              <thead>
+                <tr className="border-b border-neutral-300 text-left text-neutral-500">
+                  <th className="py-1.5 pr-3 font-medium">Categoría</th>
+                  <th className="py-1.5 pr-3 font-medium">Origen</th>
+                  <th className="py-1.5 pr-3 font-medium">Destinatarios</th>
+                  <th className="py-1.5 pr-3 font-medium">Transferencia internacional</th>
+                  <th className="py-1.5 pr-3 font-medium">Plazo</th>
+                  <th className="py-1.5 font-medium">Sensible</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inventory.map((row, i) => (
+                  <tr key={i} className="break-inside-avoid border-b border-neutral-200 align-top">
+                    <td className="py-1.5 pr-3">{row.category ?? "No especificado"}</td>
+                    <td className="py-1.5 pr-3">{row.source ?? "No especificado"}</td>
+                    <td className="py-1.5 pr-3">{row.recipients ?? "No especificado"}</td>
+                    <td className="py-1.5 pr-3">{row.international ?? "No"}</td>
+                    <td className="py-1.5 pr-3">{row.retention ?? "No definido"}</td>
+                    <td className="py-1.5">{row.sensitive ? "Sí" : "No"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-2 text-[11.5px] text-neutral-500">
+          Se deriva del código analizado, no de un levantamiento documental: el abogado debe completar la finalidad y
+          la base de legitimación de cada tratamiento antes de usarlo como registro de actividades.
+        </p>
+      </Section>
+
       {cert && (
-        <Section title="10. Integridad">
+        <Section title="12. Integridad">
           <Rows
             rows={[
               ["Hash del informe", <span key="h" className="font-mono text-[11px]">{cert.hash}</span>],

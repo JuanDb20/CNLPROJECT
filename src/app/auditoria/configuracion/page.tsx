@@ -1,5 +1,7 @@
-import { Card, CardHeader, Label, Tag } from "@/components/ui";
+import { Card, CardHeader, Label, Panel, Tag } from "@/components/ui";
 import { FRAMEWORKS } from "@/domain/compliance";
+import { providerTerms } from "@/domain/proveedores";
+import { sectorPack } from "@/domain/sectores";
 import { requireAuthorizedRun } from "@/server/session";
 
 import { ConfigForm } from "./config-form";
@@ -16,8 +18,46 @@ const CLASSIFICATION_LABEL = {
   sdk: "SDK",
 } as const;
 
+/** Sí/No/No verificado: la misma lectura de un booleano incierto en toda la ficha. */
+const yesNo = (v: boolean | null | undefined) => (v === true ? "Sí" : v === false ? "No" : "No verificado");
+
+/** Términos públicos del proveedor, debajo de los datos ya detectados en el código. */
+function ProviderTermsBlock({ vendor }: { vendor: string }) {
+  const terms = providerTerms(vendor);
+  return (
+    <div className="mt-2.5 space-y-1 border-t border-line pt-2.5 text-[11px] leading-relaxed text-ink-soft">
+      <p>
+        Entrena con datos de la API por defecto:{" "}
+        <span className="font-medium text-ink">{yesNo(terms?.trainsOnApiData)}</span>
+      </p>
+      <p>
+        Retención por defecto: <span className="text-ink">{terms?.retention ?? "No verificado"}</span>
+      </p>
+      <p>
+        Retención cero disponible:{" "}
+        <span className="font-medium text-ink">{yesNo(terms?.zeroRetention)}</span>
+      </p>
+      {terms ? (
+        <p>
+          <a href={terms.termsUrl} target="_blank" rel="noreferrer" className="underline">
+            Términos de la API
+          </a>{` · verificado el ${terms.verifiedAt}`}
+        </p>
+      ) : (
+        <p>Sin términos verificados para este proveedor.</p>
+      )}
+      {terms?.note ? <p className="text-ink-faint italic">{terms.note}</p> : null}
+    </div>
+  );
+}
+
 export default async function ConfiguracionPage() {
   const run = await requireAuthorizedRun();
+  const pack = sectorPack(run.scope.client.sector);
+  /* Los marcos del paquete sectorial quedan preseleccionados; el abogado puede desmarcarlos. */
+  const initialSelected = pack
+    ? [...new Set([...run.config.frameworks, ...pack.frameworks])]
+    : run.config.frameworks;
 
   return (
     <div className="space-y-5">
@@ -73,8 +113,12 @@ export default async function ConfiguracionPage() {
                     {provider.adequateCountry === false && (
                       <Tag tone="required">Zona gris</Tag>
                     )}
+                    {provider.adequateCountry === null && provider.country !== null && (
+                      <Tag>Adecuación por determinar</Tag>
+                    )}
                   </div>
                 </div>
+                <ProviderTermsBlock vendor={provider.vendor} />
               </li>
             ))}
           </ul>
@@ -108,9 +152,21 @@ export default async function ConfiguracionPage() {
             tag="Estándares"
             description="Selecciona las normativas y marcos metodológicos para evaluar los riesgos de IA en código y diseño de interfaz."
           />
+          {pack && (
+            <Panel tone="brand" className="mb-4">
+              <p className="text-[12.5px] font-semibold text-ink">
+                Paquete sectorial aplicado: {pack.name}
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{pack.note}</p>
+              <p className="mt-1.5 text-[11px] text-ink-soft">
+                Marcos recomendados: {pack.frameworks.map((id) => FRAMEWORKS[id].shortName).join(", ")}.
+                Quedan preseleccionados; puedes desmarcarlos.
+              </p>
+            </Panel>
+          )}
           <ConfigForm
             frameworks={Object.values(FRAMEWORKS)}
-            initialSelected={run.config.frameworks}
+            initialSelected={initialSelected}
             initialPiiMask={run.config.piiMaskEnabled}
           />
         </Card>
