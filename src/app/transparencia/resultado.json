@@ -1,17 +1,7 @@
 {
-  "fecha": "2026-09-20T06:28:52.879Z",
-  "sha256": "17aac7576c17414a281ffba48d75ba82986aa49cbd00e65a2b1e28afd1d964ad",
+  "fecha": "2026-09-20T06:29:23.847Z",
+  "sha256": "bedb97707c3ad5c3af1a3ef7ab54120ef475cd44f1a835c117d3819357499184",
   "archivos": 96,
-  "hallazgos": [
-    {
-      "code": "VGI-101",
-      "title": "Campos de formulario sin etiqueta accesible",
-      "severity": "informativo",
-      "locations": [
-        "src/app/auditoria/alcance/page.tsx:230",
-        "src/app/auditoria/remediacion/page.tsx:348"
-      ]
-    }
-  ],
+  "hallazgos": [],
   "avisosOsv": 0
 }

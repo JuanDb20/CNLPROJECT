@@ -10,8 +10,8 @@ const UI = /\.(tsx|jsx|html|vue|svelte)$/i;
 
 /**
  * Busca una etiqueta de apertura a la que le falta un atributo. Mira la línea de
- * la etiqueta y las dos siguientes, porque en JSX los atributos se reparten en
- * varias líneas, y hasta seis anteriores para reconocer un `<label>` que envuelve
+ * la etiqueta y las siguientes hasta su cierre «>» (máximo doce), porque en JSX
+ * los atributos se reparten en varias líneas, y hasta seis anteriores para reconocer un `<label>` que envuelve
  * el campo (el texto de la etiqueta puede ocupar varias líneas): cuenta como
  * envuelto si el último marcador de label antes del campo no es un cierre.
  * Es una heurística de texto: no construye el árbol de accesibilidad.
@@ -26,7 +26,7 @@ const tagSin = (files: RepoFile[], abre: RegExp, atributo: RegExp, envuelve?: Re
         /* La etiqueta va desde donde abre hasta su primer ">", aunque cruce de
            línea; sin ese corte, los atributos de la etiqueta siguiente contarían
            como propios. */
-        const ventana = lines.slice(i, i + 3).join(" ").slice(text.search(abre));
+        const ventana = lines.slice(i, i + 12).join(" ").slice(text.search(abre));
         const cierra = ventana.indexOf(">");
         const etiqueta = cierra < 0 ? ventana : ventana.slice(0, cierra + 1);
         const anterior = lines.slice(Math.max(0, i - 6), i).join(" ");
@@ -167,8 +167,7 @@ export const CHECKS_INCLUSION: Check[] = [
         "lector de pantalla.",
       ruleIds: ["col-inclusion-web", "col-inclusion-igualdad"],
       probe:
-        "Búsqueda de la etiqueta <html> de la aplicación sin atributo lang en la etiqueta " +
-        "ni en sus dos líneas siguientes.",
+        "Búsqueda de la etiqueta <html> de la aplicación sin atributo lang en la etiqueta.",
       detect: ({ files }: Ctx) => tagSin(files, /<html\b/i, /\blang\s*=/i),
       patch: anadeAtributo(
         /<html\b/i,
