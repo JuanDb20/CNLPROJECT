@@ -184,9 +184,6 @@ function terminosDelProveedor(vendor: string): { entrena: string; retencion: str
 /**
  * Cabecera fija de todo documento generado: qué es, de dónde salió, que es un
  * borrador y qué datos puso el código y cuáles debe poner el abogado.
- *
- * ponytail: Ley 1123 de 2007 arts. 28 y 34 y el Auto AC739-2026 se citan como
- * los dio el encargo; verificar el texto exacto de ambos antes de publicar.
  */
 function cabecera(
   titulo: string,
@@ -210,9 +207,9 @@ function cabecera(
     "Es un borrador, no un documento definitivo. Debe ser revisado, ajustado y firmado " +
       "por el abogado responsable, que conserva íntegro su juicio profesional: el " +
       "Código Disciplinario del Abogado le exige actuar con lealtad, honradez y " +
-      "diligencia frente a su cliente (Ley 1123 de 2007, arts. 28 y 34), y la Corte " +
-      "Suprema de Justicia ha recordado que el deber de verificar lo que se firma es " +
-      "indelegable (Auto AC739-2026). VIGÍA propone; el abogado decide y firma.",
+      "diligencia frente a su cliente (Ley 1123 de 2007, art. 28 nums. 8 y 10, y arts. 34 y " +
+      "37), y la Corte Suprema de Justicia ha recordado que el deber de verificar lo que " +
+      "se firma es indelegable (Auto AC739-2026). VIGÍA propone; el abogado decide y firma.",
     "",
     "## Datos tomados del código auditado",
     "",
@@ -375,10 +372,10 @@ function politica(ctx: Ctx): string[] {
       ? categorias.map((c) => `- ${c}`)
       : [`- ${falta("categorías de datos personales que trata el responsable")}`]),
     "",
+    "## 4. Datos sensibles: carácter facultativo",
+    "",
     ...(sensibles
       ? [
-          "## 4. Datos sensibles: carácter facultativo",
-          "",
           "El sistema trata datos sensibles en los términos del art. 5 de la Ley 1581 de " +
             "2012. Su tratamiento está prohibido salvo que el titular otorgue autorización " +
             "explícita (art. 6). Por tratarse de datos sensibles, el titular NO está " +
@@ -391,7 +388,17 @@ function politica(ctx: Ctx): string[] {
           `Alternativa para quien no autorice: ${falta("canal alterno de verificación o de atención")}.`,
           "",
         ]
-      : []),
+      : [
+          "El esquema del código auditado no revela datos sensibles (art. 5 de la Ley 1581 de " +
+            "2012). Si el responsable llegara a tratarlos, deberá obtener autorización " +
+            "explícita del titular e informarle que no está obligado a otorgarla (art. 6 de la " +
+            "Ley 1581 de 2012; Decreto 1074 de 2015, art. 2.2.2.25.2.3).",
+          "",
+          `Confirmación del responsable: ${falta(
+            "si trata o no datos sensibles por canales que no aparecen en el código auditado",
+          )}.`,
+          "",
+        ]),
     "## 5. Datos de niñas, niños y adolescentes",
     "",
     "El tratamiento de datos personales de niñas, niños y adolescentes está prohibido, " +
@@ -566,8 +573,8 @@ function aviso(ctx: Ctx): string[] {
         )
       : [`- ${falta("pantallas donde se muestra el aviso")}`]),
     "- El responsable debe conservar el modelo del aviso mientras dure el tratamiento, para " +
-      "poder acreditar qué versión vio cada titular (art. 16 del Decreto 1377 de 2013, " +
-      "compilado en el Decreto 1074 de 2015).",
+      "poder acreditar qué versión vio cada titular (art. 2.2.2.25.3.4 del Decreto 1074 de " +
+      "2015, que compila el art. 16 del Decreto 1377 de 2013).",
     "- Mostrar el aviso no sustituye la autorización: esta debe ser previa, expresa e " +
       "informada (art. 9 de la Ley 1581 de 2012).",
   ];
