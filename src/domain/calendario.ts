@@ -107,8 +107,8 @@ export function buildCalendar(run: AuditRun): { events: CalendarEvent[]; ics: st
       "Los responsables obligados a inscribirse en el Registro Nacional de Bases de Datos de la SIC " +
       "—sociedades y entidades sin ánimo de lucro con activos totales superiores a 100.000 UVT, y " +
       "entidades públicas— deben actualizarlo cada año entre el 2 de enero y el 31 de marzo (Circular " +
-      "Única de la SIC, Título V, Capítulo Segundo; numeral exacto de la actualización anual: por " +
-      "confirmar). Verifica si el cliente está obligado antes de agendar esta gestión.",
+      "Única de la SIC, Título V, Capítulo Segundo, numeral 2.3 literal (ii)). Verifica si el cliente " +
+      "está obligado antes de agendar esta gestión.",
   });
 
   events.push({
@@ -120,8 +120,8 @@ export function buildCalendar(run: AuditRun): { events: CalendarEvent[]; ics: st
       'Reclamos: 15 días hábiles, prorrogables 8 más; leyenda "reclamo en trámite" en la base de datos ' +
       "dentro de los 2 días hábiles siguientes a su recibo (Ley 1581 de 2012, art. 15). Reporte de " +
       "incidentes de seguridad a la SIC: dentro de los 15 días hábiles siguientes a su detección (Ley " +
-      "1581 de 2012, art. 17 lit. n; el plazo concreto de 15 días lo fijan las instrucciones del RNBD de " +
-      "la SIC — numeral exacto de la Circular Única: por confirmar).",
+      "1581 de 2012, art. 17 lit. n; el plazo concreto de 15 días lo fija la Circular Única de la SIC, " +
+      "Título V, Capítulo Segundo, numeral 2.1 literal f) (ii)).",
   });
 
   return { events, ics: toIcs(events) };

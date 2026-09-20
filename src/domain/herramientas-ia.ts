@@ -98,17 +98,16 @@ export const HERRAMIENTAS_IA: HerramientaIA[] = [
     tool: "Firebase Studio",
     marker: /(^|\/)\.idx\//i,
     ownership:
-      "Por confirmar: los Términos de Servicio generales de Google dicen que el contenido que el " +
-      "usuario crea sigue siendo suyo, pero no se halló una cláusula que asigne expresamente la " +
-      "titularidad de un resultado generado por la IA, a diferencia de Lovable, v0, Bolt, Cursor " +
-      "y Copilot.",
-    termsUrl: "https://policies.google.com/terms",
-    verifiedAt: "2026-09-19",
+      "Google no reclama la titularidad del contenido generado por sus funciones de IA, aunque " +
+      "aclara que puede generar el mismo resultado o uno similar para otros usuarios.",
+    termsUrl: "https://ai.google.dev/gemini-api/terms",
+    verifiedAt: "2026-09-20",
     note:
-      "Firebase Studio se rige por los Términos de Servicio de Google (vigentes desde el " +
-      "30-jul-2026) y, en lo generativo, por la Generative AI Prohibited Use Policy y los Gemini " +
-      "API Additional Terms; la propia comunidad de Firebase Studio tiene esta pregunta abierta " +
-      "sin responder.",
+      "Firebase Studio se rige por los Términos de Servicio de Google, y su propia página de FAQ " +
+      "remite lo generativo a los Gemini API Additional Terms of Service, que son la fuente de " +
+      "esta cláusula de no reclamación de titularidad. Nota de vigencia: Firebase Studio deja de " +
+      "aceptar cuentas nuevas desde el 22-jun-2026 y se retira el 22-mar-2027, así que este " +
+      "marcador cada vez tendrá menos código nuevo que detectar.",
   },
   {
     tool: "Herramienta no identificada (marcador .same/)",

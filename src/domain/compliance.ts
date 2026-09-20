@@ -447,10 +447,13 @@ export const RULES: ComplianceRule[] = [
       "existencia al evaluar la imposición de sanciones.",
   },
   /* El umbral de 100.000 UVT y la inclusión de las personas jurídicas de naturaleza
-     pública están tomados de la SIC (guía del RNBD y Circular Única, Título V); el
-     texto del Capítulo 26 del Decreto 1074 no se pudo leer en fuente oficial:
-     POR CONFIRMAR antes de usar la cifra en un informe firmado. Lo que sí está
-     verificado en la Ley 1581 (art. 25) es la definición del registro. */
+     pública se verificaron el 20-sep-2026 en la fuente oficial: Circular Única de la
+     SIC, Título V, Capítulo Segundo, numeral 2.1 (PDF "Título V Versión 29-09-2022",
+     sic.gov.co), que aplica el umbral fijado por el Decreto 090 del 18 de enero de
+     2018. El texto literal del art. 2.2.2.26.1.2 del Decreto 1074 (el que compila esa
+     modificación) no se leyó de forma independiente, pero la Circular Única —emitida
+     por la propia SIC como autoridad de aplicación— ya es fuente primaria suficiente
+     para el umbral. La definición del registro está verificada en la Ley 1581 (art. 25). */
   {
     id: "col-1581-rnbd",
     framework: "col-1581",
