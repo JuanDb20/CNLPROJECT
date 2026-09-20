@@ -174,7 +174,7 @@ function divergences(ctx: Ctx): Divergence[] {
       [
         "## Encargados y proveedores que tratan los datos",
         "",
-        "Los datos personales son tratados, por cuenta de {cliente} y bajo sus instrucciones, por los siguientes proveedores de tecnología, que actúan como encargados del tratamiento:",
+        "Los datos personales son tratados también por los siguientes proveedores de tecnología, que los reciben para prestar el servicio contratado por {cliente}:",
         "",
         ...ctx.providers.map((p) => {
           const gets = rows
@@ -186,7 +186,7 @@ function divergences(ctx: Ctx): Divergence[] {
           );
         }),
         "",
-        "[POR COMPLETAR: razón social y domicilio de cada encargado, contrato de transmisión suscrito con cada uno (art. 2.2.2.25.5.2 del Decreto 1074 de 2015) y cualquier otra persona a la que se comuniquen los datos. Cualquier afirmación en sentido contrario que aparezca en otro aparte de esta política —por ejemplo, negar que los datos lleguen a terceros— debe eliminarse por ser contraria al tratamiento que ejecuta el sistema.]",
+        "[POR COMPLETAR: razón social y domicilio de cada proveedor, su calificación como encargado o como responsable según sus términos de servicio, el contrato de transmisión suscrito con cada encargado (art. 2.2.2.25.5.2 del Decreto 1074 de 2015) y cualquier otra persona a la que se comuniquen los datos. Cualquier afirmación en sentido contrario que aparezca en otro aparte de esta política —por ejemplo, negar que los datos lleguen a terceros— debe eliminarse por ser contraria al tratamiento que ejecuta el sistema.]",
         "",
       ],
     );
