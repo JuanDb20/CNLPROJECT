@@ -36,6 +36,7 @@ export default async function NuevaAuditoriaPage({
     sector?: string;
     sistema?: string;
     repositorio?: string;
+    despliegue?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -52,6 +53,7 @@ export default async function NuevaAuditoriaPage({
         ? "Portal de clientes con vinculación digital (selfie y cédula) y asistente de chat"
         : ""),
     repositorio: sp.repositorio ?? "",
+    despliegue: sp.despliegue ?? "",
   };
 
   return (
@@ -205,6 +207,26 @@ export default async function NuevaAuditoriaPage({
               </label>
               <span id="f-repositorio-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
                 VIGÍA descarga la rama principal. Si llenas los dos, se usa el repositorio.
+              </span>
+            </div>
+            <div>
+              <label className="block text-[12px] text-ink-soft">
+                URL pública del despliegue{" "}
+                <span className="text-ink-faint">(opcional)</span>
+                <input
+                  name="despliegue"
+                  type="url"
+                  placeholder="https://portal.cliente.com"
+                  defaultValue={defaults.despliegue}
+                  maxLength={300}
+                  aria-describedby="f-despliegue-help"
+                  className={fieldClass}
+                />
+              </label>
+              <span id="f-despliegue-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
+                Opcional. VIGÍA solo hará peticiones GET de lectura a rutas públicas conocidas
+                (política, archivos de configuración expuestos, cabeceras). El representante
+                legal debe aceptar la cláusula que la autoriza.
               </span>
             </div>
           </div>

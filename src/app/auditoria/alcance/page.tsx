@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AlcancePage() {
   const run = await requireRun();
-  const { client, source, clauses, signatories, dataMinimizationEnabled, clientAcceptance } =
+  const { client, source, clauses, signatories, dataMinimizationEnabled, clientAcceptance, liveUrl } =
     run.scope;
   const h = await headers();
   const clientLink = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}/cliente/${run.id}/${run.scope.clientToken}`;
@@ -153,10 +153,24 @@ export default async function AlcancePage() {
             description="Valida las credenciales legales y los límites de responsabilidad operativa para el equipo rojo técnico."
           />
 
+          {/* La URL declarada encabeza el acuerdo: el art. 269A exige que la
+              autorización diga exactamente sobre qué sistema recae. */}
+          {liveUrl ? (
+            <div className="mb-3 rounded-[8px] border border-line bg-surface-muted p-3.5">
+              <Label>Despliegue autorizado para inspección de solo lectura</Label>
+              <p className="break-all font-mono text-[11.5px] text-ink">{liveUrl}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
+                Solo peticiones GET a rutas públicas conocidas, sin autenticación y sin carga,
+                mientras dure esta auditoría. Si no se acepta la cláusula que la autoriza, VIGÍA
+                no consulta el despliegue.
+              </p>
+            </div>
+          ) : null}
+
           {clientAcceptance === null && pendingRequired > 0 ? (
             <form action={aceptarTodasLasClausulas} className="mb-3">
               <button type="submit" className={buttonClass("secondary", true)}>
-                Aceptar las 4 cláusulas
+                Aceptar las {clauses.length} cláusulas
               </button>
             </form>
           ) : null}
