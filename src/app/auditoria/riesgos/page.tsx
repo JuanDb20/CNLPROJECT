@@ -157,12 +157,20 @@ export default async function RiesgosPage() {
           (daño o peligro causado, beneficio económico, reincidencia, obstrucción,
           renuencia y reconocimiento de la infracción).
         </p>
-        <Link
-          href="/auditoria/evaluacion-impacto"
-          className="inline-block text-[12px] text-brand hover:underline"
-        >
-          Borrador de evaluación de impacto →
-        </Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-1">
+          <Link
+            href="/auditoria/evaluacion-impacto"
+            className="inline-block text-[12px] text-brand hover:underline"
+          >
+            Borrador de evaluación de impacto →
+          </Link>
+          <Link
+            href="/auditoria/inventario"
+            className="inline-block text-[12px] text-brand hover:underline"
+          >
+            Inventario de tratamientos →
+          </Link>
+        </div>
       </div>
 
       <Card>
