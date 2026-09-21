@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 
 import type { FrameworkId } from "@/domain/types";
 import {
-  acceptAllClauses,
   acceptClause,
   acceptScopeAsClient,
   authorizeScope,
@@ -137,11 +136,9 @@ export async function alternarClausula(clauseId: string, accepted: boolean) {
   revalidatePath("/auditoria/alcance");
 }
 
-/** Marca aceptadas todas las cláusulas: el acuerdo ya se firmó por fuera de VIGÍA. */
-export async function aceptarTodasLasClausulas() {
-  await acceptAllClauses(await runId());
-  redirect("/auditoria/alcance");
-}
+/* Se retiró «aceptar todas las cláusulas»: aceptar en bloque, sin abrir los
+   textos, es justamente lo que vicia un consentimiento informado. Cada cláusula
+   se acepta por separado tras desplegar su contenido. */
 
 export async function confirmarAlcance() {
   await authorizeScope(await runId());
