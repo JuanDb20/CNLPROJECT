@@ -7,6 +7,7 @@ import type { RemediationStatus } from "@/domain/types";
 import { requireAnalyzedRun } from "@/server/session";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Documentos jurídicos generados" };
 
 const ESTADO: Record<RemediationStatus, { label: string; style: string }> = {
   propuesta: { label: "Propuesto", style: "bg-canvas text-ink-muted" },

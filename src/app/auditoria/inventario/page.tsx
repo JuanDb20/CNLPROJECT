@@ -4,6 +4,7 @@ import { Card, CardHeader, Panel, buttonClass } from "@/components/ui";
 import { requireAnalyzedRun } from "@/server/session";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Inventario de tratamientos" };
 
 /* Inventario de tratamientos: el registro de actividades que el abogado
    normalmente reconstruye por entrevistas, derivado del código analizado. Vive

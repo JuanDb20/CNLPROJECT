@@ -216,6 +216,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
                         <span className="term-t">
                           {new Date(entry.at).toLocaleTimeString("es-CO", {
                             hour12: false,
+                            timeZone: "America/Bogota",
                           })}
                         </span>
                         <span className={cx("font-medium", LOG_STYLE[entry.level])}>
