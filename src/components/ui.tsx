@@ -269,19 +269,15 @@ export function CheckIcon({ className }: { className?: string }) {
 /** Marca de VIGÍA: insignia hexagonal con un acceso (>>) — no un escudo genérico. */
 export function MarkIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden className={cx("size-4", className)}>
+    <svg viewBox="0 0 489 405" aria-hidden className={cx("size-4", className)}>
+      {/* La V de la marca: trazo en el color del texto y remate verde azulado. */}
       <path
-        d="M8 1 14.3 4.5V11.5L8 15 1.7 11.5V4.5Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.2"
+        d="M.5 46H130.5L248.75 260.9A60 60 0 0 0 301.3 292H328.15L282.8 374.4A58.1 58.1 0 0 1 181.2 374.4Z"
+        fill="currentColor"
       />
       <path
-        d="M5.6 5.8 9 8 5.6 10.2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="square"
+        d="M388.3 0H488.75L382.6 193H252.6L344.5 25.9A50 50 0 0 1 388.3 0Z"
+        className="fill-brand"
       />
     </svg>
   );

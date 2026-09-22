@@ -1,32 +1,35 @@
 @import "tailwindcss";
 
 /*
- * Tokens de VIGÍA — identidad "consola de operaciones ofensivas".
+ * Tokens de VIGÍA — identidad de marca: azul petróleo #123B4A (oscuro) y
+ * verde azulado #2A9D8F (claro).
  *
- * Canvas oscuro real (no una franja decorativa), un solo acento funcional
- * (naranja, "brand") usado con moderación sobre negro/blanco/gris, y los
- * colores de severidad como el único otro color con significado. Se declaran
- * como variables de tema de Tailwind v4 para que las utilidades (bg-canvas,
- * text-ink-muted, …) salgan directamente de aquí — cambiar la identidad no
- * exige tocar los componentes que las consumen.
+ * Canvas oscuro real (no una franja decorativa) con neutros teñidos del
+ * petróleo de la marca, que además es el color de las líneas; un solo acento
+ * funcional (el verde azulado, "brand") usado con moderación, y los colores de
+ * severidad como el único otro color con significado ("safe" se aleja hacia el
+ * verde puro para no confundirse con la marca). Se declaran como variables de
+ * tema de Tailwind v4 para que las utilidades (bg-canvas, text-ink-muted, …)
+ * salgan directamente de aquí — cambiar la identidad no exige tocar los
+ * componentes que las consumen.
  */
 @theme {
-  --color-canvas: #0b0c0d;
-  --color-surface: #141517;
-  --color-surface-muted: #1a1b1d;
-  --color-line: #26282b;
-  --color-line-strong: #37393c;
+  --color-canvas: #0a1316;
+  --color-surface: #0f1b1f;
+  --color-surface-muted: #152429;
+  --color-line: #123b4a;
+  --color-line-strong: #1a4553;
 
-  --color-ink: #f2f1ee;
-  --color-ink-soft: #c9c7c2;
-  --color-ink-muted: #8f8d89;
-  --color-ink-faint: #858380; /* ≥ 4,5:1 sobre canvas, surface y surface-muted (WCAG AA) */
+  --color-ink: #eef3f4;
+  --color-ink-soft: #c5d1d5;
+  --color-ink-muted: #95a8af;
+  --color-ink-faint: #879ba3; /* ≥ 4,5:1 sobre canvas, surface y surface-muted (WCAG AA) */
 
-  --color-brand: #e2732a;
-  --color-brand-soft: #241a11;
-  --color-brand-strong: #c95f1d;
+  --color-brand: #2a9d8f;
+  --color-brand-soft: #0d2a27;
+  --color-brand-strong: #35b3a3; /* hover del botón: más claro, para que el texto oscuro siga en AA */
 
-  --color-safe: #34a06b;
+  --color-safe: #4fae5a;
   --color-safe-soft: #10231a;
 
   --color-critical: #e5534b;
@@ -94,88 +97,10 @@ body {
   animation: vigia-rise 0.22s ease-out both;
 }
 
-/* ------------------------- Portal de entrada (home) ------------------------ */
-/* Se monta una sola vez, en la puerta real de la app — no en cada pantalla. */
-@keyframes vigia-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes vigia-fade-up {
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.portal {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: var(--color-canvas);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  transition: opacity 0.5s ease;
-}
-.portal[data-hide="true"] {
-  opacity: 0;
-  pointer-events: none;
-}
-.portal-mark path {
-  stroke-dasharray: 140;
-  stroke-dashoffset: 140;
-  animation: vigia-draw 1s ease forwards;
-}
-.portal-mark .chev {
-  stroke-dasharray: 30;
-  stroke-dashoffset: 30;
-  animation: vigia-draw 0.5s ease forwards 0.6s;
-}
-.portal-status {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-ink-muted);
-  min-height: 16px;
-}
-.portal-bar {
-  width: 180px;
-  height: 2px;
-  background: var(--color-line);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.portal-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--color-brand);
-  transition: width 0.4s ease;
-}
-
-/* Entrada en cascada del contenido real, después del portal. */
-.stagger {
-  opacity: 0;
-  transform: translateY(14px);
-}
-body[data-portal-done="true"] .stagger {
-  animation: vigia-fade-up 0.6s ease forwards;
-  animation-delay: var(--d, 0s);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .pulse-dot,
   .rise {
     animation: none;
-  }
-  .portal {
-    display: none !important;
-  }
-  .stagger {
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
   }
 }
 
@@ -230,6 +155,11 @@ body[data-portal-done="true"] .stagger {
   position: relative;
   z-index: 1;
   animation: vigia-breathe var(--vigia-breathe-d, 3.6s) ease-in-out infinite;
+}
+/* Como indicador de estado, la V entera toma el color del estado (fuera de
+   aquí es bicolor: trazo en el color del texto y remate verde azulado). */
+.mark svg path {
+  fill: currentColor;
 }
 .mark[data-state="reposo"] svg {
   color: var(--color-ink-soft);

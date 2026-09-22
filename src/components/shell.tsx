@@ -23,7 +23,7 @@ export function Logo({ state }: { state?: MarkState }) {
         className={
           state
             ? "mark size-7 rounded-[7px] border border-line-strong"
-            : "grid size-7 place-items-center rounded-[7px] border border-line-strong text-brand"
+            : "grid size-7 place-items-center rounded-[7px] border border-line-strong text-ink"
         }
       >
         {state ? <span className="mark-ring" aria-hidden /> : null}
