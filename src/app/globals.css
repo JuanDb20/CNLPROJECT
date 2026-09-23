@@ -3,17 +3,26 @@
 /*
  * Tokens de VIGÍA — identidad "consola de operaciones ofensivas".
  *
- * Canvas oscuro real (no una franja decorativa), un solo acento funcional
- * (naranja, "brand") usado con moderación sobre negro/blanco/gris, y los
- * colores de severidad como el único otro color con significado. Se declaran
- * como variables de tema de Tailwind v4 para que las utilidades (bg-canvas,
- * text-ink-muted, …) salgan directamente de aquí — cambiar la identidad no
- * exige tocar los componentes que las consumen.
+ * Canvas oscuro real (no una franja decorativa) y dos familias de color con
+ * significado, nunca decorativas:
+ *
+ *   · NARANJA (brand) — lo ofensivo: el equipo rojo, la acción, el ataque.
+ *   · AZUL   (legal)  — lo normativo: la norma citada, la firma, la prueba.
+ *
+ * Esa oposición es la tesis del producto (se ataca para poder firmar) y por eso
+ * los dos acentos nunca se mezclan en un mismo elemento. Las severidades son el
+ * único otro color con significado. Todo se declara como variable de tema de
+ * Tailwind v4 para que las utilidades (bg-canvas, text-ink-muted, …) salgan de
+ * aquí: cambiar la identidad no exige tocar los componentes que las consumen.
+ *
+ * El uso de cada token está documentado en docs/manual-de-marca.md.
  */
 @theme {
+  /* Superficies: cuatro niveles de elevación sobre negro. */
   --color-canvas: #0b0c0d;
   --color-surface: #141517;
   --color-surface-muted: #1a1b1d;
+  --color-surface-raised: #202225; /* tarjetas que flotan sobre otra tarjeta */
   --color-line: #26282b;
   --color-line-strong: #37393c;
 
@@ -22,9 +31,18 @@
   --color-ink-muted: #8f8d89;
   --color-ink-faint: #858380; /* ≥ 4,5:1 sobre canvas, surface y surface-muted (WCAG AA) */
 
+  /* Naranja — lo ofensivo. Cuatro pasos para que el acento tenga recorrido. */
   --color-brand: #e2732a;
   --color-brand-soft: #241a11;
   --color-brand-strong: #c95f1d;
+  --color-brand-dim: #8a4715; /* bordes y trazos de apoyo, sin competir con el texto */
+  --color-brand-bright: #f59355; /* solo sobre fondos oscuros saturados */
+
+  /* Azul — lo normativo. Contraparte del naranja, nunca decorativo. */
+  --color-legal: #7ba7dd;
+  --color-legal-soft: #121b26;
+  --color-legal-strong: #5b8ac4;
+  --color-legal-dim: #2f4a68;
 
   --color-safe: #34a06b;
   --color-safe-soft: #10231a;
@@ -346,6 +364,94 @@ body[data-portal-done="true"] .stagger {
   ::view-transition-old(vigia-step-content),
   ::view-transition-new(vigia-step-content) {
     animation: none !important;
+  }
+}
+
+/* ---------------------------- Página pública ------------------------------ */
+/* La landing no pasa por el portal de acceso: debe pintar de inmediato, porque
+   es lo primero que ve alguien que no conoce VIGÍA. Su movimiento se dispara al
+   entrar en pantalla, no con un retraso fijo, para que nada quede invisible si
+   el visitante baja rápido. */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--d, 0s);
+}
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Resplandor del hero: dos focos, uno por cada familia de color de la marca. */
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hero-glow::before,
+.hero-glow::after {
+  content: "";
+  position: absolute;
+  width: 46rem;
+  height: 34rem;
+  border-radius: 50%;
+  filter: blur(90px);
+}
+.hero-glow::before {
+  top: -14rem;
+  left: -10rem;
+  background: color-mix(in oklab, var(--color-brand) 16%, transparent);
+}
+.hero-glow::after {
+  top: -6rem;
+  right: -14rem;
+  background: color-mix(in oklab, var(--color-legal) 13%, transparent);
+}
+
+/* Retícula técnica tenue: recuerda que debajo hay código, sin ser un adorno. */
+.grid-faint {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+
+/* Barrido del escáner sobre la maqueta del hero: una sola pasada, lenta. */
+@keyframes vigia-scan {
+  0% {
+    transform: translateY(-10%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(560%);
+    opacity: 0;
+  }
+}
+.scanline {
+  animation: vigia-scan 5.5s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .scanline {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }
 

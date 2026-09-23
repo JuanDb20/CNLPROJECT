@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 
+import { buildCalendar } from "@/domain/calendario";
 import { CHECK_CODES } from "@/domain/checks";
 import { getFramework, getRules } from "@/domain/compliance";
 import { formatDate, lawyerName } from "@/domain/format";
@@ -93,8 +94,11 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
   const open = run.findings.filter((f) => !isResolved(f));
   const categories = dataCategories(run.findings);
   const providers = run.config.providers;
-  /* Documentos jurídicos que VIGÍA generó como borrador (anexo 10): el parche no es un diff. */
+  /* Documentos jurídicos que VIGÍA generó como borrador: el parche no es un diff. */
   const documentFindings = sortFindings(run.findings.filter((f) => f.remediation.patch.kind === "documento"));
+  /* Las obligaciones con fecha viven dentro del informe, no en un archivo aparte
+     que el abogado tendría que importar a su calendario para enterarse. */
+  const obligaciones = buildCalendar(run).events;
   const inventory = run.inventory ?? [];
 
   /* Un solo h1 por página: en el portal del cliente el informe va embebido. */
@@ -428,7 +432,36 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
         />
       </Section>
 
-      <Section title="10. Documentos jurídicos generados">
+      <Section title="10. Calendario de obligaciones">
+        <div className="overflow-x-auto print:overflow-x-visible">
+          <table className="w-full min-w-[30rem] border-collapse text-[11.5px] print:min-w-0">
+            <thead>
+              <tr className="border-b border-neutral-300 text-left text-neutral-500">
+                <th className="py-1.5 pr-3 font-medium">Fecha</th>
+                <th className="py-1.5 font-medium">Obligación o gestión</th>
+              </tr>
+            </thead>
+            <tbody>
+              {obligaciones.map((e) => (
+                <tr key={e.uid} className="border-b border-neutral-200 align-top">
+                  <td className="whitespace-nowrap py-1.5 pr-3 font-mono text-[11px]">{e.date}</td>
+                  <td className="py-1.5">
+                    <span className="font-medium">{e.summary}</span>
+                    <span className="block text-neutral-600">{e.description}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-[11.5px] text-neutral-500">
+          Los plazos de remediación son una prioridad de gestión recomendada por VIGÍA, no términos
+          legales. Los plazos de ley y los de la Circular Única de la SIC se citan en la obligación
+          correspondiente.
+        </p>
+      </Section>
+
+      <Section title="11. Documentos jurídicos generados">
         {documentFindings.length === 0 ? (
           <p>No se generaron documentos.</p>
         ) : (
@@ -463,7 +496,7 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
         </p>
       </Section>
 
-      <Section title="11. Inventario de tratamientos">
+      <Section title="12. Inventario de tratamientos">
         {inventory.length === 0 ? (
           <p>No se derivó un inventario de tratamientos del código analizado.</p>
         ) : (
@@ -501,7 +534,7 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
       </Section>
 
       {cert && (
-        <Section title="12. Integridad">
+        <Section title="13. Integridad">
           <Rows
             rows={[
               ["Hash del informe", <span key="h" className="font-mono text-[11px]">{cert.hash}</span>],
