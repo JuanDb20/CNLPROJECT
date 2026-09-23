@@ -1,0 +1,301 @@
+/*
+ * Encabezado común de la portada y las páginas públicas (logo, navegación,
+ * «Ingresar» y menú móvil), medido en el mismo lienzo escalado de la portada
+ * (--s = una unidad de diseño): 1505×700 en escritorio, 900×1200 en tableta
+ * vertical y 430×620 en teléfono. Así es idéntico en todas las páginas y pasar
+ * de una a otra no lo mueve. Todo cuelga de .sitio: la hoja sigue cargada al
+ * navegar a las pantallas internas.
+ */
+.sitio {
+  --s: min(100vw / 1505, 100svh / 700);
+  --i: 0; /* posición en su grupo, para escalonar entradas */
+  --rise: 0;
+  --expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  --bx: 60; /* margen lateral */
+  --bs: 44; /* tamaño del logo y de la hamburguesa */
+  --hh: 90; /* alto del encabezado */
+  --hpt: 28; /* aire sobre la fila */
+  --bh: 58; --bpl: 18; --bpr: 22; --bgap: 11; --bf: 20.85; --bmin: 212; /* botones */
+
+  color: var(--color-ink);
+}
+
+/* ----------------------------- Encabezado ---------------------------- */
+.sitio-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: calc(40 * var(--s));
+  height: calc(var(--hh) * var(--s));
+  padding: calc(var(--hpt) * var(--s)) calc(var(--bx) * var(--s)) 0;
+}
+.sitio .logo {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--bs) * 0.3 * var(--s));
+  margin-right: auto;
+  color: var(--color-ink);
+  font-weight: 700;
+  font-size: calc(var(--bs) * 0.5 * var(--s));
+  letter-spacing: 0.12em;
+  text-decoration: none;
+}
+.sitio .logo svg {
+  width: calc(var(--bs) * var(--s));
+  height: calc(var(--bs) * 0.83 * var(--s));
+}
+.sitio .nav {
+  display: flex;
+  align-items: center;
+  gap: calc(40 * var(--s));
+  font: 400 calc(19.9 * var(--s)) / 1 var(--font-jb), monospace;
+}
+.sitio .nav a,
+.sitio .mrow {
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.sitio .nav a[aria-current="page"],
+.sitio .mrow[aria-current="page"] {
+  color: var(--color-brand);
+}
+.sitio .nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: calc(9 * var(--s));
+}
+.sitio .burger {
+  display: none;
+  position: relative;
+  flex: none;
+  width: calc(var(--bs) * var(--s));
+  height: calc(var(--bs) * var(--s));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.sitio .burger i {
+  position: absolute;
+  left: 18%;
+  top: 50%;
+  width: 64%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--color-ink);
+  transition:
+    transform 0.3s var(--expo),
+    opacity 0.2s,
+    width 0.3s var(--expo);
+}
+.sitio .burger i:nth-child(1) {
+  transform: translateY(calc(var(--bs) * -0.2 * var(--s)));
+}
+.sitio .burger i:nth-child(3) {
+  width: 30%;
+  transform: translateY(calc(var(--bs) * 0.2 * var(--s)));
+}
+.sitio-header:has(.menu:popover-open) .burger i:nth-child(1) {
+  transform: rotate(45deg);
+}
+.sitio-header:has(.menu:popover-open) .burger i:nth-child(2) {
+  opacity: 0;
+}
+.sitio-header:has(.menu:popover-open) .burger i:nth-child(3) {
+  width: 64%;
+  transform: rotate(-45deg);
+}
+
+/* ------------------------------ Botones ------------------------------ */
+/* Esquinas rectas; texto blanco sobre el verde azulado de la marca: 5,6:1 (AA). */
+.sitio .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--bgap) * var(--s));
+  min-width: calc(var(--bmin) * var(--s));
+  height: calc(var(--bh) * var(--s));
+  padding: 0 calc(var(--bpr) * var(--s)) 0 calc(var(--bpl) * var(--s));
+  border: 0;
+  border-radius: 0;
+  background: var(--color-brand);
+  color: var(--color-canvas);
+  font: 480 calc(var(--bf) * var(--s)) / 1 var(--font-sg), sans-serif;
+  letter-spacing: calc(-0.62 * var(--s));
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.sitio .btn > span {
+  transform: translateY(calc(1.5 * var(--s)));
+}
+.sitio .arrow {
+  flex: none;
+  width: calc(21.5 * var(--s));
+  height: calc(18 * var(--s));
+  transition: transform 0.3s var(--expo);
+}
+
+/* ---------------------------- Menú móvil ----------------------------- */
+/* Popover nativo, bajo el encabezado para que la hamburguesa siga a mano. */
+.sitio .menu {
+  position: fixed;
+  inset: calc(var(--hh) * var(--s)) 0 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: calc(26 * var(--s)) calc(var(--bx) * var(--s)) calc(30 * var(--s));
+  border: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  overflow: hidden;
+}
+.sitio .menu:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+.sitio .menu-rule {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--color-brand-bright);
+  transform-origin: left;
+}
+.sitio .menu-eyebrow,
+.sitio .menu-note {
+  margin: 0;
+  font: 400 max(11px, calc(11.5 * var(--s))) / 1 var(--font-jb), monospace;
+  color: var(--color-ink-faint);
+}
+.sitio .menu-eyebrow {
+  margin-bottom: calc(14 * var(--s));
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.sitio .menu nav {
+  display: flex;
+  flex-direction: column;
+}
+.sitio .mrow {
+  padding: calc(14 * var(--s)) 0;
+  border-bottom: 1px solid var(--color-line);
+  font-weight: 700;
+  font-size: calc(30 * var(--s));
+  letter-spacing: calc(-1 * var(--s));
+}
+.sitio .menu-foot {
+  margin-top: auto;
+}
+.sitio .btn-menu {
+  width: 100%;
+}
+.sitio .menu-note {
+  margin-top: calc(14 * var(--s));
+}
+
+/* ------------------------ Páginas públicas --------------------------- */
+.sitio-titulo {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(30px, 1.6vw + 18px, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--color-ink);
+}
+.sitio-bajada {
+  max-width: 62ch;
+  margin: 12px 0 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--color-ink-muted);
+}
+
+/* ---------------------------- Interacción ---------------------------- */
+.sitio-header :is(a, button):focus-visible,
+.sitio .menu :is(a, button):focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+@media (hover: hover) {
+  .sitio .nav a:hover,
+  .sitio .mrow:hover {
+    color: var(--color-brand);
+  }
+  .sitio .btn:hover {
+    background: var(--color-brand-strong);
+  }
+  .sitio .btn:hover .arrow {
+    transform: translateX(calc(3 * var(--s)));
+  }
+}
+
+/* Al navegar entre páginas públicas el encabezado no se mueve y el contenido
+   entra suave; con `backwards` la animación suelta el elemento al terminar. */
+@media (prefers-reduced-motion: no-preference) {
+  .sitio-main {
+    --rise: 10;
+    animation: s-rise 0.45s var(--quint) backwards;
+  }
+  .sitio .menu:popover-open .menu-rule {
+    animation: s-growx 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) 0.04s backwards;
+  }
+  .sitio .menu:popover-open .mrow {
+    --rise: 10;
+    animation: s-rise 0.5s var(--quint) calc(0.08s + 0.06s * var(--i)) backwards;
+  }
+}
+@keyframes s-rise {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--rise) * var(--s)));
+  }
+}
+@keyframes s-growx {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sitio *,
+  .sitio *::before {
+    transition: none !important;
+  }
+}
+
+/* --------------------------- Puntos de corte -------------------------- */
+@media (max-width: 1023px) {
+  .sitio .nav,
+  .sitio .btn-top {
+    display: none;
+  }
+  .sitio .burger {
+    display: block;
+  }
+}
+@media (min-width: 1024px) {
+  .sitio .menu:popover-open {
+    display: none;
+  }
+}
+/* Tableta vertical: lienzo 900×1200; botones al 82 %. */
+@media (max-width: 1023px) and (max-aspect-ratio: 1/1) {
+  .sitio {
+    --s: clamp(0.82px, min(100vw / 900, 100svh / 1200), 1.25px);
+    --bx: 56; --bs: 40; --hpt: 16;
+    --bh: 47.6; --bpl: 14.8; --bpr: 18; --bgap: 9; --bf: 17.1; --bmin: 174;
+  }
+}
+/* Teléfono: lienzo 430×620. */
+@media (max-width: 599px) {
+  .sitio {
+    --s: min(100vw / 430, 100svh / 620, 1.02px);
+    --bx: 26; --bs: 34; --hh: 72; --hpt: 4;
+    --bh: 50; --bpl: 15.7; --bpr: 19.1; --bgap: 9.6; --bf: 17.5; --bmin: 185;
+  }
+}

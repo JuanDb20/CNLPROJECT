@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { registrarse } from "@/app/actions";
-import { Logo } from "@/components/shell";
+import { SitePage } from "@/components/sitio";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
 
@@ -26,10 +26,7 @@ export default async function RegistroPage({
   const { error } = await searchParams;
 
   return (
-    <div id="contenido" role="main" className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col justify-center gap-6 px-5 py-12">
-      <Link href="/" aria-label="VIGÍA, inicio" className="self-center">
-        <Logo />
-      </Link>
+    <SitePage actual="/registro" className="mx-auto flex w-full max-w-[440px] flex-col gap-6 px-5 pb-16 pt-10">
       <Card>
         <h1 className="text-[18px] font-semibold tracking-tight text-ink">
           Crear cuenta de abogado
@@ -96,6 +93,6 @@ export default async function RegistroPage({
           Ingresar
         </Link>
       </p>
-    </div>
+    </SitePage>
   );
 }

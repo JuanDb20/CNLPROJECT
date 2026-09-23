@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/shell";
+import { SitePage } from "@/components/sitio";
 import { Card, Mono, Panel, SeverityBadge, Tag } from "@/components/ui";
 import { formatDate } from "@/domain/format";
 import type { Severity } from "@/domain/types";
@@ -26,16 +26,13 @@ export default function TransparenciaPage() {
   const hallazgos = resultado.hallazgos as Hallazgo[];
 
   return (
-    <div id="contenido" role="main" className="mx-auto w-full max-w-[760px] space-y-6 px-5 py-12">
-      <Link href="/" aria-label="VIGÍA, inicio" className="inline-block">
-        <Logo />
-      </Link>
+    <SitePage actual="/transparencia" className="mx-auto w-full max-w-[760px] space-y-6 px-5 pb-16 pt-8">
 
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-ink">
+        <h1 className="sitio-titulo">
           VIGÍA se audita a sí misma
         </h1>
-        <p className="mt-1.5 max-w-[70ch] text-[13px] leading-relaxed text-ink-muted">
+        <p className="sitio-bajada">
           El mismo catálogo de pruebas que VIGÍA corre sobre el código de sus clientes
           se corre sobre el código de VIGÍA. Exigir a otros lo que uno no cumple no es
           una auditoría, es un folleto.
@@ -113,6 +110,6 @@ export default function TransparenciaPage() {
         cada despliegue, de modo que la fecha y el SHA-256 corresponden a la versión
         publicada.
       </p>
-    </div>
+    </SitePage>
   );
 }

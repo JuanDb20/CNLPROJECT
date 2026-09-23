@@ -2,11 +2,12 @@
 
 /*
  * Tokens de VIGÍA — identidad de marca: azul petróleo #123B4A (oscuro) y
- * verde azulado #2A9D8F (claro).
+ * verde azulado #2A9D8F (claro), sobre blanco, como el logo.
  *
- * Canvas oscuro real (no una franja decorativa) con neutros teñidos del
- * petróleo de la marca, que además es el color de las líneas; un solo acento
- * funcional (el verde azulado, "brand") usado con moderación, y los colores de
+ * El texto es el petróleo de la marca; los neutros son grises teñidos de él.
+ * Un solo acento funcional ("brand"), el verde azulado oscurecido lo justo para
+ * que texto y botones pasen AA (el tono exacto del logo, #2A9D8F, queda como
+ * "brand-bright" para el logo y los detalles gráficos), y los colores de
  * severidad como el único otro color con significado ("safe" se aleja hacia el
  * verde puro para no confundirse con la marca). Se declaran como variables de
  * tema de Tailwind v4 para que las utilidades (bg-canvas, text-ink-muted, …)
@@ -14,42 +15,44 @@
  * componentes que las consumen.
  */
 @theme {
-  --color-canvas: #0a1316;
-  --color-surface: #0f1b1f;
-  --color-surface-muted: #152429;
-  --color-line: #123b4a;
-  --color-line-strong: #1a4553;
+  --color-canvas: #ffffff;
+  --color-surface: #f6f9f9;
+  --color-surface-muted: #edf2f3;
+  --color-line: #dce5e8;
+  --color-line-strong: #c2d1d5;
 
-  --color-ink: #eef3f4;
-  --color-ink-soft: #c5d1d5;
-  --color-ink-muted: #95a8af;
-  --color-ink-faint: #879ba3; /* ≥ 4,5:1 sobre canvas, surface y surface-muted (WCAG AA) */
+  --color-ink: #123b4a;
+  --color-ink-soft: #2d5361;
+  --color-ink-muted: #46656f;
+  --color-ink-faint: #54727e; /* ≥ 4,5:1 sobre canvas, surface, surface-muted y brand-soft (WCAG AA) */
 
-  --color-brand: #2a9d8f;
-  --color-brand-soft: #0d2a27;
-  --color-brand-strong: #35b3a3; /* hover del botón: más claro, para que el texto oscuro siga en AA */
+  --color-brand: #1b746a;
+  --color-brand-soft: #e5f3f0;
+  --color-brand-strong: #145c54; /* hover del botón */
+  --color-brand-bright: #2a9d8f; /* el del logo: solo gráfico, no pasa AA como texto */
 
-  --color-safe: #4fae5a;
-  --color-safe-soft: #10231a;
+  --color-safe: #2e7d32;
+  --color-safe-soft: #e8f4e9;
 
-  --color-critical: #e5534b;
-  --color-critical-soft: #2a1513;
-  --color-warning: #e2a33d;
-  --color-warning-soft: #2a2112;
-  --color-info: #6b96cf;
-  --color-info-soft: #171f2a;
+  --color-critical: #c0392b;
+  --color-critical-soft: #fcebe9;
+  --color-warning: #955f00;
+  --color-warning-soft: #fcf3e3;
+  --color-info: #2f5fa7;
+  --color-info-soft: #e9f0fa;
 
+  /* Space Grotesk y JetBrains Mono, servidas desde el propio dominio (layout). */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+    var(--font-sg), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-jb), ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
 
   --radius-card: 10px;
 }
 
 html {
   -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {

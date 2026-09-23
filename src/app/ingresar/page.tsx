@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ingresar, ingresarPrueba } from "@/app/actions";
-import { Logo } from "@/components/shell";
+import { SitePage } from "@/components/sitio";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
 
@@ -17,10 +17,7 @@ export default async function IngresarPage({
   const { error } = await searchParams;
 
   return (
-    <div id="contenido" role="main" className="mx-auto flex min-h-dvh w-full max-w-[400px] flex-col justify-center gap-6 px-5 py-12">
-      <Link href="/" aria-label="VIGÍA, inicio" className="self-center">
-        <Logo />
-      </Link>
+    <SitePage actual="/ingresar" className="mx-auto flex w-full max-w-[400px] flex-col gap-6 px-5 pb-16 pt-10">
       <Card>
         <h1 className="text-[18px] font-semibold tracking-tight text-ink">Ingresar</h1>
         <p className="mt-1 text-[12.5px] text-ink-muted">Accede a las auditorías de tus clientes.</p>
@@ -76,6 +73,6 @@ export default async function IngresarPage({
           Crear cuenta de abogado
         </Link>
       </p>
-    </div>
+    </SitePage>
   );
 }

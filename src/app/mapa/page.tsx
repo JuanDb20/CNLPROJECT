@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Logo } from "@/components/shell";
+import { SitePage } from "@/components/sitio";
 
 import type { Area } from "./tree";
 import { AreasTree } from "./tree";
@@ -185,14 +185,12 @@ const AREAS: Area[] = [
 
 export default function MapaPage() {
   return (
-    <div id="contenido" role="main" className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6">
-      <Logo />
-
-      <div className="mt-8">
-        <h1 className="text-[26px] font-semibold tracking-tight text-ink sm:text-[30px]">
+    <SitePage actual="/mapa" className="mx-auto w-full max-w-[1100px] px-4 pb-16 pt-8 sm:px-6">
+      <div>
+        <h1 className="sitio-titulo">
           Mapa de funcionalidades
         </h1>
-        <p className="mt-2 max-w-[640px] text-[14px] leading-relaxed text-ink-muted">
+        <p className="sitio-bajada">
           Qué es capaz de hacer VIGÍA, explicado sin tecnicismos. Cada área se puede abrir para
           ver el detalle, con una pantalla real del sistema funcionando.
         </p>
@@ -213,6 +211,6 @@ export default function MapaPage() {
       <div className="mt-8">
         <AreasTree areas={AREAS} />
       </div>
-    </div>
+    </SitePage>
   );
 }

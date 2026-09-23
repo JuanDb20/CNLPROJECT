@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Logo } from "@/components/shell";
+import { SitePage } from "@/components/sitio";
 
 import { CONTACTO, DIRECCION_Y_TELEFONO, DOMICILIO, POLITICA_VERSION, POLITICA_VIGENCIA } from "./datos";
 
@@ -41,10 +41,9 @@ const SECTIONS: Array<[string, string[]]> = [
 /** La política de tratamiento de VIGÍA, sujeta a los mismos requisitos que audita (Decreto 1074 de 2015, art. 2.2.2.25.3.1). */
 export default function PrivacidadPage() {
   return (
-    <main id="contenido" className="mx-auto max-w-[720px] space-y-6 px-5 py-10">
-      <Logo />
+    <SitePage actual="/privacidad" className="mx-auto w-full max-w-[720px] space-y-6 px-5 pb-16 pt-8">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-ink">Política de tratamiento de datos personales</h1>
+        <h1 className="sitio-titulo">Política de tratamiento de datos personales</h1>
         <p className="mt-1 text-[12.5px] text-ink-muted">
           Versión {POLITICA_VERSION}, vigente desde el {POLITICA_VIGENCIA}. Ley 1581 de 2012 y Decreto 1074 de 2015,
           art. 2.2.2.25.3.1 (Decreto 1377 de 2013, art. 13).
@@ -59,6 +58,6 @@ export default function PrivacidadPage() {
         </section>
       ))}
       <Link href="/" className="inline-block text-[12.5px] text-ink-muted underline">Volver</Link>
-    </main>
+    </SitePage>
   );
 }

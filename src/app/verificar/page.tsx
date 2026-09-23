@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/shell";
+import { SitePage } from "@/components/sitio";
 import { Card, Mono, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { formatDate } from "@/domain/format";
 import { repository } from "@/server/store";
@@ -33,16 +33,13 @@ export default async function VerificarPage({
   const cert = consulta ? await repository.findCertificate(consulta) : null;
 
   return (
-    <div id="contenido" role="main" className="mx-auto w-full max-w-[760px] space-y-6 px-5 py-12">
-      <Link href="/" aria-label="VIGÍA, inicio" className="inline-block">
-        <Logo />
-      </Link>
+    <SitePage actual="/verificar" className="mx-auto w-full max-w-[760px] space-y-6 px-5 pb-16 pt-8">
 
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-ink">
+        <h1 className="sitio-titulo">
           Verificar un informe
         </h1>
-        <p className="mt-1.5 max-w-[70ch] text-[13px] leading-relaxed text-ink-muted">
+        <p className="sitio-bajada">
           Escribe el identificador del informe (VGI-INF-…) o su hash. La verificación
           acredita la integridad del documento y su fecha cierta; no acredita que su
           contenido sea veraz (Ley 527 de 1999, arts. 10 y 11).
@@ -147,6 +144,6 @@ openssl ts -verify -data hash.txt -in sello.tsr \\
           VIGÍA se audita a sí misma
         </Link>
       </p>
-    </div>
+    </SitePage>
   );
 }

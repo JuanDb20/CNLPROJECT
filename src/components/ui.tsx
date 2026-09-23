@@ -277,7 +277,7 @@ export function MarkIcon({ className }: { className?: string }) {
       />
       <path
         d="M388.3 0H488.75L382.6 193H252.6L344.5 25.9A50 50 0 0 1 388.3 0Z"
-        className="fill-brand"
+        className="fill-brand-bright"
       />
     </svg>
   );
