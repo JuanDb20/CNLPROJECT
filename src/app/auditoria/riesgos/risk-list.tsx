@@ -134,7 +134,10 @@ export function RiskList({
                 <h2 className="text-[13.5px] font-medium leading-snug text-ink">
                   {row.title}
                 </h2>
-                <p className="mt-1 text-[12px] leading-relaxed text-ink-muted">
+                {/* Dos líneas como máximo: la lista es para escoger cuál abrir,
+                    no para leer el hallazgo entero. El texto completo está en su
+                    detalle. */}
+                <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-ink-muted">
                   {row.summary}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">

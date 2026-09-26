@@ -21,33 +21,44 @@ const CLASSIFICATION_LABEL = {
 /** Sí/No/No verificado: la misma lectura de un booleano incierto en toda la ficha. */
 const yesNo = (v: boolean | null | undefined) => (v === true ? "Sí" : v === false ? "No" : "No verificado");
 
-/** Términos públicos del proveedor, debajo de los datos ya detectados en el código. */
+/**
+ * Términos públicos del proveedor.
+ *
+ * Van plegados: son el dato que el abogado consulta cuando decide si el
+ * proveedor es encargado o responsable, no algo que deba leer para avanzar.
+ */
 function ProviderTermsBlock({ vendor }: { vendor: string }) {
   const terms = providerTerms(vendor);
   return (
-    <div className="mt-2.5 space-y-1 border-t border-line pt-2.5 text-[11px] leading-relaxed text-ink-soft">
-      <p>
-        Entrena con datos de la API por defecto:{" "}
-        <span className="font-medium text-ink">{yesNo(terms?.trainsOnApiData)}</span>
-      </p>
-      <p>
-        Retención por defecto: <span className="text-ink">{terms?.retention ?? "No verificado"}</span>
-      </p>
-      <p>
-        Retención cero disponible:{" "}
-        <span className="font-medium text-ink">{yesNo(terms?.zeroRetention)}</span>
-      </p>
-      {terms ? (
+    <details className="mt-2.5 border-t border-line pt-2.5">
+      <summary className="cursor-pointer list-none text-[11px] text-ink-muted transition-colors hover:text-ink">
+        <span aria-hidden className="mr-1.5">›</span>
+        Términos del proveedor
+      </summary>
+      <div className="mt-2 space-y-1 text-[11px] leading-relaxed text-ink-soft">
         <p>
-          <a href={terms.termsUrl} target="_blank" rel="noreferrer" className="underline">
-            Términos de la API
-          </a>{` · verificado el ${terms.verifiedAt}`}
+          Entrena con datos de la API por defecto:{" "}
+          <span className="font-medium text-ink">{yesNo(terms?.trainsOnApiData)}</span>
         </p>
-      ) : (
-        <p>Sin términos verificados para este proveedor.</p>
-      )}
-      {terms?.note ? <p className="text-ink-faint italic">{terms.note}</p> : null}
-    </div>
+        <p>
+          Retención por defecto: <span className="text-ink">{terms?.retention ?? "No verificado"}</span>
+        </p>
+        <p>
+          Retención cero disponible:{" "}
+          <span className="font-medium text-ink">{yesNo(terms?.zeroRetention)}</span>
+        </p>
+        {terms ? (
+          <p>
+            <a href={terms.termsUrl} target="_blank" rel="noreferrer" className="underline">
+              Términos de la API
+            </a>{` · verificado el ${terms.verifiedAt}`}
+          </p>
+        ) : (
+          <p>Sin términos verificados para este proveedor.</p>
+        )}
+        {terms?.note ? <p className="text-ink-faint italic">{terms.note}</p> : null}
+      </div>
+    </details>
   );
 }
 
@@ -66,7 +77,7 @@ export default async function ConfiguracionPage() {
           Configuración del análisis técnico-legal
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Proveedores de IA detectados en el código y marcos normativos a evaluar
+          Qué proveedores encontró VIGÍA y contra qué normas se evalúa
         </p>
       </div>
 
@@ -122,46 +133,50 @@ export default async function ConfiguracionPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-2.5 text-[11px] leading-relaxed text-ink-muted">
-            Estados Unidos figura en la lista de países con nivel adecuado de la SIC:
-            enviar datos a esos proveedores no es un incumplimiento por el país; lo
-            exigible es el contrato de transmisión. Un proveedor en un país que no está en
-            la lista queda en zona gris y pasa a revisión jurídica.
+          <p className="mt-4 flex items-center gap-2 text-[11.5px] text-safe">
+            <span aria-hidden className="size-1.5 rounded-full bg-safe" />
+            Llaves y documentos enmascarados antes de entrar a la evidencia
           </p>
 
-          <div className="mt-5">
-            <Label>Control de acceso y minimización</Label>
-            <div className="rounded-[8px] border border-safe-soft bg-safe-soft p-3.5">
-              <p className="text-[12.5px] font-semibold text-safe">
-                Enmascaramiento de datos personales
-              </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
-                Las llaves y los números de documento que aparezcan en el código de{" "}
-                {run.scope.client.name} se enmascaran antes de entrar a la evidencia, en
-                cumplimiento estricto del principio de minimización de datos.
-              </p>
-            </div>
-          </div>
-
+          <details className="mt-2.5">
+            <summary className="cursor-pointer list-none text-[11.5px] text-ink-muted transition-colors hover:text-ink">
+              <span aria-hidden className="mr-1.5">›</span>
+              Cómo se lee «país adecuado» y «zona gris»
+            </summary>
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+              Estados Unidos figura en la lista de países con nivel adecuado de la SIC:
+              enviar datos a esos proveedores no es un incumplimiento por el país; lo
+              exigible es el contrato de transmisión. Un proveedor en un país que no está
+              en la lista queda en zona gris y pasa a revisión jurídica.
+            </p>
+          </details>
         </Card>
 
         {/* Marcos normativos */}
         <Card className="flex flex-col">
           <CardHeader
-            title="Parámetros de auditoría normativa"
+            title="Marcos a evaluar"
             tag="Estándares"
-            description="Selecciona las normativas y marcos metodológicos para evaluar los riesgos de IA en código y diseño de interfaz."
+            description="Desmarcar un marco retira del informe los hallazgos que dependían solo de él."
           />
+          {/* El porqué del paquete sectorial es una nota de fundamentación: se
+              consulta si el abogado la necesita, no encabeza la pantalla. */}
           {pack && (
             <Panel tone="brand" className="mb-4">
-              <p className="text-[12.5px] font-semibold text-ink">
-                Paquete sectorial aplicado: {pack.name}
+              <p className="text-[12.5px] font-medium text-ink">
+                Paquete sectorial: {pack.name}
               </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{pack.note}</p>
-              <p className="mt-1.5 text-[11px] text-ink-soft">
-                Marcos recomendados: {pack.frameworks.map((id) => FRAMEWORKS[id].shortName).join(", ")}.
-                Quedan preseleccionados; puedes desmarcarlos.
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
+                {pack.frameworks.map((id) => FRAMEWORKS[id].shortName).join(", ")} quedan
+                preseleccionados.
               </p>
+              <details className="mt-2">
+                <summary className="cursor-pointer list-none text-[11px] text-ink-muted transition-colors hover:text-ink">
+                  <span aria-hidden className="mr-1.5">›</span>
+                  Por qué este sector
+                </summary>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-ink-soft">{pack.note}</p>
+              </details>
             </Panel>
           )}
           <ConfigForm

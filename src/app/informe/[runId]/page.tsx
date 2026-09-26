@@ -24,17 +24,15 @@ export default async function InformePage({ params }: { params: Promise<{ runId:
           ← Volver a la auditoría
         </Link>
         <div className="flex flex-wrap items-center gap-4">
+          {/* Dos acciones y no tres: el calendario .ics compite con las descargas
+              y obliga a importar un archivo para leer algo que ahora está dentro
+              del propio informe (sección 10). El endpoint sigue existiendo en
+              /api/v1 para quien lo quiera. */}
           <a
             href={`/api/v1/runs/${run.id}/informe`}
             className="text-[13px] text-neutral-700 underline hover:text-neutral-950"
           >
             Descargar en Word
-          </a>
-          <a
-            href={`/api/v1/runs/${run.id}/calendario`}
-            className="text-[13px] text-neutral-700 underline hover:text-neutral-950"
-          >
-            Calendario de obligaciones (.ics)
           </a>
           <PrintButton />
         </div>

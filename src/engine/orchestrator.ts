@@ -236,17 +236,6 @@ export async function acceptClause(
   }));
 }
 
-/** Marca aceptadas todas las cláusulas: el acuerdo se firmó por fuera de VIGÍA. */
-export async function acceptAllClauses(runId: string): Promise<AuditRun> {
-  return repository.update(runId, (run) => ({
-    ...run,
-    scope: {
-      ...run.scope,
-      clauses: run.scope.clauses.map((c) => ({ ...c, accepted: true })),
-    },
-  }));
-}
-
 /** El representante legal acepta todo el acuerdo desde su portal, con nombre y cédula. */
 export async function acceptScopeAsClient(
   runId: string,

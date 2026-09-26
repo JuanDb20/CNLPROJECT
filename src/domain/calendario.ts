@@ -165,6 +165,10 @@ function toIcs(events: CalendarEvent[]): string {
       `UID:${event.uid}`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${event.date.replaceAll("-", "")}`,
+      /* DTEND explícito y exclusivo (día siguiente). El RFC permite omitirlo en
+         un evento de día completo, pero varios calendarios lo importan mal o lo
+         descartan si falta. */
+      `DTEND;VALUE=DATE:${addDays(`${event.date}T00:00:00Z`, 1).replaceAll("-", "")}`,
       `SUMMARY:${escapeIcs(event.summary)}`,
       `DESCRIPTION:${escapeIcs(event.description)}`,
       "END:VEVENT",

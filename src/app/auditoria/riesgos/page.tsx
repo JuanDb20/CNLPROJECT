@@ -72,7 +72,7 @@ export default async function RiesgosPage() {
       signed: isResolved(finding),
       state,
       frameworks: [...new Set(rules.map((r) => r.framework))],
-      chips: rules.slice(0, 3).map((rule) => ({
+      chips: rules.slice(0, 2).map((rule) => ({
         kind: KIND_LABEL[FRAMEWORKS[rule.framework].kind],
         label: rule.label,
       })),
@@ -147,26 +147,35 @@ export default async function RiesgosPage() {
         />
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-[13px] leading-relaxed text-ink-soft">
-          Cómo se calcula: 100 menos {fmt(WEIGHT.critico)} por cada crítico,{" "}
-          {fmt(WEIGHT.advertencia)} por cada advertencia y {fmt(WEIGHT.informativo)} por
-          cada informativo sin firmar; sube solo cuando el abogado firma la remediación
-          tras un retesteo en verde. Es un índice para priorizar, no una estimación de la
-          multa: la SIC gradúa las sanciones con los criterios del art. 24 de la Ley 1581
-          (daño o peligro causado, beneficio económico, reincidencia, obstrucción,
-          renuencia y reconocimiento de la infracción).
-        </p>
+      {/* La fórmula es consulta, no decisión: se pliega para no competir con la
+          lista de hallazgos, que es lo que el abogado viene a leer. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+        <details className="text-[12px]">
+          <summary className="cursor-pointer list-none text-ink-muted transition-colors hover:text-ink">
+            <span aria-hidden className="mr-1.5">›</span>
+            Cómo se calcula la puntuación
+          </summary>
+          <p className="mt-2 max-w-[78ch] text-[11.5px] leading-relaxed text-ink-muted">
+            100 menos {fmt(WEIGHT.critico)} por cada crítico, {fmt(WEIGHT.advertencia)} por
+            cada advertencia y {fmt(WEIGHT.informativo)} por cada informativo sin firmar;
+            sube solo cuando el abogado firma la remediación tras un retesteo en verde. Es
+            un índice para priorizar, no una estimación de la multa: la SIC gradúa las
+            sanciones con los criterios del art. 24 de la Ley 1581 (daño o peligro causado,
+            beneficio económico, reincidencia, obstrucción, renuencia y reconocimiento de la
+            infracción).
+          </p>
+        </details>
+
         <div className="flex flex-wrap gap-x-5 gap-y-1">
           <Link
             href="/auditoria/evaluacion-impacto"
-            className="inline-block text-[12px] text-brand hover:underline"
+            className="text-[12px] text-brand hover:underline"
           >
-            Borrador de evaluación de impacto →
+            Evaluación de impacto →
           </Link>
           <Link
             href="/auditoria/inventario"
-            className="inline-block text-[12px] text-brand hover:underline"
+            className="text-[12px] text-brand hover:underline"
           >
             Inventario de tratamientos →
           </Link>
