@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AccountChip, Logo } from "@/components/shell";
+import { TemaToggle } from "@/components/tema";
 import { requireUser } from "@/server/auth";
 
 export default async function PanelLayout({ children }: { children: ReactNode }) {
@@ -13,7 +14,10 @@ export default async function PanelLayout({ children }: { children: ReactNode })
         <Link href="/panel" aria-label="VIGÍA, mis auditorías">
           <Logo />
         </Link>
-        <AccountChip user={user} />
+        <div className="flex items-center gap-2">
+          <TemaToggle className="rounded-[6px] border border-line bg-surface px-2.5 py-1.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
+          <AccountChip user={user} />
+        </div>
       </header>
       <main id="contenido" className="pb-12">{children}</main>
     </div>

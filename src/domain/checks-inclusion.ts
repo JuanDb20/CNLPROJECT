@@ -32,7 +32,11 @@ const tagSin = (files: RepoFile[], abre: RegExp, atributo: RegExp, envuelve?: Re
         const anterior = lines.slice(Math.max(0, i - 6), i).join(" ");
         const marcas = envuelve ? [...anterior.matchAll(new RegExp(envuelve.source, "gi"))] : [];
         const envuelto = marcas.length > 0 && !marcas[marcas.length - 1][0].startsWith("</");
-        return atributo.test(etiqueta) || envuelto
+        /* Un <label htmlFor="x"> cerrado antes del campo también lo nombra, si el
+           campo lleva id="x": es la asociación que la propia corrección recomienda. */
+        const id = envuelve && etiqueta.match(/\bid\s*=\s*\{?\s*["'`]([\w-]+)["'`]/)?.[1];
+        const asociado = !!id && new RegExp(`\\b(?:htmlFor|for)\\s*=\\s*\\{?\\s*["'\`]${id}["'\`]`).test(f.content);
+        return atributo.test(etiqueta) || envuelto || asociado
           ? []
           : [{ path: f.path, line: i + 1, text: text.trim() }];
       });
@@ -133,7 +137,7 @@ export const CHECKS_INCLUSION: Check[] = [
       ruleIds: ["col-inclusion-web", "col-inclusion-igualdad", "col-1581-autorizacion"],
       probe:
         "Búsqueda en los archivos de interfaz de campos <input>, <select> y <textarea> sin " +
-        "aria-label, aria-labelledby, placeholder ni un <label> que los envuelva.",
+        "aria-label, aria-labelledby, placeholder ni un <label> que los envuelva o los nombre con htmlFor.",
       detect: ({ files }: Ctx) =>
         tagSin(
           files,

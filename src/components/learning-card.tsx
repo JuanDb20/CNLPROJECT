@@ -1,6 +1,4 @@
-import { Card, Label } from "./ui";
-
-/** Modo aprendizaje: explica el hallazgo como una cadena de razonamiento en lenguaje llano. */
+/** Modo aprendizaje: el hallazgo como razonamiento jurídico, de los hechos al remedio. */
 export function LearningCard({
   hecho,
   norma,
@@ -19,24 +17,13 @@ export function LearningCard({
     { label: "Remedio", detail: remedio },
   ];
   return (
-    <Card>
-      <Label>Cadena de razonamiento</Label>
-      <ol className="space-y-3">
-        {steps.map((step, i) => (
-          <li key={step.label} className="flex gap-3">
-            <span
-              aria-hidden
-              className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft font-mono text-[11px] font-medium text-brand"
-            >
-              {i + 1}
-            </span>
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-ink">{step.label}</p>
-              <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-soft">{step.detail}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </Card>
+    <ol className="space-y-3 rounded-[8px] border border-brand-soft bg-brand-soft p-3.5">
+      {steps.map((step) => (
+        <li key={step.label}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">{step.label}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-ink-soft">{step.detail}</p>
+        </li>
+      ))}
+    </ol>
   );
 }

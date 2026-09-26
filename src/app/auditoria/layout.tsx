@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { alternarModoAprendizaje } from "@/app/actions";
 import { AccountChip, Logo, type MarkState } from "@/components/shell";
 import { StepNav } from "@/components/step-nav";
-import { cx } from "@/components/ui";
-import { executionLabel } from "@/domain/format";
-import type { AuditRun } from "@/domain/types";
+import { TemaToggle } from "@/components/tema";
+import { Tag, cx } from "@/components/ui";
+import type { AuditRun, RunStatus } from "@/domain/types";
 import { requireUser } from "@/server/auth";
 import { learningMode } from "@/server/http";
 import { requireRun } from "@/server/session";
@@ -21,109 +21,80 @@ function markState(run: AuditRun): MarkState {
   return "reposo";
 }
 
-function SandboxBadge({ sandboxId, authorized }: { sandboxId: string; authorized: boolean }) {
-  return (
-    <div className="rounded-[8px] border border-line bg-surface-muted p-3">
-      <p
-        className={cx(
-          "flex items-center gap-2 text-[11px] font-medium",
-          authorized ? "text-safe" : "text-ink-muted",
-        )}
-      >
-        <span
-          aria-hidden
-          className={cx("size-1.5 rounded-full", authorized ? "pulse-dot bg-safe" : "bg-line-strong")}
-        />
-        {authorized ? "Entorno seguro activo" : "Entorno en preparación"}
-      </p>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-ink-muted">
-        {authorized ? (
-          <>Pruebas autorizadas en <span className="font-mono">{executionLabel(sandboxId)}</span></>
-        ) : (
-          <>Pendiente de autorización · <span className="font-mono">{executionLabel(sandboxId)}</span></>
-        )}
-      </p>
-    </div>
-  );
-}
+/** El estado de la auditoría, en la misma palabra para el abogado en cualquier
+ * pantalla: qué falta y quién lo tiene que hacer. Los tonos son los mismos que
+ * usa la lista de "Mis auditorías" (panel/page.tsx). */
+const STATUS_LABEL: Record<RunStatus, string> = {
+  borrador: "Falta que el cliente autorice",
+  configurado: "Autorizada, falta iniciar el análisis",
+  ejecutando: "Análisis en curso",
+  analizado: "Hallazgos listos para revisar",
+  remediando: "Revisando las correcciones",
+  certificado: "Informe expedido",
+};
+
+const STATUS_TONE: Record<RunStatus, "required" | "brand" | "safe"> = {
+  borrador: "required",
+  configurado: "brand",
+  ejecutando: "brand",
+  analizado: "brand",
+  remediando: "brand",
+  certificado: "safe",
+};
 
 export default async function AuditoriaLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
   const run = await requireRun();
-  const authorized = run.scope.authorizedAt !== null;
   const aprendizaje = await learningMode();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[1320px] flex-col gap-0 px-4 py-4 sm:px-6 lg:flex-row lg:gap-7 lg:py-6">
-      {/* Columna de navegación */}
-      <aside className="flex shrink-0 flex-col gap-4 lg:w-[252px]">
-        <div className="rounded-[12px] border border-line bg-surface p-4">
-          <Logo state={markState(run)} />
-          <div className="mt-4 border-t border-line pt-3">
-            <StepNav />
-          </div>
+    <div className="mx-auto flex min-h-dvh w-full max-w-[1320px] flex-col px-4 py-4 sm:px-6 lg:py-6">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/panel"
+            className="text-[12.5px] text-ink-muted transition-colors hover:text-ink"
+          >
+            <span aria-hidden>←</span> Mis auditorías
+          </Link>
+          <span aria-hidden className="text-line-strong">
+            /
+          </span>
+          <Logo state={markState(run)} compact />
+          <span className="text-[13px] font-medium text-ink">
+            Auditoría de {run.scope.client.name}
+          </span>
+          <Tag tone={STATUS_TONE[run.status]}>{STATUS_LABEL[run.status]}</Tag>
         </div>
-
-        <div className="hidden flex-col gap-3 lg:flex">
-          <SandboxBadge sandboxId={run.scope.sandboxId} authorized={authorized} />
-          <p className="px-1 text-[10px] leading-relaxed text-ink-faint">
-            Marco: Ley 1581 de 2012 y su reglamentación, Ley 1266 de 2008 y Ley 1480 de
-            2011. RGPD y AI Act solo como referencia comparada.
-          </p>
-        </div>
-      </aside>
-
-      {/* Columna de contenido */}
-      <div className="mt-4 min-w-0 flex-1 lg:mt-0">
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/panel"
-              className="text-[12.5px] text-ink-muted transition-colors hover:text-ink"
+        <div className="flex items-center gap-2">
+          <form action={alternarModoAprendizaje}>
+            <button
+              type="submit"
+              aria-pressed={aprendizaje}
+              title="Explica cada hallazgo en lenguaje sencillo, sin tecnicismos."
+              className={cx(
+                "rounded-[6px] border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                aprendizaje
+                  ? "border-brand bg-brand-soft text-brand"
+                  : "border-line bg-surface text-ink-soft hover:bg-surface-muted",
+              )}
             >
-              <span aria-hidden>←</span> Mis auditorías
-            </Link>
-            <span className="text-[12.5px] font-medium text-ink">
-              {run.scope.client.name}
-            </span>
-            {authorized ? (
-              <span className="rounded-[5px] border border-warning-soft bg-warning-soft px-2 py-[3px] font-mono text-[10px] font-medium uppercase tracking-wider text-warning">
-                Equipo rojo autorizado
-              </span>
-            ) : (
-              <span className="rounded-[5px] border border-line bg-canvas px-2 py-[3px] font-mono text-[10px] font-medium uppercase tracking-wider text-ink-muted">
-                Pendiente de autorización
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <form action={alternarModoAprendizaje}>
-              <button
-                type="submit"
-                aria-pressed={aprendizaje}
-                className={cx(
-                  "rounded-[6px] border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                  aprendizaje
-                    ? "border-brand bg-brand-soft text-brand"
-                    : "border-line bg-surface text-ink-soft hover:bg-surface-muted",
-                )}
-              >
-                Modo aprendizaje
-              </button>
-            </form>
-            <AccountChip user={user} />
-          </div>
-        </header>
-
-        <main id="contenido" className="pb-10" style={{ viewTransitionName: "vigia-step-content" }}>
-          {children}
-        </main>
-
-        <div className="mb-6 flex flex-col gap-3 lg:hidden">
-          <SandboxBadge sandboxId={run.scope.sandboxId} authorized={authorized} />
+              Explicar hallazgos
+            </button>
+          </form>
+          <TemaToggle className="rounded-[6px] border border-line bg-surface px-2.5 py-1.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
+          <AccountChip user={user} />
         </div>
+      </header>
+
+      <div className="border-b border-line py-4">
+        <StepNav />
       </div>
+
+      <main id="contenido" className="py-6" style={{ viewTransitionName: "vigia-step-content" }}>
+        {children}
+      </main>
     </div>
   );
 }

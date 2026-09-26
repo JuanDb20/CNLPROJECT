@@ -55,6 +55,46 @@ html {
   color-scheme: light;
 }
 
+/*
+ * Modo oscuro — mismos tokens, sobrescritos por atributo (sin next-themes: lo
+ * pone TemaToggle vía data-theme en <html>, tema.tsx). Punto de partida: la
+ * paleta oscura de la marca del 22-sep (`git show 7f31edf:src/app/globals.css`),
+ * con neutros teñidos de petróleo; brand-bright se iguala a brand (ya es el
+ * verde azulado del logo) y critical se aclaró un poco (#ee6b61 en vez de
+ * #e5534b) para que pase AA también sobre surface-muted, no solo canvas.
+ * Line/line-strong quedan como en esa paleta: sirven para bordes, no para
+ * texto, y no se verificaron contra el criterio de contraste no-textual 3:1.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-canvas: #0a1316;
+  --color-surface: #0f1b1f;
+  --color-surface-muted: #152429;
+  --color-line: #123b4a;
+  --color-line-strong: #1a4553;
+
+  --color-ink: #eef3f4;
+  --color-ink-soft: #c5d1d5;
+  --color-ink-muted: #95a8af;
+  --color-ink-faint: #879ba3; /* ≥ 4,5:1 sobre canvas, surface y surface-muted (WCAG AA) */
+
+  --color-brand: #2a9d8f;
+  --color-brand-soft: #0d2a27;
+  --color-brand-strong: #35b3a3; /* hover: más claro, para que el texto oscuro del botón siga en AA */
+  --color-brand-bright: #2a9d8f;
+
+  --color-safe: #4fae5a;
+  --color-safe-soft: #10231a;
+
+  --color-critical: #ee6b61;
+  --color-critical-soft: #2a1513;
+  --color-warning: #e2a33d;
+  --color-warning-soft: #2a2112;
+  --color-info: #6b96cf;
+  --color-info-soft: #171f2a;
+}
+
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);

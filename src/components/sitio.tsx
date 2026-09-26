@@ -5,6 +5,7 @@ import { MarkIcon } from "@/components/ui";
 import { FRAMEWORKS } from "@/domain/compliance";
 
 import { MenuExpandido } from "./sitio-menu";
+import { TemaToggle } from "./tema";
 import "./sitio.css";
 
 /* Las leyes que revisa, por su nombre y no contadas: a un abogado le dice más
@@ -53,6 +54,7 @@ export function SiteHeader({ actual }: { actual?: string }) {
           </Link>
         ))}
       </nav>
+      <TemaToggle />
       <Link href="/ingresar" className="btn btn-top" aria-current={actualSi("/ingresar", actual)}>
         <span>Ingresar</span>
         <Flecha />
@@ -86,6 +88,7 @@ export function SiteHeader({ actual }: { actual?: string }) {
           ))}
         </nav>
         <div className="menu-foot">
+          <TemaToggle />
           <Link href="/ingresar" className="btn btn-menu">
             <span>Ingresar</span>
             <Flecha />

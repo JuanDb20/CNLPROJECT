@@ -4,10 +4,10 @@ import { RiskGauge } from "@/components/risk-gauge";
 import { Card, cx } from "@/components/ui";
 import { FRAMEWORKS, getRules } from "@/domain/compliance";
 import { WEIGHT, isResolved, scoreRun, sortFindings } from "@/domain/scoring";
-import type { FrameworkId } from "@/domain/types";
+import type { Framework, FrameworkId } from "@/domain/types";
 import { requireAnalyzedRun } from "@/server/session";
 
-import { RiskList, type FilterOption, type RiskRow, type RiskState } from "./risk-list";
+import { RiskList, type FilterOption, type RiskRow } from "./risk-list";
 
 const fmt = (n: number) => n.toLocaleString("es-CO");
 
@@ -23,6 +23,18 @@ const KIND_LABEL = {
 } as const;
 
 const LEVEL_LABEL = { bajo: "Bajo", medio: "Medio", alto: "Alto" } as const;
+
+/** Texto del filtro por marco: la cita legal tal cual para la norma colombiana
+    (es lo que el abogado busca), y el nombre completo —sin la sigla ni el
+    «(ref.)»— para lo técnico o comparado, que por su sigla no se reconoce. */
+function frameworkFilterLabel(framework: Framework): string {
+  if (framework.kind === "juridico" || framework.kind === "interfaz") {
+    return framework.shortName;
+  }
+  return framework.kind === "comparado"
+    ? `${framework.name} (referencia de la UE)`
+    : framework.name;
+}
 
 function Stat({
   value,
@@ -57,12 +69,6 @@ export default async function RiesgosPage() {
 
   const rows: RiskRow[] = sortFindings(run.findings).map((finding) => {
     const rules = getRules(finding.ruleIds);
-    const state: RiskState =
-      finding.remediation.status === "firmado"
-        ? "firmado"
-        : finding.remediation.status === "retesteado"
-          ? "retesteado"
-          : "abierto";
     return {
       id: finding.id,
       code: finding.code,
@@ -70,9 +76,10 @@ export default async function RiesgosPage() {
       title: finding.title,
       summary: finding.summary,
       signed: isResolved(finding),
-      state,
       frameworks: [...new Set(rules.map((r) => r.framework))],
-      chips: rules.slice(0, 2).map((rule) => ({
+      /* Solo la norma principal: la tarjeta es para decidir qué abrir, el
+         detalle completo de trazabilidad normativa vive en /hallazgos/[id]. */
+      chips: rules.slice(0, 1).map((rule) => ({
         kind: KIND_LABEL[FRAMEWORKS[rule.framework].kind],
         label: rule.label,
       })),
@@ -82,10 +89,10 @@ export default async function RiesgosPage() {
   /* Solo se ofrecen filtros de marcos que produjeron al menos un hallazgo. */
   const present = new Set(rows.flatMap((r) => r.frameworks));
   const filters: FilterOption[] = [
-    { id: "todos", label: "Todos los marcos" },
+    { id: "todos", label: "Todas las normas" },
     ...(Object.keys(FRAMEWORKS) as FrameworkId[])
       .filter((id) => present.has(id))
-      .map((id) => ({ id, label: FRAMEWORKS[id].shortName })),
+      .map((id) => ({ id, label: frameworkFilterLabel(FRAMEWORKS[id]) })),
   ];
 
   const levelTone =
@@ -99,10 +106,12 @@ export default async function RiesgosPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">
-          Mapa integral de riesgos de IA
+          Riesgos encontrados
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Clasificación jurídica y técnica consolidada
+          {rows.length === 0
+            ? "No se encontraron hallazgos."
+            : `${rows.length} hallazgo${rows.length === 1 ? "" : "s"} ordenado${rows.length === 1 ? "" : "s"} por gravedad: empieza por los críticos.`}
         </p>
       </div>
 
@@ -149,42 +158,42 @@ export default async function RiesgosPage() {
 
       {/* La fórmula es consulta, no decisión: se pliega para no competir con la
           lista de hallazgos, que es lo que el abogado viene a leer. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
-        <details className="text-[12px]">
-          <summary className="cursor-pointer list-none text-ink-muted transition-colors hover:text-ink">
-            <span aria-hidden className="mr-1.5">›</span>
-            Cómo se calcula la puntuación
-          </summary>
-          <p className="mt-2 max-w-[78ch] text-[11.5px] leading-relaxed text-ink-muted">
-            100 menos {fmt(WEIGHT.critico)} por cada crítico, {fmt(WEIGHT.advertencia)} por
-            cada advertencia y {fmt(WEIGHT.informativo)} por cada informativo sin firmar;
-            sube solo cuando el abogado firma la remediación tras un retesteo en verde. Es
-            un índice para priorizar, no una estimación de la multa: la SIC gradúa las
-            sanciones con los criterios del art. 24 de la Ley 1581 (daño o peligro causado,
-            beneficio económico, reincidencia, obstrucción, renuencia y reconocimiento de la
-            infracción).
-          </p>
-        </details>
-
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
-          <Link
-            href="/auditoria/evaluacion-impacto"
-            className="text-[12px] text-brand hover:underline"
-          >
-            Evaluación de impacto →
-          </Link>
-          <Link
-            href="/auditoria/inventario"
-            className="text-[12px] text-brand hover:underline"
-          >
-            Inventario de tratamientos →
-          </Link>
-        </div>
-      </div>
+      <details className="text-[12px]">
+        <summary className="cursor-pointer list-none text-ink-muted transition-colors hover:text-ink">
+          <span aria-hidden className="mr-1.5">›</span>
+          Cómo se calcula la puntuación
+        </summary>
+        <p className="mt-2 max-w-[78ch] text-[11.5px] leading-relaxed text-ink-muted">
+          100 menos {fmt(WEIGHT.critico)} por cada crítico, {fmt(WEIGHT.advertencia)} por
+          cada advertencia y {fmt(WEIGHT.informativo)} por cada informativo sin firmar;
+          sube solo cuando el abogado firma la remediación tras un retesteo en verde. Es
+          un índice para priorizar, no una estimación de la multa: la SIC gradúa las
+          sanciones con los criterios del art. 24 de la Ley 1581 (daño o peligro causado,
+          beneficio económico, reincidencia, obstrucción, renuencia y reconocimiento de la
+          infracción).
+        </p>
+      </details>
 
       <Card>
         <RiskList rows={rows} filters={filters} />
       </Card>
+
+      {/* Documentos aparte del hallazgo por hallazgo: se leen después de
+          revisar los riesgos, no antes, para no competir con esa acción. */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1">
+        <Link
+          href="/auditoria/evaluacion-impacto"
+          className="text-[12px] text-ink-muted transition-colors hover:text-ink"
+        >
+          Borrador de evaluación de impacto →
+        </Link>
+        <Link
+          href="/auditoria/inventario"
+          className="text-[12px] text-ink-muted transition-colors hover:text-ink"
+        >
+          Inventario de tratamientos →
+        </Link>
+      </div>
     </div>
   );
 }

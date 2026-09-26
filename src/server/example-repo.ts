@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
+
 import type { RepoFile } from "@/domain/types";
+import { writeZip } from "@/server/zip";
 
 /**
  * Código sintético de un asistente vibecodeado con fallas reales (llave por
@@ -71,3 +74,6 @@ export async function lookupCustomer(args) {
 `,
   },
 ];
+
+/** Huella del .zip de ejemplo: identifica la auditoría de ejemplo sin marcarla aparte. */
+export const EXAMPLE_SHA256 = createHash("sha256").update(writeZip(EXAMPLE_FILES)).digest("hex");

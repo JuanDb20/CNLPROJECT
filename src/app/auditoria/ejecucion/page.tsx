@@ -24,21 +24,21 @@ export default async function EjecucionPage() {
       <div className="space-y-5">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-ink">
-            Ejecución de pruebas adversariales
+            Ejecución de las pruebas
           </h1>
           <p className="mt-1.5 text-[13px] text-ink-muted">
-            Equipo rojo en vivo en el entorno aislado autorizado
+            Pruebas de seguridad en vivo sobre el entorno aislado autorizado
           </p>
         </div>
         <Card>
           <p className="text-[13px] text-ink-soft">
             {interrumpida
-              ? "La ejecución se interrumpió; puedes relanzarla."
-              : `El alcance está autorizado y la configuración guardada, pero todavía no se ha lanzado el escaneo sobre ${executionLabel(run.scope.sandboxId)}.`}
+              ? "El análisis se interrumpió; puedes volver a iniciarlo."
+              : `El alcance está autorizado y la configuración guardada, pero todavía no se ha iniciado el análisis sobre ${executionLabel(run.scope.sandboxId)}.`}
           </p>
           <form action={reejecutarEscaneo} className="mt-4">
             <button type="submit" className={buttonClass("brand")}>
-              {interrumpida ? "Relanzar el escaneo" : "Iniciar escaneo seguro"}
+              {interrumpida ? "Volver a iniciar el análisis" : "Iniciar el análisis"}
             </button>
           </form>
         </Card>

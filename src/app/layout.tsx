@@ -8,9 +8,18 @@ import "./globals.css";
 const sg = Space_Grotesk({ subsets: ["latin"], variable: "--font-sg" });
 const jb = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jb" });
 
+/* Aplica el tema guardado ANTES de pintar (sin flash), igual que haría
+   next-themes pero sin la dependencia: un script inline en <head> que se
+   ejecuta antes del primer paint del <body>. La clave "vigia-tema" está
+   repetida a mano en tema.tsx (TEMA_KEY): no se puede importar aquí porque
+   este archivo es un Server Component y tema.tsx es "use client" — al
+   cruzar ese límite, un export que no es un componente llega como
+   undefined, no como el valor real. */
+const TEMA_SCRIPT = `try{if(localStorage.getItem("vigia-tema")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}`;
+
 export const metadata: Metadata = {
   title: {
-    default: "VIGÍA — Equipo rojo legal y técnico para IA",
+    default: "VIGÍA — Auditoría legal y técnica de apps hechas con IA",
     template: "%s · VIGÍA",
   },
   description:
@@ -27,7 +36,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es-CO" className={`${sg.variable} ${jb.variable}`}>
+    <html lang="es-CO" className={`${sg.variable} ${jb.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: TEMA_SCRIPT }} />
+      </head>
       <body className="font-sans antialiased">
         <a
           href="#contenido"

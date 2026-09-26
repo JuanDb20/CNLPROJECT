@@ -371,6 +371,47 @@
   }
 }
 
+/* ------------------------------ Modo oscuro ---------------------------- */
+/* El escáner tiene colores fijos (rgba) pensados para el canvas blanco: las
+   barras de código y el divisor de cifras usan el petróleo de la marca
+   (18, 59, 74 = --color-ink), que sobre un canvas casi negro desaparece. En
+   oscuro se re-tiñen de --color-ink (claro ahí) en vez de --color-ink dark.
+   warning/critical van en RGB suelto (--sev) porque se usan con alpha
+   (rgba(var(--sev), x)); se re-declaran con los valores oscuros de esos
+   mismos tokens (globals.css) para no romper el degradado. */
+:root[data-theme="dark"] .portada .codigo li::before {
+  color: rgba(135, 155, 163, 0.6); /* --color-ink-faint oscuro */
+}
+:root[data-theme="dark"] .portada .codigo i {
+  background: rgba(238, 243, 244, 0.14); /* --color-ink oscuro */
+}
+:root[data-theme="dark"] .portada .codigo i:nth-child(3n + 1) {
+  background: rgba(42, 157, 143, 0.55); /* --color-brand-bright */
+}
+:root[data-theme="dark"] .portada .codigo i:nth-child(4n + 3) {
+  background: rgba(238, 243, 244, 0.26);
+}
+:root[data-theme="dark"] .portada .revisado .hit {
+  --sev: 226, 163, 61; /* --color-warning oscuro */
+}
+:root[data-theme="dark"] .portada .revisado .grave {
+  --sev: 238, 107, 97; /* --color-critical oscuro */
+}
+:root[data-theme="dark"] .portada .norma {
+  box-shadow: 0 0.25em 0.9em rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .portada .haz {
+  background: linear-gradient(transparent calc(100% - 4.5em), rgba(42, 157, 143, 0.22));
+}
+:root[data-theme="dark"] .portada .stat + .stat::before {
+  background: linear-gradient(
+    180deg,
+    rgba(238, 243, 244, 0.12),
+    rgba(238, 243, 244, 0.3) 50%,
+    rgba(238, 243, 244, 0.12)
+  );
+}
+
 /* --------------------------- Puntos de corte -------------------------- */
 /* Tableta vertical: lienzo 900×1200; tipografía al 82 %; el escáner ocupa el
    aire sobre el título (el lugar de .sp-a) y recorta las filas que no caben. */

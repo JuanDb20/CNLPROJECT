@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 
-import { cx } from "./ui";
+import { CheckIcon, cx } from "./ui";
 
 // ponytail: startViewTransition espera a que su callback resuelva antes de
 // capturar el estado "después"; el router de Next no expone cuándo terminó
@@ -25,63 +25,16 @@ export const STEPS = [
   { n: 6, label: "Remediación y firma", href: "/auditoria/remediacion" },
 ] as const;
 
-function StepIcon({ n }: { n: number }) {
-  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.4 };
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden className="size-[15px] shrink-0">
-      {n === 1 && (
-        <>
-          <circle cx="8" cy="8" r="6" {...common} />
-          <path d="M8 5v3.5" {...common} strokeLinecap="round" />
-          <circle cx="8" cy="11" r="0.7" fill="currentColor" stroke="none" />
-        </>
-      )}
-      {n === 2 && (
-        <>
-          <path d="M3 12V6M8 12V4M13 12V8" {...common} strokeLinecap="round" />
-        </>
-      )}
-      {n === 3 && (
-        <>
-          <circle cx="8" cy="8" r="6" {...common} />
-          <circle cx="8" cy="8" r="2" fill="currentColor" stroke="none" />
-        </>
-      )}
-      {n === 4 && (
-        <path
-          d="M2 10l3-4 3 3 3-6 3 7"
-          {...common}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-      {n === 5 && (
-        <>
-          <circle cx="7" cy="7" r="4.2" {...common} />
-          <path d="M10.2 10.2L14 14" {...common} strokeLinecap="round" />
-        </>
-      )}
-      {n === 6 && (
-        <>
-          <circle cx="8" cy="8" r="6" {...common} />
-          <path
-            d="M5.5 8.2l1.8 1.8L11 6.3"
-            {...common}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </>
-      )}
-    </svg>
-  );
-}
-
+/** Los 6 pasos como secuencia horizontal: el actual lleva su nombre, los demás
+ * solo el número (o un check si ya se pasaron) — para que se lea de un vistazo
+ * cuál es el único que importa ahora mismo. */
 export function StepNav() {
   const pathname = usePathname();
   const router = useRouter();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
+  const currentIndex = STEPS.findIndex((step) => isActive(step.href));
 
   const go = (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.defaultPrevented || event.button !== 0) return;
@@ -96,42 +49,53 @@ export function StepNav() {
   };
 
   return (
-    <nav aria-label="Fases de la auditoría" className="lg:px-0">
-      <div className="relative">
-        <ul className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-          {STEPS.map((step) => {
-            const active = isActive(step.href);
-            return (
-              <li key={step.href} className="shrink-0 lg:shrink">
-                <Link
-                  href={step.href}
-                  onClick={go(step.href)}
-                  aria-current={active ? "step" : undefined}
-                  style={active ? { viewTransitionName: "vigia-step-pill" } : undefined}
+    <nav aria-label="Fases de la auditoría">
+      <ol className="flex items-center">
+        {STEPS.map((step, i) => {
+          const done = currentIndex >= 0 && i < currentIndex;
+          const current = i === currentIndex;
+          return (
+            <li key={step.href} className={cx("flex min-w-0 items-center", !current && "shrink-0")}>
+              <Link
+                href={step.href}
+                onClick={go(step.href)}
+                aria-current={current ? "step" : undefined}
+                aria-label={`${step.n}. ${step.label}`}
+                title={`${step.n}. ${step.label}`}
+                style={current ? { viewTransitionName: "vigia-step-pill" } : undefined}
+                className={cx(
+                  "flex min-w-0 items-center gap-2 rounded-full py-1",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                )}
+              >
+                <span
+                  aria-hidden
                   className={cx(
-                    "flex items-center gap-2.5 rounded-[8px] px-3 py-2.5 text-[13px] transition-colors",
-                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                    active
-                      ? "bg-ink font-medium text-canvas"
-                      : "text-ink-soft hover:bg-surface-muted",
+                    "grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-medium transition-colors",
+                    current && "bg-ink text-canvas",
+                    done && "bg-brand-soft text-brand",
+                    !current && !done && "border border-line text-ink-faint",
                   )}
                 >
-                  <StepIcon n={step.n} />
-                  <span className="whitespace-nowrap">
-                    {step.n}. {step.label}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-        {/* Indicio de que hay más pasos al desplazar, solo en el carrusel móvil. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 lg:hidden"
-          style={{ background: "linear-gradient(to left, var(--color-surface), transparent)" }}
-        />
-      </div>
+                  {done ? <CheckIcon className="size-3.5" /> : step.n}
+                </span>
+                <span
+                  aria-hidden
+                  className={cx(
+                    "truncate text-[13px] font-medium text-ink",
+                    !current && "hidden",
+                  )}
+                >
+                  {step.label}
+                </span>
+              </Link>
+              {i < STEPS.length - 1 ? (
+                <span aria-hidden className="mx-2 h-px w-4 shrink-0 bg-line sm:w-auto sm:flex-1" />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

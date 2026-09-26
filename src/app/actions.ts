@@ -16,6 +16,7 @@ import {
   startExecution,
 } from "@/engine/orchestrator";
 import {
+  applyExampleFixes,
   issueCertificate,
   openPullRequest,
   retest,
@@ -157,10 +158,8 @@ export async function guardarConfiguracion(patch: {
   revalidatePath("/auditoria/configuracion");
 }
 
-export async function iniciarEscaneo(patch: {
-  frameworks: FrameworkId[];
-  piiMaskEnabled: boolean;
-}) {
+/* Sin `piiMaskEnabled`: el enmascaramiento de la evidencia no es configurable desde la interfaz. */
+export async function iniciarEscaneo(patch: { frameworks: FrameworkId[] }) {
   const id = await runId();
   await saveConfig(id, patch);
   await startExecution(id);
@@ -197,6 +196,12 @@ export async function retestearVersion(form: FormData) {
     redirect(`${back}&error=${encodeURIComponent(message.slice(0, 300))}`);
   }
   redirect(back);
+}
+
+/** Auditoría de ejemplo: VIGÍA aplica su propia corrección y retestea (en un caso real, la carga el cliente). */
+export async function aplicarCorreccionEjemplo(findingId: string) {
+  await applyExampleFixes(await runId());
+  redirect(`/auditoria/remediacion?hallazgo=${encodeURIComponent(findingId)}`);
 }
 
 export async function firmarHallazgo(findingId: string, form: FormData) {

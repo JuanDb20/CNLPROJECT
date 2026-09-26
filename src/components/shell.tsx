@@ -13,28 +13,36 @@ const MARK_TITLE: Record<MarkState, string> = {
   seguro: "Todos los hallazgos están firmados",
 };
 
-export function Logo({ state }: { state?: MarkState }) {
+export function Logo({ state, compact = false }: { state?: MarkState; compact?: boolean }) {
+  const mark = (
+    <span
+      aria-hidden
+      title={state ? MARK_TITLE[state] : undefined}
+      data-state={state}
+      className={
+        state
+          ? "mark size-7 rounded-[7px] border border-line-strong"
+          : "grid size-7 place-items-center rounded-[7px] border border-line-strong text-ink"
+      }
+    >
+      {state ? <span className="mark-ring" aria-hidden /> : null}
+      <MarkIcon className="size-[15px]" />
+    </span>
+  );
+
+  // Versión compacta: solo el ícono con su color de estado, para el header de una
+  // auditoría abierta (ya hay un "Mis auditorías" para volver, no hace falta el wordmark).
+  if (compact) return mark;
+
   return (
     <div className="flex items-center gap-2.5">
-      <span
-        aria-hidden
-        title={state ? MARK_TITLE[state] : undefined}
-        data-state={state}
-        className={
-          state
-            ? "mark size-7 rounded-[7px] border border-line-strong"
-            : "grid size-7 place-items-center rounded-[7px] border border-line-strong text-ink"
-        }
-      >
-        {state ? <span className="mark-ring" aria-hidden /> : null}
-        <MarkIcon className="size-[15px]" />
-      </span>
+      {mark}
       <span className="leading-none">
         <span className="block text-[15px] font-semibold tracking-[0.14em] text-ink">
           VIGÍA
         </span>
         <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.18em] text-ink-faint">
-          Equipo rojo legal
+          Auditoría de cumplimiento
         </span>
       </span>
     </div>

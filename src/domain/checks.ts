@@ -66,7 +66,7 @@ export function buildClauses(client: string): ScopeClause[] {
   return [
     {
       id: "clause-injection",
-      label: "Autorización expresa para pruebas adversariales en entorno controlado (white hat)",
+      label: "Autorización expresa para pruebas de seguridad en entorno controlado",
       detail:
         `${client} autoriza a VIGÍA y al abogado revisor a ejecutar pruebas de seguridad ` +
         "no destructivas —análisis estático del código identificado por su SHA-256 y, " +
@@ -1667,7 +1667,12 @@ export function runChecks(
         },
         remediation: {
           status: "propuesta",
-          patch: { ...patch, removed: patch.removed.map(fillPatch), added: patch.added.map(fillPatch) },
+          patch: {
+            ...patch,
+            expectedImpact: fill(patch.expectedImpact),
+            removed: patch.removed.map(fillPatch),
+            added: patch.added.map(fillPatch),
+          },
           branch: check.branch,
           prNumber: null,
           prUrl: null,

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Card,
   CardHeader,
+  Label,
   ProgressBar,
   Tag,
   buttonClass,
@@ -57,6 +58,48 @@ interface StateEvent {
   run: AuditRun;
   progress: number;
   phase: string;
+}
+
+/** Lista de módulos con su propio progreso: se muestra abierta mientras corre
+    el escaneo, y plegada («Ver detalle por módulo») una vez termina. */
+function ModuleList({ modules }: { modules: AuditRun["modules"] }) {
+  return (
+    <ul className="space-y-2.5">
+      {modules.map((module) => (
+        <li
+          key={module.id}
+          className="rounded-[8px] border border-line bg-surface-muted p-3.5"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-medium text-ink">{module.name}</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">
+                {module.description}
+              </p>
+            </div>
+            <span
+              className={cx(
+                "shrink-0 rounded-[5px] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider",
+                STATUS_STYLE[module.status],
+              )}
+            >
+              {STATUS_LABEL[module.status]}
+            </span>
+          </div>
+          {module.status !== "esperando" && module.status !== "omitido" ? (
+            <>
+              <div className="mt-2.5">
+                <ProgressBar value={module.progress} tone="brand" />
+              </div>
+              <p className="mt-1.5 font-mono text-[10px] text-ink-faint">
+                {module.findingsFound} hallazgos · {module.progress}%
+              </p>
+            </>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
@@ -116,69 +159,73 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
     <div className="space-y-5">
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">
-          Ejecución de pruebas adversariales
+          Ejecución de las pruebas
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Equipo rojo en vivo en el entorno aislado autorizado
+          Pruebas de seguridad en vivo sobre el entorno aislado autorizado
         </p>
       </div>
 
-      {/* Progreso global */}
-      <Card>
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-[13px] font-semibold text-ink">
-            Progreso de pruebas: {progress}%
+      {done ? (
+        /* Terminó: el resultado es la acción principal y va primero, justo
+           bajo el título — no al final de la lista de módulos. */
+        <Card>
+          <CardHeader title="Análisis completado" />
+          <p className="text-[13px] text-ink-soft">
+            Se encontraron {run.findings.length} hallazgos. El siguiente paso es
+            revisarlos en el mapa de riesgos.
           </p>
-          <p className="text-[12px] text-ink-muted">{phase}</p>
-        </div>
-        <ProgressBar value={progress} />
-      </Card>
-
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        {/* Módulos */}
-        <Card>
-          <CardHeader title={done ? "Resultado por módulo" : "Módulos en progreso"} />
-          <ul className="space-y-2.5">
-            {run.modules.map((module) => (
-              <li
-                key={module.id}
-                className="rounded-[8px] border border-line bg-surface-muted p-3.5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[12.5px] font-medium text-ink">
-                      {module.name}
-                    </p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-muted">
-                      {module.description}
-                    </p>
-                  </div>
-                  <span
-                    className={cx(
-                      "shrink-0 rounded-[5px] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider",
-                      STATUS_STYLE[module.status],
-                    )}
-                  >
-                    {STATUS_LABEL[module.status]}
-                  </span>
-                </div>
-                {module.status !== "esperando" && module.status !== "omitido" ? (
-                  <>
-                    <div className="mt-2.5">
-                      <ProgressBar value={module.progress} tone="brand" />
-                    </div>
-                    <p className="mt-1.5 font-mono text-[10px] text-ink-faint">
-                      {module.findingsFound} hallazgos · {module.progress}%
-                    </p>
-                  </>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <a
+            href="/auditoria/riesgos"
+            className={cx(buttonClass("primary", true), "mt-4")}
+          >
+            Ver mapa de riesgos ({run.findings.length} hallazgos)
+          </a>
         </Card>
-
-        {/* Consola */}
+      ) : (
+        /* Corriendo: la barra global y el detalle por módulo son la misma
+           historia, así que viven visibles en una sola tarjeta. */
         <Card>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[13px] font-semibold text-ink">
+              Progreso de pruebas: {progress}%
+            </p>
+            <p className="text-[12px] text-ink-muted">{phase}</p>
+          </div>
+          <ProgressBar value={progress} />
+
+          <div className="mt-4">
+            <Label>Módulos</Label>
+          </div>
+          <ModuleList modules={run.modules} />
+        </Card>
+      )}
+
+      {done ? (
+        <details>
+          <summary className="cursor-pointer list-none text-[12px] text-ink-muted transition-colors hover:text-ink">
+            <span aria-hidden className="mr-1.5">
+              ›
+            </span>
+            Ver detalle por módulo
+          </summary>
+          <Card className="mt-3">
+            <ModuleList modules={run.modules} />
+          </Card>
+        </details>
+      ) : null}
+
+      {/* Registro técnico: es la traza cruda del escaneo, consulta para quien
+          la quiera auditar, no algo que compita con el progreso o el resultado. */}
+      <details open={!done}>
+        <summary className="cursor-pointer list-none text-[12px] text-ink-muted transition-colors hover:text-ink">
+          <span aria-hidden className="mr-1.5">
+            ›
+          </span>
+          Ver registro técnico
+        </summary>
+
+        <Card className="mt-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="font-mono text-[11px] text-ink-soft">Traza del análisis</p>
             <Tag tone="brand">{logs.length} eventos</Tag>
@@ -243,21 +290,14 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
             </div>
           </div>
 
-          {done ? (
-            <a
-              href="/auditoria/riesgos"
-              className={cx(buttonClass("primary", true), "mt-4")}
-            >
-              Ver mapa de riesgos ({run.findings.length} hallazgos)
-            </a>
-          ) : (
+          {!done ? (
             <p className="mt-4 text-[11px] leading-relaxed text-ink-muted">
               El análisis corre en {executionLabel(run.scope.sandboxId)}, sobre el código cargado. Cada
               entrada de la traza queda sellada para el informe forense.
             </p>
-          )}
+          ) : null}
         </Card>
-      </div>
+      </details>
     </div>
   );
 }

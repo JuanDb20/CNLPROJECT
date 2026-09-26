@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { iniciarEscaneo } from "@/app/actions";
@@ -7,20 +8,21 @@ import { CheckIcon, buttonClass, cx } from "@/components/ui";
 import type { Framework, FrameworkId } from "@/domain/types";
 
 /**
- * Selección de marcos normativos.
+ * Selección de normas y arranque del análisis.
  *
  * Es cliente porque la selección debe responder sin recargar, pero no guarda
- * nada por su cuenta: al iniciar el escaneo envía el conjunto completo al
+ * nada por su cuenta: al iniciar el análisis envía el conjunto completo al
  * servidor, que es el único que decide qué módulos corren.
+ *
+ * El enmascaramiento no es una opción: VIGÍA lo aplica siempre a la evidencia,
+ * así que aquí se informa y no se ofrece un interruptor que no controlaría nada.
  */
 export function ConfigForm({
   frameworks,
   initialSelected,
-  initialPiiMask,
 }: {
   frameworks: Framework[];
   initialSelected: FrameworkId[];
-  initialPiiMask: boolean;
 }) {
   const [selected, setSelected] = useState<FrameworkId[]>(initialSelected);
   const [pending, startTransition] = useTransition();
@@ -35,21 +37,18 @@ export function ConfigForm({
 
   const start = () =>
     startTransition(async () => {
-      await iniciarEscaneo({
-        frameworks: selected,
-        piiMaskEnabled: initialPiiMask,
-      });
+      await iniciarEscaneo({ frameworks: selected });
     });
 
   return (
-    <div className="flex h-full flex-col">
-      <ul className="divide-y divide-line border-y border-line">
+    <div>
+      <ul className="divide-y divide-line rounded-[12px] border border-line bg-surface px-5">
         {frameworks.map((framework) => {
           const checked = selected.includes(framework.id);
           const detalle = abierto === framework.id;
           return (
             <li key={framework.id}>
-              <div className="flex items-start gap-2.5 py-2.5">
+              <div className="flex items-start gap-2.5 py-2">
                 <button
                   type="button"
                   onClick={() => toggle(framework.id)}
@@ -67,14 +66,11 @@ export function ConfigForm({
                   >
                     <CheckIcon className="size-3" />
                   </span>
-                  <span className="min-w-0">
-                    <span className="block text-[12.5px] font-medium leading-snug text-ink">
-                      {framework.name}
-                    </span>
-                    {/* La norma principal basta para reconocer el marco; el
-                        listado completo de circulares y decretos vive en el
-                        detalle, detrás del «?». */}
-                    <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-ink-faint">
+                  {/* La norma principal basta para reconocer el marco; el listado
+                      completo de circulares y decretos vive en el detalle, detrás del «?». */}
+                  <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 leading-snug">
+                    <span className="text-[13px] font-medium text-ink">{framework.name}</span>
+                    <span className="text-[12px] text-ink-muted">
                       {framework.citation.split(";")[0]}
                       {framework.citation.includes(";") ? " …" : ""}
                     </span>
@@ -86,7 +82,7 @@ export function ConfigForm({
                   onClick={() => setAbierto(detalle ? null : framework.id)}
                   aria-expanded={detalle}
                   aria-label={`Qué evalúa ${framework.name}`}
-                  className="mt-px grid size-[18px] shrink-0 place-items-center rounded-full border border-line text-[10px] text-ink-faint transition-colors hover:border-ink-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="mt-px grid size-[20px] shrink-0 place-items-center rounded-full border border-line text-[11px] text-ink-faint transition-colors hover:border-ink-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
                   ?
                 </button>
@@ -94,11 +90,11 @@ export function ConfigForm({
 
               {detalle ? (
                 <div className="pb-3 pl-[27px]">
-                  <p className="text-[11.5px] leading-relaxed text-ink-muted">
+                  <p className="text-[12px] leading-relaxed text-ink-muted">
                     {framework.description}
                   </p>
                   {framework.citation.includes(";") ? (
-                    <p className="mt-1.5 font-mono text-[10.5px] leading-relaxed text-ink-faint">
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-ink-faint">
                       {framework.citation}
                     </p>
                   ) : null}
@@ -109,23 +105,27 @@ export function ConfigForm({
         })}
       </ul>
 
-      <div className="mt-auto flex flex-col gap-2.5 pt-5 sm:flex-row">
-        <a href="/auditoria/alcance" className={buttonClass("secondary")}>
+      <p className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed text-ink-muted">
+        <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-safe" />
+        En la evidencia que guarda, VIGÍA oculta contraseñas, llaves de acceso, correos y
+        números de documento.
+      </p>
+
+      <div className="mt-4 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-between">
+        <Link href="/auditoria/configuracion?paso=1" className={buttonClass("secondary")}>
           Volver
-        </a>
+        </Link>
         <button
           type="button"
           onClick={start}
           disabled={selected.length === 0 || pending}
-          className={cx(buttonClass("brand"), "flex-1")}
+          className={buttonClass("brand")}
         >
-          {pending ? "Iniciando…" : "Iniciar escaneo seguro"}
+          {pending ? "Iniciando…" : "Iniciar el análisis"}
         </button>
       </div>
       {selected.length === 0 ? (
-        <p className="mt-2 text-[11px] text-ink-muted">
-          Selecciona al menos un marco normativo.
-        </p>
+        <p className="mt-2 text-right text-[12px] text-ink-muted">Marca al menos una norma.</p>
       ) : null}
     </div>
   );
