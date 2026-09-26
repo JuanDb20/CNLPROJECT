@@ -39,8 +39,9 @@ const AREAS: Area[] = [
     subtitulo: "El punto de partida: quién es el cliente y qué autoriza",
     imagen: "/mapa/vigia-01-alcance.png",
     alt:
-      "Pantalla de alcance y autorización: ficha del cliente con su NIT y representante legal, " +
-      "el código cargado con su huella digital, y las cláusulas del acuerdo de alcance jurídico.",
+      "Pantalla de alcance, paso «Acuerdo con el cliente»: las cláusulas del acuerdo se muestran " +
+      "una a la vez —aquí la cláusula 2 de 4, con la primera ya aceptada— y cada una solo se puede " +
+      "aceptar después de leer el texto completo.",
     practica:
       "Antes de tocar una sola línea de código, el representante legal de la empresa recibe un " +
       "enlace, lee en lenguaje claro qué se va a hacer y lo autoriza él mismo desde su celular, " +
@@ -62,8 +63,9 @@ const AREAS: Area[] = [
     subtitulo: "Entiende solo qué construyó la empresa y con qué reglas debe cumplir",
     imagen: "/mapa/vigia-02-configuracion.png",
     alt:
-      "Pantalla de configuración: los proveedores de inteligencia artificial detectados en el " +
-      "código, su país de procesamiento, y las normas aplicables según el sector de la empresa.",
+      "Pantalla de configuración, paso «Proveedores de IA»: cada proveedor de inteligencia " +
+      "artificial que VIGÍA detectó en el código, con su país de procesamiento y si queda en país " +
+      "adecuado o en zona gris.",
     practica:
       "El sistema se entera solo de que el chat usa un modelo de IA alojado en Estados Unidos y " +
       "otro en China, y ya sabe qué exigirle a cada uno, sin que nadie se lo tenga que explicar.",
@@ -82,8 +84,9 @@ const AREAS: Area[] = [
     subtitulo: "Revisa el código y, si se autoriza, también el sitio real",
     imagen: "/mapa/vigia-05-ejecucion-vivo.png",
     alt:
-      "Pantalla de ejecución en vivo con el progreso por módulo y la traza detallada de cada " +
-      "prueba ejecutada.",
+      "Pantalla de ejecución: apenas termina el análisis muestra primero el resultado —cuántos " +
+      "hallazgos encontró y el acceso al mapa de riesgos— y, debajo, el detalle de cada módulo " +
+      "ejecutado con su progreso y sus hallazgos.",
     practica:
       "El código puede verse perfecto en el repositorio y aun así el sitio real estar exponiendo " +
       "un archivo con llaves de acceso: el sistema revisa las dos cosas por separado.",
@@ -143,8 +146,10 @@ const AREAS: Area[] = [
     subtitulo: "No basta con decir que ya se corrigió: hay que probarlo otra vez",
     imagen: "/mapa/vigia-06-remediacion.png",
     alt:
-      "Pantalla de remediación con el parche propuesto y el panel para cargar el código corregido " +
-      "y volver a probarlo, paso previo a que el abogado pueda firmar el hallazgo.",
+      "Secuencia de remediación y firma sobre un hallazgo crítico: la corrección propuesta y la " +
+      "nueva prueba ya quedaron en verde, y el paso 3 muestra el formulario para que el abogado " +
+      "firme su concepto jurídico con su tarjeta profesional; arriba, la lista de los demás " +
+      "hallazgos que también están en corrección.",
     practica:
       "El equipo de desarrollo corrige el código, lo vuelve a subir, y el sistema le confirma si " +
       "la corrección de verdad funcionó: no le basta con que alguien diga que ya quedó.",
@@ -163,9 +168,8 @@ const AREAS: Area[] = [
     subtitulo: "Un documento que se puede comprobar meses después, sin pedirle nada a nadie",
     imagen: "/mapa/vigia-07-informe.png",
     alt:
-      "Borrador del informe de auditoría técnico-jurídica, con los datos del cliente, el alcance " +
-      "de la autorización y la identificación de la versión de código analizada, antes de que el " +
-      "abogado lo expida.",
+      "Informe de auditoría técnico-jurídica ya expedido, con su código de verificación, la fecha " +
+      "de expedición y los datos del cliente, seguido del objeto y los límites del informe.",
     practica:
       "Meses después, cualquiera —un juez, la autoridad, un cliente nuevo— puede pegar el código " +
       "del informe en una página pública y comprobar que sigue siendo exactamente el mismo " +
