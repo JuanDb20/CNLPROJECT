@@ -42,6 +42,7 @@ export async function register(input: {
   email: string;
   firm: string;
   password: string;
+  passwordConfirmation: string;
   privacyAccepted: boolean;
 }): Promise<void> {
   const name = input.name.trim();
@@ -49,6 +50,7 @@ export async function register(input: {
   if (name.length < 3 || name.length > 120) throw new Error("nombre");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) throw new Error("correo");
   if (input.password.length < 8 || input.password.length > 200) throw new Error("clave");
+  if (input.password !== input.passwordConfirmation) throw new Error("confirmacion");
   // Prueba de la autorización (Decreto 1377, art. 8): versión de la política y fecha.
   if (!input.privacyAccepted) throw new Error("politica");
   if (await accounts.findByEmail(email)) throw new Error("existe");

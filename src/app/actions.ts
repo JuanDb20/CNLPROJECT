@@ -61,9 +61,12 @@ export async function registrarse(form: FormData) {
       email: String(form.get("correo") ?? ""),
       firm: String(form.get("firma") ?? ""),
       password: String(form.get("clave") ?? ""),
+      passwordConfirmation: String(form.get("confirmarClave") ?? ""),
       privacyAccepted: form.get("politica") === "on",
     });
   } catch (error) {
+    // Solo el código de error va en la URL: nombre/correo no deben quedar en el historial
+    // del navegador ni en los logs (VIGÍA audita justo esto en el código de sus clientes).
     redirect(`/registro?error=${error instanceof Error ? error.message : "datos"}`);
   }
   redirect("/panel");
@@ -93,11 +96,12 @@ export async function crearAuditoria(form: FormData) {
     id = (await createRunFromForm(user, form)).id;
   } catch (error) {
     /* El motor da mensajes precisos ("el repositorio debe ser público", "el .zip
-       supera 4 MB"); se devuelven con los datos escritos para no rellenar todo otra vez. */
+       supera 4 MB"); se devuelven con los datos escritos para no rellenar todo otra vez,
+       menos los personales (representante y NIT): la URL queda en el historial y en los registros. */
     const back = new URLSearchParams({
       error: error instanceof Error ? error.message : "datos",
     });
-    for (const campo of ["cliente", "nit", "representante", "sector", "sistema", "repositorio", "despliegue"]) {
+    for (const campo of ["cliente", "sector", "sistema", "repositorio", "despliegue"]) {
       const valor = String(form.get(campo) ?? "").slice(0, 300);
       if (valor) back.set(campo, valor);
     }

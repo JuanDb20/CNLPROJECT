@@ -16,11 +16,33 @@ export const INFORME_TITULO = "Informe de auditoría técnico-jurídica";
 const INFORME_SUBTITULO =
   "Evidencia para el principio de responsabilidad demostrada (Decreto 1074 de 2015, arts. 2.2.2.25.6.1 y 2.2.2.25.6.2)";
 
+/* Qué acredita cada parte. El informe en Word (api/v1/runs/[runId]/informe) repite
+   estos mismos textos: se definen una sola vez para que las dos versiones no se aparten. */
+export const METODO_Y_LIMITES =
+  "VIGÍA ejecutó un catálogo cerrado de pruebas automáticas que buscan patrones en el texto del código y, si el " +
+  "cliente lo autorizó, inspeccionó en modo de solo lectura el sitio publicado. No ejecuta la aplicación ni recorre " +
+  "todos sus caminos posibles. Por eso puede señalar como falla algo que en su contexto no lo es (falso positivo) y no " +
+  "detectar fallas que el catálogo no busca o no reconoce (falso negativo). La ausencia de hallazgos no acredita " +
+  "seguridad ni cumplimiento. El retesteo acredita que la misma prueba ya no detecta la falla en la versión " +
+  "corregida, no que la falla no pueda existir de otra forma.";
+export const QUIEN_RESPONDE =
+  "Al cliente le corresponde la correspondencia entre el código entregado y el que tiene desplegado, y los hechos que " +
+  "no constan en el código. VIGÍA responde por haber ejecutado fielmente, y de forma reproducible, las pruebas " +
+  "declaradas sobre la versión identificada, y por la integridad de este informe. El abogado revisor responde por el " +
+  "concepto jurídico de los hallazgos que firma; no certifica la seguridad del código. Los análisis de los hallazgos " +
+  "sin firma son propuestas de VIGÍA que el abogado no ha conceptuado.";
+export const PIE_RESPONSABILIDAD =
+  "VIGÍA aporta la evidencia técnica, obtenida con un método reproducible y limitado a su catálogo; el abogado " +
+  "revisor firma el concepto jurídico sobre esa evidencia, con la diligencia que le exige el art. 28 de la Ley 1123 " +
+  "de 2007 y sin garantizar resultados (art. 34, lit. b). Ninguno de los dos certifica que el código sea seguro o que " +
+  "cumpla la ley: este informe no es un certificado de conformidad ni una garantía de resultado ante ninguna " +
+  "autoridad, y el cliente conserva sus deberes como responsable del tratamiento (Ley 1581 de 2012, art. 17).";
+
 const STATUS: Record<RemediationStatus, string> = {
   propuesta: "Abierto: parche propuesto",
   "pr-abierto": "Abierto: parche generado",
-  retesteado: "Parche retesteado, pendiente de firma",
-  firmado: "Corregido y firmado",
+  retesteado: "Retesteo superado; pendiente del concepto del abogado",
+  firmado: "Retesteo superado; concepto jurídico firmado",
 };
 
 /** Naturaleza de los datos (art. 2.2.2.25.6.1 num. 2), inferida de los hallazgos. */
@@ -136,6 +158,12 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
           de su personal, sus contratos con encargados, sus procesos de atención a consultas y reclamos de los titulares,
           ni ningún tratamiento de datos que no se refleje en el código analizado. Las afirmaciones sobre esos elementos
           se marcan como «no verificado» y requieren verificación documental aparte.
+        </p>
+        <p className="mt-2">
+          <span className="font-semibold">Método y límites.</span> {METODO_Y_LIMITES}
+        </p>
+        <p className="mt-2">
+          <span className="font-semibold">Quién responde por qué.</span> {QUIEN_RESPONDE}
         </p>
         <p className="mt-2">
           Sí incluye, como anexos derivados del mismo código, los documentos jurídicos que VIGÍA generó como borrador
@@ -303,7 +331,7 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
             ["Puntuación inicial", initial.score],
             ["Puntuación actual", score.score],
             ["Hallazgos", run.findings.length],
-            ["Corregidos y firmados", score.resolved],
+            ["Retesteados y firmados", score.resolved],
           ].map(([label, value]) => (
             <div key={label} className="rounded border border-neutral-300 p-3">
               <p className="text-[11px] text-neutral-500">{label}</p>
@@ -546,12 +574,7 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
           1074 de 2015, art. 2.2.2.25.6.1, que compila el art. 26 del Decreto 1377 de 2013). No es un certificado de
           conformidad acreditado ante el ONAC.
         </p>
-        <p className="mt-2">
-          VIGÍA propone el análisis jurídico a partir de patrones detectados en el código; la revisión, la calificación
-          normativa y la responsabilidad profesional son del abogado que firma cada hallazgo con su tarjeta profesional,
-          en los términos de los arts. 28 y 34 de la Ley 1123 de 2007. Este informe no es un certificado de conformidad
-          ni una garantía de resultado ante ninguna autoridad.
-        </p>
+        <p className="mt-2">{PIE_RESPONSABILIDAD}</p>
       </footer>
 
       <p className="informe-folio" aria-hidden>

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
 import { SitePage } from "@/components/sitio";
+import { CHECK_CODES } from "@/domain/checks";
+import { FRAMEWORKS, RULES } from "@/domain/compliance";
+import type { DocumentoId } from "@/domain/documentos";
 
 import type { Area } from "./tree";
 import { AreasTree } from "./tree";
@@ -10,12 +13,23 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/* Dos cifras que sí dicen algo (qué tan a fondo prueba) y, en vez de contar
+   normas y documentos, sus nombres: a un abogado le dice más «Ley 1581» que
+   «8 normas». Las cifras y las normas salen del catálogo. */
 const ESTADISTICAS = [
-  { valor: "61", etiqueta: "pruebas automáticas de cumplimiento" },
-  { valor: "52", etiqueta: "obligaciones legales revisadas" },
-  { valor: "8", etiqueta: "normas y estándares aplicados" },
-  { valor: "6", etiqueta: "documentos legales que redacta solo" },
+  { valor: String(CHECK_CODES.length), etiqueta: "pruebas automáticas de cumplimiento" },
+  { valor: String(RULES.length), etiqueta: "obligaciones legales que verifica" },
 ];
+
+/* Record por DocumentoId: si se agrega o quita un documento, esto no compila. */
+const DOCUMENTOS: Record<DocumentoId, string> = {
+  politica: "Política de tratamiento de datos",
+  aviso: "Aviso de privacidad",
+  autorizacion: "Autorización para el tratamiento de datos",
+  transmision: "Contrato de transmisión de datos",
+  "consultas-reclamos": "Procedimiento de consultas y reclamos",
+  "ficha-transparencia": "Ficha de transparencia del sistema de IA",
+};
 
 const AREAS: Area[] = [
   {
@@ -25,14 +39,15 @@ const AREAS: Area[] = [
     subtitulo: "El punto de partida: quién es el cliente y qué autoriza",
     imagen: "/mapa/vigia-01-alcance.png",
     alt:
-      "Pantalla de alcance y autorización: ficha del cliente con su NIT y registro mercantil, " +
-      "el código cargado con su huella digital, y la dirección del sitio autorizada para inspección.",
+      "Pantalla de alcance y autorización: ficha del cliente con su NIT y representante legal, " +
+      "el código cargado con su huella digital, y las cláusulas del acuerdo de alcance jurídico.",
     practica:
       "Antes de tocar una sola línea de código, el representante legal de la empresa recibe un " +
       "enlace, lee en lenguaje claro qué se va a hacer y lo autoriza él mismo desde su celular, " +
       "sin necesitar una cuenta.",
     capacidades: [
-      "Carga el código del sistema en un archivo comprimido, o directamente desde un repositorio público",
+      "Carga el código del sistema en un archivo comprimido, o directamente desde un repositorio público " +
+        "(el lugar en internet donde los desarrolladores guardan el código, como GitHub)",
       "Verifica automáticamente si la empresa está registrada en el Registro Mercantil",
       "Deja fijada con una huella digital exactamente qué versión del código se revisó, para que nadie pueda alegar después que se cambió algo",
       "Genera un acuerdo de autorización en español corriente, explicando qué se va a hacer, qué no se va a tocar y por qué",
@@ -67,13 +82,13 @@ const AREAS: Area[] = [
     subtitulo: "Revisa el código y, si se autoriza, también el sitio real",
     imagen: "/mapa/vigia-05-ejecucion-vivo.png",
     alt:
-      "Pantalla de ejecución en vivo con el progreso por módulo y la traza del análisis, " +
-      "incluida la línea que confirma la inspección del sitio publicado.",
+      "Pantalla de ejecución en vivo con el progreso por módulo y la traza detallada de cada " +
+      "prueba ejecutada.",
     practica:
       "El código puede verse perfecto en el repositorio y aun así el sitio real estar exponiendo " +
       "un archivo con llaves de acceso: el sistema revisa las dos cosas por separado.",
     capacidades: [
-      "Corre un catálogo de 61 pruebas sobre el código en un entorno aislado, sin tocar nunca la información real de los clientes de la empresa",
+      `Corre un catálogo de ${CHECK_CODES.length} pruebas sobre el código en un entorno aislado, sin tocar nunca la información real de los clientes de la empresa`,
       "Muestra el avance en vivo, prueba por prueba, con una traza detallada de cada paso",
       "Si el cliente lo autoriza de forma expresa, también revisa el sitio público ya publicado: archivos sensibles expuestos, protecciones de seguridad ausentes, cómo quedan guardadas las cookies",
       "La revisión del sitio publicado es de solo lectura: nunca envía datos, nunca inicia sesión, nunca modifica nada",
@@ -107,8 +122,8 @@ const AREAS: Area[] = [
     subtitulo: "Cuando lo que falta no es una corrección de código, sino un documento",
     imagen: "/mapa/vigia-04-documentos.png",
     alt:
-      "Pantalla de documentos jurídicos generados: siete documentos redactados para la empresa, " +
-      "cada uno con su ruta de publicación y las opciones de descarga.",
+      "Pantalla de documentos jurídicos generados para la empresa, cada uno con su ruta de " +
+      "publicación y las opciones de descarga.",
     practica:
       "Si a la empresa le falta la política de tratamiento de datos, el sistema no solo lo " +
       "señala: se la entrega redactada, con los datos de su propio sistema ya puestos.",
@@ -128,8 +143,8 @@ const AREAS: Area[] = [
     subtitulo: "No basta con decir que ya se corrigió: hay que probarlo otra vez",
     imagen: "/mapa/vigia-06-remediacion.png",
     alt:
-      "Pantalla de remediación con el parche propuesto, el retesteo en verde sobre el código " +
-      "corregido y el hallazgo ya firmado por el abogado revisor.",
+      "Pantalla de remediación con el parche propuesto y el panel para cargar el código corregido " +
+      "y volver a probarlo, paso previo a que el abogado pueda firmar el hallazgo.",
     practica:
       "El equipo de desarrollo corrige el código, lo vuelve a subir, y el sistema le confirma si " +
       "la corrección de verdad funcionó: no le basta con que alguien diga que ya quedó.",
@@ -148,8 +163,9 @@ const AREAS: Area[] = [
     subtitulo: "Un documento que se puede comprobar meses después, sin pedirle nada a nadie",
     imagen: "/mapa/vigia-07-informe.png",
     alt:
-      "Informe de auditoría técnico-jurídica expedido, con los datos del cliente, el folio y la " +
-      "identificación de la versión analizada.",
+      "Borrador del informe de auditoría técnico-jurídica, con los datos del cliente, el alcance " +
+      "de la autorización y la identificación de la versión de código analizada, antes de que el " +
+      "abogado lo expida.",
     practica:
       "Meses después, cualquiera —un juez, la autoridad, un cliente nuevo— puede pegar el código " +
       "del informe en una página pública y comprobar que sigue siendo exactamente el mismo " +
@@ -176,7 +192,7 @@ const AREAS: Area[] = [
       "pruebas y publica el resultado, para no pedirle a otros lo que él mismo no cumple.",
     capacidades: [
       "Corre su propio catálogo de pruebas sobre su propio código y publica el resultado en una página abierta al público",
-      "Borra automáticamente el código de cada cliente a los 90 días, y solo conserva su huella digital",
+      "Borra el código de cada cliente a los 90 días; conserva su huella digital y el expediente de la auditoría (hallazgos con la evidencia enmascarada, firmas e informe)",
       "Publica su política de tratamiento de datos completa, en español corriente",
       "Nunca usa un modelo de lenguaje para generar los hallazgos ni los documentos: siempre el mismo código produce exactamente el mismo resultado",
     ],
@@ -196,7 +212,7 @@ export default function MapaPage() {
         </p>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
         {ESTADISTICAS.map((s) => (
           <div
             key={s.etiqueta}
@@ -206,6 +222,24 @@ export default function MapaPage() {
             <p className="mt-1 text-[12px] leading-snug text-ink-muted">{s.etiqueta}</p>
           </div>
         ))}
+        <div className="col-span-2 rounded-[12px] border border-line bg-surface p-4 sm:p-5 lg:col-span-1">
+          <p className="text-[13px] font-semibold text-ink">Normas que revisa</p>
+          <ul className="mt-2 space-y-1 text-[12.5px] leading-snug text-ink-muted">
+            {Object.values(FRAMEWORKS).map((f) => (
+              <li key={f.id}>
+                <span className="font-medium text-ink">{f.shortName}</span> · {f.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="col-span-2 rounded-[12px] border border-line bg-surface p-4 sm:p-5 lg:col-span-1">
+          <p className="text-[13px] font-semibold text-ink">Documentos que redacta, listos para firmar</p>
+          <ul className="mt-2 space-y-1 text-[12.5px] leading-snug text-ink-muted">
+            {Object.values(DOCUMENTOS).map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <div className="mt-8">

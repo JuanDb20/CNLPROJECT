@@ -1,3 +1,4 @@
+import { METODO_Y_LIMITES, PIE_RESPONSABILIDAD, QUIEN_RESPONDE } from "@/components/informe";
 import { getRules } from "@/domain/compliance";
 import { formatDate, lawyerName } from "@/domain/format";
 import { SEVERITY_LABEL, scoreRun, sortFindings } from "@/domain/scoring";
@@ -10,8 +11,8 @@ type Params = { params: Promise<{ runId: string }> };
 const STATUS_LABEL: Record<RemediationStatus, string> = {
   propuesta: "Abierto: parche propuesto",
   "pr-abierto": "Abierto: parche generado",
-  retesteado: "Parche retesteado, pendiente de firma",
-  firmado: "Corregido y firmado",
+  retesteado: "Retesteo superado; pendiente del concepto del abogado",
+  firmado: "Retesteo superado; concepto jurídico firmado",
 };
 
 /**
@@ -19,7 +20,8 @@ const STATUS_LABEL: Record<RemediationStatus, string> = {
  * `src/domain/types.ts`, Patch.added cuando `patch.kind === "documento"`).
  * Reproduce lo esencial de `src/components/informe.tsx` en texto plano, sin
  * su lógica de React ni las secciones que solo tienen sentido en pantalla
- * (objeto y límites, factores de proporcionalidad, mapa de riesgos, etc.).
+ * (factores de proporcionalidad, mapa de riesgos, etc.). Los límites sí van:
+ * es el formato que más circula.
  */
 function informeLines(run: AuditRun): string[] {
   const { client, source, clauses, authorizedAt, signatories, clientAcceptance } = run.scope;
@@ -40,6 +42,20 @@ function informeLines(run: AuditRun): string[] {
     cert
       ? `Informe expedido el ${formatDate(cert.issuedAt, { time: true })}`
       : `Generado el ${formatDate(new Date().toISOString(), { time: true })} (borrador, aún no expedido)`,
+    "",
+    "## 0. Objeto y límites",
+    "Este informe cubre el código y la configuración de la versión identificada por el SHA-256 de la sección 2, " +
+      "tal como fue cargada para esta auditoría.",
+    "No cubre las políticas internas de la empresa auditada, la capacitación de su personal, sus contratos con " +
+      "encargados, sus procesos de atención a consultas y reclamos de los titulares, ni ningún tratamiento de datos " +
+      "que no se refleje en el código analizado; esos elementos requieren verificación documental aparte.",
+    "Sí incluye, como anexos derivados del mismo código, los documentos jurídicos que VIGÍA generó como borrador y " +
+      "el inventario de tratamientos que pudo derivar de él; ninguno de los dos reemplaza los procesos, contratos o " +
+      "registros internos de la empresa auditada que no consten en el código.",
+    `Método y límites. ${METODO_Y_LIMITES}`,
+    `Quién responde por qué. ${QUIEN_RESPONDE}`,
+    "Vigencia: válido para el código identificado por el SHA-256 indicado; cualquier despliegue posterior requiere " +
+      "una nueva auditoría.",
     "",
     "## 1. Partes y alcance",
     `- Cliente: ${client.name} (NIT ${client.nit})`,
@@ -74,7 +90,7 @@ function informeLines(run: AuditRun): string[] {
     `- Puntuación inicial: ${initial.score}`,
     `- Puntuación actual: ${score.score}`,
     `- Hallazgos: ${run.findings.length} (${score.critical} críticos, ${score.warning} advertencias, ${score.informative} informativos abiertos)`,
-    `- Corregidos y firmados: ${score.resolved}`,
+    `- Retesteados y firmados: ${score.resolved}`,
     "",
     "## 4. Hallazgos",
   );
@@ -144,10 +160,7 @@ function informeLines(run: AuditRun): string[] {
     "Este informe documenta medidas de seguridad para acreditar el principio de responsabilidad demostrada " +
       "(Decreto 1074 de 2015, art. 2.2.2.25.6.1, que compila el art. 26 del Decreto 1377 de 2013). No es un " +
       "certificado de conformidad acreditado ante el ONAC.",
-    "VIGÍA propone el análisis jurídico a partir de patrones detectados en el código; la revisión, la " +
-      "calificación normativa y la responsabilidad profesional son del abogado que firma cada hallazgo con su " +
-      "tarjeta profesional, en los términos de los arts. 28 y 34 de la Ley 1123 de 2007. Este informe no es un " +
-      "certificado de conformidad ni una garantía de resultado ante ninguna autoridad.",
+    PIE_RESPONSABILIDAD,
   );
 
   return lines;

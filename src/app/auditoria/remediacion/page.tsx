@@ -299,9 +299,11 @@ export default async function RemediacionPage({
                       Firma del abogado revisor
                     </p>
                     <p className="mt-1 text-[11.5px] leading-relaxed text-ink-soft">
-                      VIGÍA propone el análisis jurídico; la decisión es del abogado. Al
-                      firmar, lo asume como propio y el hallazgo entra en el informe de
-                      auditoría técnico-jurídica con su nombre y tarjeta profesional.
+                      El retesteo lo certifica VIGÍA: la misma prueba ya no detecta la falla
+                      en la versión corregida. Tu firma cubre el concepto jurídico —la
+                      calificación del hallazgo y de su corrección a la luz de esa
+                      evidencia—, no la seguridad del código ni la ausencia de otras fallas.
+                      Entra al informe con tu nombre y tu tarjeta profesional.
                     </p>
                   </Panel>
                 ) : (
@@ -400,12 +402,20 @@ export default async function RemediacionPage({
                       </p>
                       <label className="block text-[11.5px] text-ink-muted">
                         Salvedad o ajuste al análisis (opcional)
-                        <textarea name="salvedad" rows={2} maxLength={500} className={fieldClass} />
+                        <textarea
+                          name="salvedad"
+                          rows={2}
+                          maxLength={500}
+                          placeholder="Ej.: no se validó técnicamente; se recomienda verificación por un especialista."
+                          className={fieldClass}
+                        />
                       </label>
                       <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-soft">
                         <input type="checkbox" required className="mt-0.5" />
-                        Revisé la evidencia y el análisis jurídico de {selected.code} y los
-                        asumo como propios.
+                        Revisé la evidencia técnica y el retesteo que reporta VIGÍA para{" "}
+                        {selected.code} y, con base en ellos, adopto como propio el análisis
+                        jurídico, con las salvedades que anoto. No certifico la seguridad del
+                        código ni la ausencia de fallas que las pruebas no cubren.
                       </label>
                       <button type="submit" className={buttonClass("primary", true)}>
                         Firmar y cerrar hallazgo

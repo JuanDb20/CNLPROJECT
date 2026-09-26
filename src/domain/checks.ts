@@ -103,14 +103,20 @@ export function buildClauses(client: string): ScopeClause[] {
     },
     {
       id: "clause-forensic",
-      label: "Trazabilidad forense mediante registros encadenados por hash y sello de tiempo",
+      label: "Trazabilidad forense y declaración de la versión auditada",
       detail:
-        "Cada prueba, evidencia y decisión queda registrada con sello de tiempo de un " +
-        "tercero (RFC 3161) y encadenamiento de hash, de modo que el informe pueda " +
-        "aportarse como evidencia de las medidas implementadas ante un requerimiento de " +
+        "Cada prueba, evidencia y decisión queda registrada en el expediente con su fecha " +
+        "y hora. Al expedirse, el informe queda encadenado por hash al informe anterior " +
+        "del abogado y, si el servicio de sellado responde, con sello de tiempo de un " +
+        "tercero (RFC 3161), de modo que pueda aportarse como evidencia de las medidas implementadas ante un requerimiento de " +
         "la Superintendencia de Industria y Comercio (Decreto 1074 de 2015, art. " +
         "2.2.2.25.6.1). El encadenamiento acredita la integridad del informe, no la " +
-        "veracidad de su contenido, que responde el abogado que lo firma.",
+        `veracidad de su contenido. ${client} declara que el código identificado por su ` +
+        "SHA-256 corresponde a la versión de su sistema que está desplegada o que " +
+        "desplegará, y responde por esa correspondencia y por los hechos que no constan " +
+        "en el código. VIGÍA responde por ejecutar fielmente las pruebas declaradas, y el " +
+        "abogado revisor por el concepto jurídico que firma; ninguno certifica la " +
+        "seguridad del código.",
       required: true,
       accepted: false,
     },
@@ -128,8 +134,9 @@ export function buildClauses(client: string): ScopeClause[] {
         "de la Ley 1581 de 2012 impone a los encargados. Respecto del nombre y la cédula " +
         "del representante legal que acepta, VIGÍA actúa como responsable, con la " +
         "finalidad única de acreditar esta autorización. VIGÍA enmascara credenciales, " +
-        "llaves de API y números de documento antes de cualquier análisis, borra el " +
-        "código cargado a los 90 días conservando solo su huella SHA-256, y no lo usa " +
+        "llaves de API, correos y números de documento en la evidencia que muestra y " +
+        "conserva; borra el código cargado a los 90 días, y conserva su huella SHA-256 y " +
+        "el expediente de la auditoría, con la evidencia ya enmascarada; no lo usa " +
         "para entrenar modelos ni lo comparte con terceros distintos de los proveedores " +
         `de alojamiento declarados en su política de tratamiento. ${client} autoriza por ` +
         "escrito al abogado revisor a poner el código y la información del asunto a " +

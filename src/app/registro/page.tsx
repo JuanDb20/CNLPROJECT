@@ -1,18 +1,34 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { registrarse } from "@/app/actions";
+import { RESPONSABLE } from "@/app/privacidad/datos";
+import { ValidacionRegistro } from "@/app/registro/validacion";
 import { SitePage } from "@/components/sitio";
-import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { Card, Panel, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
 
-/* `existe` no tiene entrada a propósito: decir «ese correo ya tiene cuenta»
-   convierte el formulario en un oráculo para saber quién está registrado. */
-const ERRORS: Record<string, string> = {
+/* `existe` sí tiene mensaje: /ingresar ya resiste enumeración (verificación a tiempo
+   constante con hash señuelo, ver login() en auth.ts). Ocultar aquí que el correo ya
+   tiene cuenta solo confunde a quien se re-registra por error, a cambio de una
+   protección marginal contra enumeración. */
+const ERRORS: Record<string, ReactNode> = {
   nombre: "Escribe tu nombre completo.",
   correo: "Escribe un correo válido.",
   clave: "La contraseña debe tener al menos 8 caracteres.",
+  confirmacion: "Las contraseñas no coinciden. Vuelve a escribirlas.",
   politica: "Para crear la cuenta debes autorizar el tratamiento de tus datos.",
+  existe: (
+    <>
+      Ese correo ya tiene una cuenta.{" "}
+      <Link href="/ingresar" className="font-medium underline underline-offset-2">
+        Ingresa aquí
+      </Link>
+      .
+    </>
+  ),
 };
 
 export const metadata = { title: "Crear cuenta" };
@@ -39,12 +55,13 @@ export default async function RegistroPage({
         {error ? (
           <Panel tone="critical" className="mt-4">
             <p className="text-[12.5px] text-critical">
-              {ERRORS[error] ?? "Revisa los datos del formulario."}
+              {ERRORS[error] ?? "No se pudo crear la cuenta por un error inesperado. Intenta de nuevo en un momento."}
             </p>
           </Panel>
         ) : null}
 
-        <form action={registrarse} className="mt-5 space-y-4">
+        <ValidacionRegistro />
+        <form id="form-registro" action={registrarse} className="mt-5 space-y-4">
           <label className="block text-[12px] text-ink-soft">
             Nombre completo
             <input
@@ -75,16 +92,32 @@ export default async function RegistroPage({
               className={fieldClass}
             />
           </label>
+          <label className="block text-[12px] text-ink-soft">
+            Repetir contraseña
+            <input
+              name="confirmarClave"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className={fieldClass}
+            />
+          </label>
           <label className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-soft">
             <input type="checkbox" name="politica" required className="mt-0.5" />
             <span>
-              Autorizo el tratamiento de mis datos para gestionar mi cuenta e identificarme como firmante, según la{" "}
-              <a href="/privacidad" className="underline">política de tratamiento</a>.
+              Autorizo a {RESPONSABLE} a tratar mis datos para crear y administrar mi cuenta.
+              Puedo conocer, actualizar, rectificar y suprimir mis datos, y revocar esta
+              autorización, según la{" "}
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="underline">
+                política de tratamiento
+              </a>
+              .
             </span>
           </label>
-          <button type="submit" className={buttonClass("primary", true)}>
+          <SubmitButton variant="primary" className="w-full">
             Crear cuenta
-          </button>
+          </SubmitButton>
         </form>
       </Card>
       <p className="text-center text-[12.5px] text-ink-muted">

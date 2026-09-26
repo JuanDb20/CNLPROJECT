@@ -2,17 +2,17 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
 import { MarkIcon } from "@/components/ui";
-import { CHECK_CODES } from "@/domain/checks";
-import { ALL_FRAMEWORK_IDS, RULES } from "@/domain/compliance";
+import { FRAMEWORKS } from "@/domain/compliance";
 
 import { MenuExpandido } from "./sitio-menu";
 import "./sitio.css";
 
-/* Las cifras salen del catálogo, no se escriben a mano: así no quedan viejas. */
-export const CIFRAS = [
-  { n: CHECK_CODES.length, label: "Pruebas" },
-  { n: RULES.length, label: "Obligaciones" },
-  { n: ALL_FRAMEWORK_IDS.length, label: "Marcos" },
+/* Las leyes que revisa, por su nombre y no contadas: a un abogado le dice más
+   «Ley 1581» que «8 marcos». El nombre corto sale del catálogo. */
+export const LEYES = [
+  { n: FRAMEWORKS["col-1581"].shortName, label: "Datos personales" },
+  { n: FRAMEWORKS["col-1480"].shortName, label: "Consumidor" },
+  { n: FRAMEWORKS["col-1266"].shortName, label: "Hábeas data" },
 ];
 
 const NAV = [
@@ -91,7 +91,7 @@ export function SiteHeader({ actual }: { actual?: string }) {
             <Flecha />
           </Link>
           <p className="menu-note">
-            {CIFRAS[0].n} pruebas &nbsp;/&nbsp; {CIFRAS[1].n} obligaciones
+            {LEYES.map((l) => l.n).join(" · ")}
           </p>
         </div>
       </div>

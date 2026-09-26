@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ingresar, ingresarPrueba } from "@/app/actions";
 import { SitePage } from "@/components/sitio";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
 import { currentUser } from "@/server/auth";
 
@@ -47,9 +48,9 @@ export default async function IngresarPage({
               className={fieldClass}
             />
           </label>
-          <button type="submit" className={buttonClass("primary", true)}>
+          <SubmitButton variant="primary" className="w-full">
             Ingresar
-          </button>
+          </SubmitButton>
         </form>
 
         <div className="mt-5 flex items-center gap-3">

@@ -2,45 +2,80 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ingresarPrueba } from "@/app/actions";
-import { CIFRAS, Flecha, SiteHeader, escalon } from "@/components/sitio";
+import { Flecha, LEYES, SiteHeader, escalon } from "@/components/sitio";
+import { getRule } from "@/domain/compliance";
 import { currentUser } from "@/server/auth";
 
 import "./portada.css";
 
-// ponytail: video enlazado desde un CDN ajeno; si es propio, servirlo desde /public.
-const VIDEO =
-  "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260809_132544_b6ef0174-ed95-45ad-9a2f-ccb8acfbdce8.mp4";
+/* Escáner de la portada: un archivo de código en abstracto que VIGÍA recorre.
+   Al pasar el haz, cada hallazgo queda marcado con la norma que incumple (la
+   etiqueta sale del catálogo). Anchos en em; `mal` es la ficha señalada. */
+type Fila = { in?: number; w: number[]; mal?: number; norma?: string; grave?: boolean };
+const norma = (id: string) => getRule(id)!.label;
+const CODIGO: Fila[] = [
+  { w: [3.4, 5.2, 2.2, 7] },
+  { w: [3.4, 8.4, 2.2, 9.6] },
+  { w: [4.6, 6.2, 9], mal: 2, norma: norma("col-1581-transferencia"), grave: true },
+  { w: [] },
+  { w: [5.4, 6.4, 3.2, 1.4] },
+  { in: 1, w: [3.2, 5.4, 8.6] },
+  { in: 1, w: [2.6, 6, 9.2], mal: 1, norma: norma("col-1480-retracto") },
+  { in: 2, w: [5.8, 11.4] },
+  { in: 2, w: [4.4, 3.6, 7.2] },
+  { in: 1, w: [1.4] },
+  { in: 1, w: [3.8, 4.2, 8.8], mal: 2, norma: norma("col-1581-circulacion"), grave: true },
+  { in: 2, w: [7, 5.2, 3] },
+  { in: 2, w: [6.2, 9] },
+  { in: 1, w: [1.4] },
+  { w: [1.4] },
+  { w: [] },
+];
 
-/* Filtro del video sobre blanco: la opacidad sale del brillo, con un umbral que
-   borra el grano (lo negro y lo casi negro se vuelven transparentes), y el color
-   va del petróleo #123B4A (grises) al verde azulado #2A9D8F (líneas rojas del
-   original) según cuánto domina el rojo (R − G). */
-const TINTE = [
-  "0.0941 -0.0941 0 0 0.0706",
-  "0.3843 -0.3843 0 0 0.2314",
-  "0.2706 -0.2706 0 0 0.2902",
-  "1.1 0.55 0.18 0 -0.14",
-].join(" ");
+const sangria = (f: Fila) => ({ paddingLeft: `${(f.in ?? 0) * 1.6}em` });
+const fichas = (f: Fila, revisado = false) =>
+  f.w.map((w, j) => (
+    <i key={j} className={revisado && j === f.mal ? "mal" : undefined} style={{ width: `${w}em` }} />
+  ));
+
+function Escaner() {
+  return (
+    <div className="escaner" aria-hidden>
+      <ol className="codigo">
+        {CODIGO.map((f, n) => (
+          <li key={n} style={sangria(f)}>
+            {fichas(f)}
+          </li>
+        ))}
+      </ol>
+      <ol className="codigo revisado">
+        {CODIGO.map((f, n) =>
+          f.norma ? (
+            <li key={n} className={f.grave ? "hit grave" : "hit"} style={sangria(f)}>
+              {fichas(f, true)}
+              <span className="norma">{f.norma}</span>
+            </li>
+          ) : (
+            <li key={n} />
+          ),
+        )}
+      </ol>
+      <div className="haz" />
+    </div>
+  );
+}
 
 export default async function Home() {
   if (await currentUser()) redirect("/panel");
 
   return (
     <div className="sitio portada">
-      <svg className="svgdefs" aria-hidden>
-        <filter id="tinte" colorInterpolationFilters="sRGB">
-          <feColorMatrix type="matrix" values={TINTE} />
-        </filter>
-      </svg>
-      <div className="bg" aria-hidden>
-        <video src={VIDEO} autoPlay muted loop playsInline preload="auto" />
-      </div>
-
       <div className="frame">
         <SiteHeader />
 
         <main id="contenido">
           <div className="sp sp-a" />
+          <Escaner />
           <section className="hero">
             <h1>
               <span className="ln">
@@ -63,8 +98,8 @@ export default async function Home() {
             </form>
           </section>
           <div className="sp sp-b" />
-          <ul className="stats" aria-label="Catálogo de VIGÍA">
-            {CIFRAS.map((c, n) => (
+          <ul className="stats" aria-label="Leyes que revisa VIGÍA">
+            {LEYES.map((c, n) => (
               <li key={c.label} className="stat" style={escalon(n)}>
                 <span className="num">{c.n}</span>
                 <span className="lab">{c.label}</span>

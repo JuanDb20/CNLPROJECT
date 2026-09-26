@@ -132,7 +132,7 @@ export default async function HallazgoPage({
           </Panel>
 
           <div className="mt-4">
-            <Label>Análisis jurídico</Label>
+            <Label>Análisis jurídico propuesto</Label>
             <p className="text-[12.5px] leading-relaxed text-ink-soft">
               {finding.legalAnalysis}
             </p>

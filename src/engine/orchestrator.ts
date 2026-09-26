@@ -135,7 +135,8 @@ function createRun(
           role:
             `Abogado revisor: ${owner.name}` +
             (owner.professionalCard ? ` (T.P. ${owner.professionalCard})` : "") +
-            ". Firma cada hallazgo con su tarjeta profesional",
+            ". Firma el concepto jurídico de cada hallazgo con su tarjeta profesional; " +
+            "no certifica la seguridad del código",
         },
       ],
       sandboxId: `sandbox-${id}`,

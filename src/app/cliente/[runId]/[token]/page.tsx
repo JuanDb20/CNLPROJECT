@@ -30,9 +30,10 @@ const STATUS_TEXT: Record<RunStatus, string> = {
 
 /** Qué autoriza la representante legal, en una frase por punto (antes de las cláusulas). */
 const RESUMEN = [
-  "Autorizas el análisis de la copia del código que el abogado entregó: las pruebas corren sobre esa copia en un entorno aislado, nunca sobre tu aplicación en producción ni sobre datos reales.",
+  "Autorizas el análisis de la copia del código identificada arriba y declaras que corresponde a la versión de tu aplicación que está publicada o que vas a publicar; lo que no esté en esa copia queda fuera. Las pruebas corren sobre esa copia en un entorno aislado, nunca sobre tu aplicación en producción ni sobre datos reales.",
+  "El informe no certifica que tu aplicación sea segura ni que cumpla la ley: documenta lo que encontró un catálogo de pruebas y el concepto jurídico que firma el abogado.",
   "VIGÍA guarda el código 90 días y enmascara las llaves y los documentos que aparezcan en él antes de mostrarlos.",
-  "Todo queda registrado con sello de tiempo: qué texto aceptaste, cuándo y con qué huella SHA-256.",
+  "Queda registrado qué aceptaste, con la huella SHA-256 del texto, la fecha y la hora; el informe final, además, lo sella un tercero con sello de tiempo.",
   "Puedes revocar esta autorización en cualquier momento escribiéndole al abogado que te envió el enlace.",
 ];
 
@@ -154,9 +155,10 @@ export default async function ClientePage({
               <label className="flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-soft">
                 <input type="checkbox" name="acepto" required className="mt-0.5 accent-[var(--color-brand)]" />
                 <span>
-                  Soy representante legal de {client.name} (NIT {client.nit}) y, en su nombre, acepto estas cláusulas y
-                  autorizo las pruebas sobre el código identificado arriba. Mi nombre y mi cédula los trata VIGÍA como
-                  responsable, con la finalidad única de acreditar esta autorización y con el período de conservación
+                  Soy representante legal de {client.name} (NIT {client.nit}) y, en su nombre, acepto estas cláusulas,
+                  autorizo las pruebas sobre el código identificado arriba y declaro que ese código corresponde a la
+                  versión de la aplicación que {client.name} tiene desplegada o va a desplegar. Mi nombre y mi cédula
+                  los trata VIGÍA como responsable, con la finalidad única de acreditar esta autorización y con el período de conservación
                   indicado en su <a href="/privacidad" className="underline">política de tratamiento</a>. Como titular
                   puedo conocer, actualizar, rectificar y suprimir mis datos, revocar esta autorización y presentar
                   quejas ante la Superintendencia de Industria y Comercio, escribiendo a{" "}
@@ -178,11 +180,11 @@ export default async function ClientePage({
               </Panel>
               {clientAcceptance && (
                 <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">
-                  La aceptación se perfecciona como firma electrónica: el mecanismo de identificación —enlace de un solo
-                  uso, nombre, número de documento y marca de tiempo— está pactado entre las partes en el encargo
+                  La aceptación se perfecciona como firma electrónica: el mecanismo de identificación —enlace
+                  personal que solo permite aceptar una vez, nombre, número de documento y fecha y hora— está pactado entre las partes en el encargo
                   profesional, por lo que se presume que satisface el requisito de firma (Decreto 2364 de 2012, arts. 3 y
                   7, que reglamentan el art. 7 de la Ley 527 de 1999). La integridad del texto aceptado se acredita con
-                  su huella SHA-256 y el sello de tiempo de un tercero, de modo que cualquier alteración posterior es
+                  su huella SHA-256, registrada con la fecha y la hora de la aceptación, de modo que cualquier alteración posterior es
                   detectable (Decreto 2364 de 2012, art. 4 num. 2). No se trata de una firma digital certificada en los
                   términos del art. 28 de la Ley 527 de 1999.
                 </p>

@@ -1,11 +1,14 @@
 // Formato compartido por informe, portal del cliente y pantallas internas.
 // Estaba duplicado en dos archivos y por eso un cambio de texto rompió los dos a la vez.
 
-/** Extrae el nombre del abogado del rol del firmante ("Abogado revisor: X. Firma cada hallazgo…"). */
+/**
+ * Extrae el nombre del abogado del rol del firmante ("Abogado revisor: X. Firma el concepto jurídico de
+ * cada hallazgo…"). Acepta también el rol anterior ("X. Firma cada hallazgo…") de las auditorías guardadas.
+ */
 export function lawyerName(role?: string): string {
   return (role ?? "")
     .replace(/^Abogado revisor: /, "")
-    .replace(/\. Firma cada hallazgo.*$/, "");
+    .replace(/\. Firma (?:el concepto jurídico de )?cada hallazgo.*$/, "");
 }
 
 /** Fecha en es-CO y hora de Bogotá; con `time` incluye la hora. */
