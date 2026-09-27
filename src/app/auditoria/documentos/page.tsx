@@ -36,7 +36,7 @@ export default async function DocumentosPage() {
           title={`${documentos.length} documento${documentos.length === 1 ? "" : "s"} para ${run.scope.client.name}`}
           tag="Sin IA generativa"
           tagTone="brand"
-          description="Cuando la falla es que falta un documento, el parche no es un diff: es el documento. VIGÍA lo redacta con plantillas normativas fijas y lo prellena con lo que leyó del código auditado —razón social y NIT, proveedores de IA con su país, categorías de datos del esquema, puntos de recolección—. Lo que no está en el código queda marcado como pendiente para que lo diligencie el abogado, que revisa, ajusta y firma: el documento no sustituye su juicio profesional."
+          description="Cuando la falla es que falta un documento, la corrección no es un cambio de código: es el documento. VIGÍA lo redacta con plantillas normativas fijas y lo prellena con lo que leyó del código auditado —razón social y NIT, proveedores de IA con su país, categorías de datos del esquema, puntos de recolección—. Lo que no está en el código queda marcado como pendiente para que lo diligencie el abogado, que revisa, ajusta y firma: el documento no sustituye su juicio profesional."
         />
 
         {documentos.length === 0 ? (

@@ -23,8 +23,8 @@ export const metadata: Metadata = {
     template: "%s · VIGÍA",
   },
   description:
-    "Auditoría adversarial de aplicaciones de IA con trazabilidad jurídica: " +
-    "Ley 1581, Ley 1266, EU AI Act, RGPD y OWASP LLM.",
+    "Auditoría legal y técnica de aplicaciones hechas con IA, con trazabilidad jurídica: " +
+    "Ley 1581, Ley 1480, Ley 1266 y OWASP.",
 };
 
 export const viewport: Viewport = {

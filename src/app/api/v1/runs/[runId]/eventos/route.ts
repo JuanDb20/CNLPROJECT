@@ -47,21 +47,22 @@ export async function GET(_request: Request, { params }: Params) {
           progress: overallProgress(current),
           phase: currentPhase(current),
         });
-        if (current.status === "analizado" || current.status === "certificado") {
-          finish();
-        }
+        // Cualquier estado distinto de "ejecutando" (analizado, remediando, certificado…) termina el flujo.
+        if (current.status !== "ejecutando") finish();
       };
 
-      void sendState();
-      const ticker = setInterval(() => void sendState(), 1000);
+      void sendState().catch(() => {});
+      const ticker = setInterval(() => void sendState().catch(() => {}), 1000);
 
       const timeout = setTimeout(finish, 5 * 60 * 1000);
 
       function finish() {
-        if (closed) return;
-        closed = true;
+        // Primero se detiene el sondeo: si el cliente ya cerró, `closed` es true y
+        // sin esto el intervalo seguiría leyendo la auditoría cada segundo, sin fin.
         clearInterval(ticker);
         clearTimeout(timeout);
+        if (closed) return;
+        closed = true;
         try {
           controller.close();
         } catch {

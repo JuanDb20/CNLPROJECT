@@ -1,5 +1,6 @@
 import { reejecutarEscaneo } from "@/app/actions";
-import { Card, buttonClass } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { Card } from "@/components/ui";
 import { executionLabel } from "@/domain/format";
 import { requireAuthorizedRun } from "@/server/session";
 
@@ -37,9 +38,9 @@ export default async function EjecucionPage() {
               : `El alcance está autorizado y la configuración guardada, pero todavía no se ha iniciado el análisis sobre ${executionLabel(run.scope.sandboxId)}.`}
           </p>
           <form action={reejecutarEscaneo} className="mt-4">
-            <button type="submit" className={buttonClass("brand")}>
+            <SubmitButton pendingText="Iniciando el análisis…">
               {interrumpida ? "Volver a iniciar el análisis" : "Iniciar el análisis"}
-            </button>
+            </SubmitButton>
           </form>
         </Card>
       </div>

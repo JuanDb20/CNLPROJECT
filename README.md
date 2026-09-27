@@ -1,9 +1,10 @@
-# VIGÍA — Equipo rojo legal y técnico para IA
+# VIGÍA — Auditoría legal y técnica de apps hechas con IA
 
 Prototipo funcional para el Concurso Nacional de Legal Tech "Germán Cavelier" 2026-2.
+En producción: <https://vigia-legaltech.vercel.app>.
 
-VIGÍA audita aplicaciones de IA generadas por *vibecoding*: ejecuta pruebas
-adversariales en un entorno aislado y autorizado, traduce cada falla técnica a la
+VIGÍA audita aplicaciones hechas con IA (*vibecoding*): corre 61 pruebas sobre el
+código en un entorno aislado y autorizado, traduce cada falla técnica a la
 norma que incumple y propone el parche. VIGÍA propone el análisis jurídico; lo
 firma un abogado identificado con su tarjeta profesional. El entregable es el
 **Informe de auditoría técnico-jurídica: evidencia para el principio de
@@ -61,19 +62,24 @@ clave-valor y elige en este orden:
 
 3. **Memoria** — el resto de los casos.
 
+Otra variable, opcional: `VIGIA_TSA_URL`, la autoridad de sellado de tiempo
+RFC 3161 (por defecto `https://freetsa.org/tsr`).
+
 ## Uso
 
-1. **Crear cuenta de abogado** (nombre, correo y contraseña) o **Ingresar**. La
-   tarjeta profesional se pide al firmar el primer hallazgo y queda guardada en la
-   cuenta. Cada abogado solo ve sus propias auditorías.
+1. **Crear cuenta de abogado** (nombre, correo y contraseña), **Ingresar** o
+   **Probar sin registrarse** (sesión de invitado). La tarjeta profesional se pide
+   al firmar el primer hallazgo y queda guardada en la cuenta. Cada abogado solo
+   ve sus propias auditorías.
 2. **Mis auditorías → Nueva auditoría.** Registrar al cliente (razón social, NIT,
    representante legal, sector) y cargar el código del sistema de IA en un `.zip`
    de hasta 4 MB, o indicar un repositorio público de GitHub. VIGÍA lo lee en
    memoria, ignora `node_modules`, `.git` y los binarios, y fija la versión
-   auditada con su SHA-256.
+   auditada con su SHA-256. **Usar datos de ejemplo** abre una auditoría sobre un
+   código de ejemplo con fallas reales, sin llenar nada.
 3. **Paso 1 — Alcance.** El representante legal acepta las cuatro cláusulas del
-   acuerdo de white hat desde el **portal del cliente** (enlace secreto, sin cuenta,
-   con nombre y cédula). Si el acuerdo se firmó por fuera de VIGÍA, el abogado las
+   acuerdo de autorización de pruebas desde el **portal del cliente** (enlace
+   personal, sin cuenta, con nombre y cédula). Si el acuerdo se firmó por fuera de VIGÍA, el abogado las
    marca. Sin ellas el botón de continuar queda deshabilitado: el art. 269A de la
    Ley 1273 de 2009 sanciona el acceso «por fuera de lo acordado», y VIGÍA, que
    actúa como encargado, suscribe el contrato de transmisión.
@@ -87,7 +93,9 @@ clave-valor y elige en este orden:
    el análisis jurídico y el parche propuesto.
 7. **Paso 6 — Remediación.** Cargar la versión corregida del código (.zip o
    repositorio), retestear, firmar cada hallazgo (tarjeta profesional y salvedad
-   opcional) y expedir el informe. Con el informe expedido, el abogado puede
+   opcional) y expedir el informe. Solo en la auditoría de ejemplo, el botón
+   **Aplicar la corrección que propone VIGÍA y volver a probar** arma la versión
+   corregida con los parches propuestos y retestea sin cargar nada. Con el informe expedido, el abogado puede
    borrar el código cargado: queda su SHA-256, que es lo que ata el informe a esa
    versión exacta.
 8. **Informe** (`/informe/:id`): documento para imprimir o guardar en PDF desde el
@@ -102,8 +110,10 @@ clave-valor y elige en este orden:
     `src/app/transparencia/resultado.json`; hay que correrlo antes de cada
     despliegue.
 
-El caso de prueba para ensayar el sistema está fuera de este repositorio, en
-`caso-prueba/` (un `.zip` con el código de una fintech ficticia y su guía).
+El caso de prueba para ensayar el sistema (el portal de una fintech ficticia y su
+versión corregida) se descarga desde el propio sitio: `/caso-prueba/fintrex-portal.zip`
+y `/caso-prueba/fintrex-portal-v2.zip` (en `public/caso-prueba/`). La guía para
+recorrerlo se entrega aparte, con el manual.
 
 ## Arquitectura
 
@@ -222,9 +232,9 @@ El eje es el derecho colombiano:
 - Referencia comparada, no reportada como incumplimiento: Reglamento (UE)
   2024/1689 (AI Act), Reglamento (UE) 2016/679 (RGPD) y Directrices EDPB 03/2022.
 
-## Rama de ideas: VIGÍA como auditor legal integral
+## Módulos del auditor legal integral
 
-La rama `ideas/auditor-legal-integral` (no desplegada) añade, sobre la base anterior:
+Sobre la base anterior, el catálogo incluye (todo integrado en `main` y en producción):
 
 - **Parche de tipo `documento`**: cuando la corrección no es código sino un documento,
   VIGÍA lo redacta a partir del código auditado (política de tratamiento con los seis

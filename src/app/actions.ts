@@ -18,6 +18,7 @@ import {
 import {
   applyExampleFixes,
   issueCertificate,
+  openAllPullRequests,
   openPullRequest,
   retest,
   signFinding,
@@ -36,9 +37,13 @@ import { repository } from "@/server/store";
  * interfaz no es el único cliente posible del producto.
  */
 
-/** Auditoría abierta del abogado de la sesión (redirige si no es suya). */
-async function runId(): Promise<string> {
-  return (await requireRun()).id;
+/** Auditoría abierta del abogado de la sesión (redirige si no es suya). Si la
+ * pantalla que envió el formulario mostraba otra auditoría (dos pestañas
+ * abiertas), vuelve al panel en vez de actuar sobre la equivocada. */
+async function runId(visible?: string): Promise<string> {
+  const id = (await requireRun()).id;
+  if (visible && visible !== id) redirect("/panel");
+  return id;
 }
 
 async function openRun(id: string) {
@@ -178,6 +183,13 @@ export async function abrirPullRequest(findingId: string) {
   redirect(`/auditoria/remediacion?hallazgo=${findingId}`);
 }
 
+/** Botón de la lista de hallazgos: abre la corrección de todos los pendientes y
+ * lleva a la remediación, donde la versión corregida los prueba juntos. */
+export async function corregirTodos() {
+  await openAllPullRequests(await runId());
+  redirect("/auditoria/remediacion");
+}
+
 export async function retestear(findingId: string) {
   await retest(await runId(), findingId);
   revalidatePath("/auditoria", "layout");
@@ -204,12 +216,12 @@ export async function aplicarCorreccionEjemplo(findingId: string) {
   redirect(`/auditoria/remediacion?hallazgo=${encodeURIComponent(findingId)}`);
 }
 
-export async function firmarHallazgo(findingId: string, form: FormData) {
+export async function firmarHallazgo(visibleRunId: string, findingId: string, form: FormData) {
   // Firma quien inició sesión: el nombre no se toma del formulario, la tarjeta
   // profesional sí, porque VIGÍA solo la exige en este paso, no al registrarse.
   const user = await requireUser();
   await signFinding(
-    await runId(),
+    await runId(visibleRunId),
     findingId,
     { name: user.name, professionalCard: String(form.get("tarjeta") ?? "") },
     String(form.get("salvedad") ?? ""),
@@ -217,8 +229,8 @@ export async function firmarHallazgo(findingId: string, form: FormData) {
   revalidatePath("/auditoria", "layout");
 }
 
-export async function expedirCertificado() {
-  await issueCertificate(await runId());
+export async function expedirCertificado(visibleRunId: string) {
+  await issueCertificate(await runId(visibleRunId));
   revalidatePath("/auditoria/remediacion");
 }
 
@@ -226,8 +238,9 @@ export async function expedirCertificado() {
  * Borra el código cargado una vez expedido el informe: la cláusula 4 del acuerdo
  * promete que solo queda su SHA-256, y ese hash ya está dentro del informe.
  */
-export async function borrarCodigo() {
+export async function borrarCodigo(visibleRunId: string) {
   const run = await requireRun();
+  if (run.id !== visibleRunId) redirect("/panel");
   if (run.status !== "certificado") redirect("/auditoria/remediacion");
   await repository.deleteSource(run.id);
   await repository.update(run.id, (current) => ({

@@ -47,10 +47,10 @@ const LOG_STYLE: Record<LogLevel, string> = {
 };
 
 const LOG_TAG: Record<LogLevel, string> = {
-  system: "SYSTEM",
+  system: "SISTEMA",
   info: "INFO",
-  payload: "SCAN",
-  vuln: "VULN",
+  payload: "PRUEBA",
+  vuln: "HALLAZGO",
   ok: "OK",
 };
 
@@ -131,10 +131,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
       setProgress(data.progress);
       setPhase(data.phase);
 
-      if (
-        !finishedRef.current &&
-        (data.run.status === "analizado" || data.run.status === "certificado")
-      ) {
+      if (!finishedRef.current && data.run.status !== "ejecutando") {
         finishedRef.current = true;
         source.close();
         setConnected(false);
@@ -153,7 +150,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [logs.length]);
 
-  const done = run.status === "analizado" || run.status === "certificado";
+  const done = run.status !== "ejecutando";
 
   return (
     <div className="space-y-5">
@@ -162,7 +159,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
           Ejecución de las pruebas
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Pruebas de seguridad en vivo sobre el entorno aislado autorizado
+          Análisis del código cargado, en un entorno aislado y autorizado
         </p>
       </div>
 
@@ -248,7 +245,7 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
             >
               {logs.length === 0 ? (
                 <p className="font-mono text-[11px] text-ink-faint">
-                  Esperando el primer evento del orquestador…
+                  Esperando la primera entrada de la traza…
                 </p>
               ) : (
                 <ol className="space-y-0.5">
@@ -292,8 +289,8 @@ export function LiveRun({ initialRun }: { initialRun: AuditRun }) {
 
           {!done ? (
             <p className="mt-4 text-[11px] leading-relaxed text-ink-muted">
-              El análisis corre en {executionLabel(run.scope.sandboxId)}, sobre el código cargado. Cada
-              entrada de la traza queda sellada para el informe forense.
+              El análisis corre en {executionLabel(run.scope.sandboxId)}, sobre el código cargado. La
+              traza queda guardada en el expediente de la auditoría.
             </p>
           ) : null}
         </Card>

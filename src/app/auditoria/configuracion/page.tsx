@@ -87,7 +87,7 @@ export default async function ConfiguracionPage({
     : run.config.frameworks;
 
   return (
-    <div className="max-w-[780px] space-y-6">
+    <div className="max-w-[780px] space-y-6 outline-none" tabIndex={-1}>
       <Pasos
         base="/auditoria/configuracion"
         nombres={["Proveedores de IA", "Normas a evaluar"]}

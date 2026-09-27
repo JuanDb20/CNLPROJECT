@@ -80,9 +80,9 @@ export default async function NuevaAuditoriaPage({
             código de ejemplo (con fallas reales, no precalculadas) sin llenar nada.
           </p>
           <form action={crearAuditoriaEjemplo}>
-            <button type="submit" className={buttonClass("secondary")}>
+            <SubmitButton variant="secondary" pendingText="Abriendo el ejemplo…">
               Usar datos de ejemplo
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </Panel>

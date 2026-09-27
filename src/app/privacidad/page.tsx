@@ -123,7 +123,7 @@ const SECCIONES: Array<[string, Bloque[]]> = [
     [
       "vigia_sesion: mantiene la sesión del abogado. Solo la lee el servidor y vence a las 8 horas.",
       "vigia_run: recuerda qué auditoría tiene abierta el abogado. Solo la lee el servidor y se borra al cerrar el navegador.",
-      "vigia_modo: recuerda si está activo el modo aprendizaje. Se crea solo si el usuario lo activa y vence a los 30 días.",
+      "vigia_modo: recuerda si está activa la opción «Explicar hallazgos». Se crea solo si el usuario la activa y vence a los 30 días.",
     ],
     "Son cookies propias, de sesión o de preferencia. No usamos cookies de analítica ni de publicidad ni scripts de terceros, y las fuentes tipográficas se sirven desde este mismo sitio. Si el proveedor de alojamiento activa su protección contra tráfico automatizado, puede fijar una cookie técnica suya.",
   ]],

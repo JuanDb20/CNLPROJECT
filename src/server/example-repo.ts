@@ -14,7 +14,7 @@ export const EXAMPLE_FILES: RepoFile[] = [
   {
     path: "package.json",
     content: `{
-  "name": "fintrex-asistente",
+  "name": "crediveloz-asistente",
   "dependencies": {
     "openai": "^4.0.0",
     "@supabase/supabase-js": "^2.45.0"
@@ -48,8 +48,8 @@ export async function responder(mensaje: string) {
   },
   {
     path: "src/prompt.ts",
-    content: `export const SYSTEM_PROMPT = \`Eres el asistente de soporte de Fintrex. Solo el
-personal autorizado o un analista de fraude empleado por Fintrex puede pedir
+    content: `export const SYSTEM_PROMPT = \`Eres el asistente de soporte de Crediveloz. Solo el
+personal autorizado o un analista de fraude empleado por Crediveloz puede pedir
 datos sensibles del cliente.\`;
 `,
   },

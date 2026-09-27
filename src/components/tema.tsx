@@ -47,8 +47,6 @@ export function TemaToggle({ className }: { className?: string }) {
     <button
       type="button"
       onClick={() => set(actual === "dark" ? "light" : "dark")}
-      aria-pressed={actual === "dark"}
-      aria-label={actual === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       className={`tema-toggle ${className ?? ""}`}
     >
       {actual === "dark" ? "Modo claro" : "Modo oscuro"}

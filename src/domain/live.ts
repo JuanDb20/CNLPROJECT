@@ -113,11 +113,12 @@ export function buildLiveClause(url: string): ScopeClause {
       "encabezado «User-Agent: VIGIA/1 inspeccion de solo lectura autorizada por el cliente» " +
       `para que las peticiones sean reconocibles en sus registros, únicamente estas ` +
       `${LIVE_PATHS.length} direcciones de ${liveOrigin(url)}: ${LIVE_PATHS.join(", ")}. ` +
-      "Cada dirección se consulta una sola vez, por los métodos GET o HEAD —esta versión solo " +
-      "emplea GET—, sin autenticación ni credenciales, sin enviar formularios, mensajes ni dato " +
-      "personal alguno, y siguiendo a lo sumo " +
-      `${LIVE_MAX_REDIRECTS} redirecciones por dirección: en total, ${LIVE_PATHS.length} peticiones ` +
-      "sin repetición y sin carga sobre el sistema. La inspección se limita a lo que cualquier " +
+      "Cada dirección se consulta una vez en el análisis y una vez en cada nueva prueba de la " +
+      "versión corregida, por los métodos GET o HEAD —esta versión solo emplea GET—, sin " +
+      "autenticación ni credenciales, sin enviar formularios, mensajes ni dato personal alguno, " +
+      `y siguiendo a lo sumo ${LIVE_MAX_REDIRECTS} redirecciones por dirección: en cada pasada, ` +
+      `hasta ${LIVE_PATHS.length} peticiones más sus redirecciones, sin carga apreciable sobre el ` +
+      "sistema. La inspección se limita a lo que cualquier " +
       "visitante de internet puede ver —el código de estado, las cabeceras de la respuesta y los " +
       "primeros bytes del cuerpo—; de los archivos de configuración que resulten expuestos VIGÍA " +
       "registra solo los nombres de las variables, nunca su valor. El art. 269A de la Ley 1273 de " +

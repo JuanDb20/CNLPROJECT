@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { abrirAuditoria, crearAuditoriaEjemplo } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, Tag, buttonClass } from "@/components/ui";
 import { formatDate } from "@/domain/format";
 import { scoreRun } from "@/domain/scoring";
@@ -55,9 +56,9 @@ export default async function PanelPage() {
               Abrir la primera auditoría
             </Link>
             <form action={crearAuditoriaEjemplo}>
-              <button type="submit" className={buttonClass("ghost")}>
+              <SubmitButton variant="ghost" pendingText="Abriendo el ejemplo…">
                 O usa datos de ejemplo
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </Card>

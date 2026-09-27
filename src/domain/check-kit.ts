@@ -73,12 +73,14 @@ export function lacking(files: RepoFile[], path: RegExp, missing: RegExp, at = /
  */
 export const DOCUMENT = /(?<![-.\d$])\b(?:\d{1,3}(?:[.\s]\d{3}){1,3}|\d{5,12})\b/g;
 /** Palabra que convierte el número siguiente en una cita, no en un documento. */
-export const CITED = /(\b(?:ley|decreto|resoluci[oó]n|circular|sentencia|acuerdo|cve|art[ií]?culos?|num|apartado)|\$)\S*\s*$/i;
+export const CITED = /(\b(?:ley|decreto|resoluci[oó]n|circular|sentencia|acuerdo|cve|art[ií]?culos?|num|apartado|max-age)|\$)\S*\s*$/i;
 
 /** Enmascara llaves, secretos, correos y números de documento antes de mostrarlos. */
 export function mask(text: string): string {
   return text
     .replace(/\b(sk-(?:proj-)?|sk_live_|AIza)[\w-]{8,}/g, "$1[ENMASCARADO]")
+    // Los mismos formatos que detecta VGI-014: AWS, Slack, GitHub, SendGrid y Supabase.
+    .replace(/\b(AKIA|xox[baprs]-|gh[pousr]_|SG\.|sb_secret_)[\w.-]{8,}/g, "$1[ENMASCARADO]")
     .replace(
       /((?:KEY|SECRET|TOKEN|PASSWORD)\w*\s*[=:]\s*["'`]?)(?!process\.env|\[ENMASCARADO)[^\s"'`,;]{6,}/gi,
       "$1[ENMASCARADO]",

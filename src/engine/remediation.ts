@@ -147,6 +147,23 @@ export async function applyExampleFixes(runId: string): Promise<AuditRun> {
   return uploadCorrected(runId, "ejemplo-crediveloz-corregido-por-vigia.zip", writeZip(files));
 }
 
+/** Abre la corrección de todos los hallazgos pendientes de una vez (botón de la
+ * lista de hallazgos): así la versión corregida los prueba todos, sin entrar uno a uno. */
+export async function openAllPullRequests(runId: string): Promise<AuditRun> {
+  return repository.update(runId, (run) => {
+    let pr = nextPrNumber(run.findings);
+    return {
+      ...run,
+      status: run.status === "analizado" ? "remediando" : run.status,
+      findings: run.findings.map((f) =>
+        f.remediation.status === "propuesta"
+          ? { ...f, remediation: { ...f.remediation, status: "pr-abierto" as const, prNumber: pr++, prUrl: null } }
+          : f,
+      ),
+    };
+  });
+}
+
 /** Retestea un hallazgo contra la versión corregida ya cargada. */
 export async function retest(runId: string, findingId: string): Promise<AuditRun> {
   const run = await repository.find(runId);
@@ -184,6 +201,8 @@ export async function signFinding(
   const run = await repository.find(runId);
   const finding = run?.findings.find((f) => f.id === findingId);
   if (!run || !finding) throw new Error("Hallazgo no encontrado");
+  // Una firma posterior no entraría en el hash del informe: no se admite.
+  if (run.certificate) throw new Error("El informe ya fue expedido: no se pueden agregar firmas");
 
   const allPassed =
     finding.remediation.retests.length > 0 &&

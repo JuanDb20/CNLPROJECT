@@ -291,8 +291,12 @@ export default async function RemediacionPage({
                     </p>
                   ) : null}
                 </>
+              ) : run.certificate ? (
+                <p className="text-[13px] leading-relaxed text-ink-soft">
+                  El informe ya fue expedido: este hallazgo quedó fuera de él y ya no admite firma.
+                </p>
               ) : retestPassed ? (
-                <form action={firmarHallazgo.bind(null, selected.id)} className="space-y-3">
+                <form action={firmarHallazgo.bind(null, run.id, selected.id)} className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-[1fr_9rem]">
                     <p className="text-[12px] text-ink-muted">
                       Abogado revisor
@@ -413,7 +417,7 @@ export default async function RemediacionPage({
                         Acción irreversible: borra el .zip cargado y conserva solo su SHA-256,
                         que ya queda en el informe.
                       </p>
-                      <form action={borrarCodigo}>
+                      <form action={borrarCodigo.bind(null, run.id)}>
                         <button type="submit" className={buttonClass("secondary")}>
                           Borrar el código ahora
                         </button>
@@ -429,7 +433,7 @@ export default async function RemediacionPage({
                       : `Reúne los ${score.resolved} hallazgos firmados`}{" "}
                     en un documento que cualquiera puede comprobar en línea.
                   </p>
-                  <form action={expedirCertificado} className="mt-4 flex flex-wrap items-center gap-2">
+                  <form action={expedirCertificado.bind(null, run.id)} className="mt-4 flex flex-wrap items-center gap-2">
                     <SubmitButton variant={signed ? "primary" : "secondary"} pendingText="Expidiendo el informe…">
                       Expedir informe de auditoría
                     </SubmitButton>

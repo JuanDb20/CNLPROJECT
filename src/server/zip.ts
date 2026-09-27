@@ -35,7 +35,8 @@ export function readZip(buffer: Buffer): RepoFile[] {
       const size = buffer.readUInt32LE(offset + 24);
       const nameLength = buffer.readUInt16LE(offset + 28);
       const local = buffer.readUInt32LE(offset + 42);
-      const path = buffer.toString("utf8", offset + 46, offset + 46 + nameLength);
+      // Algunas herramientas de Windows escriben las rutas con "\".
+      const path = buffer.toString("utf8", offset + 46, offset + 46 + nameLength).replaceAll("\\", "/");
       offset +=
         46 + nameLength + buffer.readUInt16LE(offset + 30) + buffer.readUInt16LE(offset + 32);
 

@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { corregirTodos } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, SeverityBadge, cx } from "@/components/ui";
 import { sortFindings } from "@/domain/scoring";
 import { requireAnalyzedRun } from "@/server/session";
@@ -13,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function HallazgosPage() {
   const run = await requireAnalyzedRun();
   const findings = sortFindings(run.findings);
+  const pendientes = findings.filter((f) => f.remediation.status === "propuesta").length;
 
   return (
     <div className="max-w-[780px] space-y-5">
@@ -58,6 +61,23 @@ export default async function HallazgosPage() {
           })}
         </ul>
       </Card>
+
+      {pendientes > 0 ? (
+        <Card>
+          <p className="text-[13px] leading-relaxed text-ink-soft">
+            {pendientes === 1
+              ? "Queda 1 hallazgo sin corrección iniciada."
+              : `Quedan ${pendientes} hallazgos sin corrección iniciada.`}{" "}
+            Puedes abrir la corrección de todos a la vez y probarlos juntos con la versión
+            corregida, sin entrar uno por uno.
+          </p>
+          <form action={corregirTodos} className="mt-3">
+            <SubmitButton variant="primary" pendingText="Preparando las correcciones…">
+              Corregir todos los hallazgos pendientes <span aria-hidden>→</span>
+            </SubmitButton>
+          </form>
+        </Card>
+      ) : null}
     </div>
   );
 }

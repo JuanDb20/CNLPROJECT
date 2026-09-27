@@ -70,7 +70,7 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
   /* URL pública del despliegue (opcional): solo se inspecciona en lectura, y solo
      si el cliente acepta la cláusula que la nombra. */
   const liveUrl = text("despliegue", 300);
-  if (liveUrl && !/^https?:\/\/[^\s/?#]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(liveUrl)) {
+  if (liveUrl && !/^https:\/\/[^\s/?#]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(liveUrl)) {
     throw new Error("La URL del despliegue debe ser pública y empezar por https://");
   }
 
@@ -176,7 +176,7 @@ async function ruesLookup(nit: string): Promise<ClientInfo["rues"]> {
     try {
       const res = await fetch(
         `https://www.datos.gov.co/resource/c82u-588k.json?nit=${nit}&$select=razon_social,estado_matricula,cod_ciiu_act_econ_pri,ultimo_ano_renovado&$order=ultimo_ano_renovado DESC&$limit=1`,
-        { signal: AbortSignal.timeout(10_000), cache: "no-store" },
+        { signal: AbortSignal.timeout(4_000), cache: "no-store" },
       );
       if (!res.ok) continue;
       const [row] = (await res.json()) as Array<Record<string, string>>;
@@ -198,6 +198,7 @@ export async function sourceZip(repoUrl: string, file: FormDataEntryValue | null
     // Host fijo y nombre validado: el usuario no elige a qué servidor se conecta VIGÍA.
     const res = await fetch(`https://codeload.github.com/${repo[1]}/${repo[2]}/zip/HEAD`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok || !res.body) throw new Error("No se pudo descargar: el repositorio debe ser público");
     const chunks: Buffer[] = [];
@@ -269,6 +270,8 @@ export async function acceptScopeAsClient(
 export async function authorizeScope(runId: string): Promise<AuditRun> {
   const run = await repository.find(runId);
   if (!run) throw new Error("Auditoría no encontrada");
+  // Reconfirmar desde una pestaña vieja no debe devolver a "configurado" una auditoría avanzada.
+  if (run.scope.authorizedAt) return run;
 
   const providers = detectProviders(await repository.files(runId));
   const pending = run.scope.clauses.filter((c) => c.required && !c.accepted);
@@ -292,7 +295,9 @@ export async function saveConfig(
     ...run,
     config: {
       ...run.config,
-      frameworks: patch.frameworks ?? run.config.frameworks,
+      frameworks: Array.isArray(patch.frameworks)
+        ? patch.frameworks.filter((f) => ALL_FRAMEWORK_IDS.includes(f))
+        : run.config.frameworks,
       piiMaskEnabled: patch.piiMaskEnabled ?? run.config.piiMaskEnabled,
     },
   }));
@@ -354,7 +359,7 @@ export async function startExecution(runId: string): Promise<AuditRun> {
         at: new Date().toISOString(),
         level: "system" as const,
         module: "orchestrator" as const,
-        message: "Ejecución encolada",
+        message: "Análisis en cola",
       },
     ],
     findings: [],
@@ -362,7 +367,13 @@ export async function startExecution(runId: string): Promise<AuditRun> {
     certificate: null,
   }));
 
-  after(() => execute(runId));
+  after(() =>
+    // Si el almacén falla a mitad del análisis, la auditoría vuelve a "configurado"
+    // y la pantalla ofrece de nuevo "Iniciar el análisis" en vez de quedarse congelada.
+    execute(runId).catch(() =>
+      repository.update(runId, (r) => ({ ...r, status: "configurado" })).catch(() => {}),
+    ),
+  );
   return started;
 }
 
@@ -387,7 +398,7 @@ async function execute(runId: string): Promise<void> {
       runId,
       "info",
       "orchestrator",
-      "Máscara de datos personales activa: los registros reales se sustituyen por datos sintéticos",
+      "Enmascaramiento activo: las llaves, los correos y los números de documento se muestran como [ENMASCARADO]",
     );
   }
   if (inputs.licenses.length > 0) {

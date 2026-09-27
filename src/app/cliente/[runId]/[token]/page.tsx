@@ -174,7 +174,7 @@ export default async function ClientePage({
               <Panel tone="safe" className="mt-5">
                 <p className="text-[12px] text-safe">
                   {clientAcceptance
-                    ? `Aceptado por ${clientAcceptance.name} (C.C. ${clientAcceptance.idNumber}) el ${formatDate(clientAcceptance.at, { time: true })}`
+                    ? `Aceptado por ${clientAcceptance.name} (C.C. terminada en ${clientAcceptance.idNumber.slice(-4)}) el ${formatDate(clientAcceptance.at, { time: true })}`
                     : `El abogado registró el acuerdo firmado por fuera de VIGÍA${authorizedAt ? ` el ${formatDate(authorizedAt, { time: true })}` : ""}`}
                 </p>
               </Panel>

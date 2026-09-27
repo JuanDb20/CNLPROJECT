@@ -13,7 +13,8 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
         No pudimos cargar esta pantalla
       </h1>
       <p className="text-[13px] leading-relaxed text-ink-muted">
-        El almacenamiento de VIGÍA no respondió. Los datos de la auditoría están intactos.
+        No se pudo completar la acción; los datos de la auditoría están intactos. Si cargaste
+        un .zip, revisa que pese menos de 4 MB.
       </p>
       <div className="flex flex-wrap justify-center gap-3">
         <button type="button" onClick={reset} className={buttonClass("brand")}>

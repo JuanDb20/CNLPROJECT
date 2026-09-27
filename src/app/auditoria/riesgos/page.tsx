@@ -106,7 +106,7 @@ export default async function RiesgosPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">
-          Riesgos encontrados
+          Mapa de riesgos
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
           {rows.length === 0

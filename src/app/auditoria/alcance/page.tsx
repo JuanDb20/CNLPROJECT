@@ -257,7 +257,7 @@ export default async function AlcancePage({
   }
 
   return (
-    <div className="max-w-[780px] space-y-6">
+    <div className="max-w-[780px] space-y-6 outline-none" tabIndex={-1}>
       <Pasos base={BASE} nombres={["Cliente y código", "Acuerdo", "Autorización"]} actual={actual} />
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-ink">{titulo}</h1>
