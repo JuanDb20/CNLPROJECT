@@ -148,10 +148,12 @@ export default async function HallazgoPage({
                     );
                   })}
                 </Panel>
-                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
-                  Clic o Enter sobre un dato enmascarado lo ubica. VIGÍA nunca envía el dato real
-                  al navegador: el motor lo enmascara antes de mostrar la evidencia.
-                </p>
+                {finding.evidence.response.includes("[ENMASCARADO]") ? (
+                  <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
+                    Clic o Enter sobre un dato enmascarado lo ubica. VIGÍA nunca envía el dato real
+                    al navegador: el motor lo enmascara antes de mostrar la evidencia.
+                  </p>
+                ) : null}
               </div>
               <div>
                 <Label>Escenario (ilustrativo, no ejecutado en esta versión)</Label>

@@ -135,9 +135,9 @@ export function RuleChip({ kind, label }: { kind: string; label: string }) {
 
 const BUTTON_VARIANTS = {
   primary:
-    "bg-ink text-canvas hover:bg-ink-soft disabled:bg-line-strong disabled:text-canvas",
+    "bg-ink text-canvas hover:bg-ink-soft disabled:opacity-50",
   brand:
-    "bg-brand text-canvas hover:bg-brand-strong disabled:bg-line-strong disabled:text-canvas",
+    "bg-brand text-canvas hover:bg-brand-strong disabled:opacity-50",
   secondary:
     "border border-line bg-surface text-ink-soft hover:bg-surface-muted disabled:text-ink-faint",
   ghost: "text-ink-muted hover:text-ink hover:bg-surface-muted",
@@ -157,7 +157,9 @@ export const buttonClass = (variant: ButtonVariant = "primary", full = false) =>
 /* ----------------------------- Formularios ---------------------------- */
 
 export const fieldClass =
-  "mt-1 w-full rounded-[7px] border border-ink-faint bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  // outline-hidden, no outline-none: en Tailwind v4 outline-none fija --tw-outline-style en
+  // none y el anillo de focus-visible:outline-2 nunca se dibuja.
+  "mt-1 w-full rounded-[7px] border border-ink-faint bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-hidden focus:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 /* -------------------------------- Texto ------------------------------- */
 

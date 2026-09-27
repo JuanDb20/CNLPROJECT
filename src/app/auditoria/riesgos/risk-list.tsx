@@ -41,7 +41,7 @@ function RiskCard({ row }: { row: RiskRow }) {
         <h2 className="text-[13.5px] font-medium leading-snug text-ink">{row.title}</h2>
         {/* Una línea: la lista es para escoger cuál abrir, no para leer el
             hallazgo entero. El texto completo está en su detalle. */}
-        <p className="mt-1 line-clamp-1 text-[12px] leading-relaxed text-ink-muted">
+        <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-ink-muted sm:line-clamp-1">
           {row.summary}
         </p>
         {row.chips[0] ? (

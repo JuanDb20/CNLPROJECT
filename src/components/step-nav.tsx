@@ -83,7 +83,7 @@ export function StepNav() {
                   aria-hidden
                   className={cx(
                     "truncate text-[13px] font-medium text-ink",
-                    !current && "hidden",
+                    current ? "hidden sm:inline" : "hidden",
                   )}
                 >
                   {step.label}
@@ -96,6 +96,12 @@ export function StepNav() {
           );
         })}
       </ol>
+      {/* En teléfono el nombre del paso no cabe en la fila: va completo debajo. */}
+      {currentIndex >= 0 ? (
+        <p aria-hidden className="mt-2 text-[13px] font-medium text-ink sm:hidden">
+          {STEPS[currentIndex].n}. {STEPS[currentIndex].label}
+        </p>
+      ) : null}
     </nav>
   );
 }

@@ -14,11 +14,12 @@ export const metadata = { title: "Mis auditorías" };
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<RunStatus, { label: string; tone: "neutral" | "brand" | "required" | "safe" }> = {
-  borrador: { label: "Alcance pendiente", tone: "required" },
-  configurado: { label: "Por configurar", tone: "required" },
-  ejecutando: { label: "En ejecución", tone: "brand" },
-  analizado: { label: "Análisis listo", tone: "brand" },
-  remediando: { label: "En remediación", tone: "brand" },
+  // Las mismas palabras que el encabezado de la auditoría (auditoria/layout.tsx).
+  borrador: { label: "Falta que el cliente autorice", tone: "required" },
+  configurado: { label: "Autorizada, falta iniciar el análisis", tone: "brand" },
+  ejecutando: { label: "Análisis en curso", tone: "brand" },
+  analizado: { label: "Hallazgos listos para revisar", tone: "brand" },
+  remediando: { label: "Revisando las correcciones", tone: "brand" },
   certificado: { label: "Informe expedido", tone: "safe" },
 };
 
@@ -52,12 +53,12 @@ export default async function PanelPage() {
             que incumple cada uno, para que los revises y los firmes.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/panel/nueva" className={buttonClass("secondary")}>
-              Abrir la primera auditoría
+            <Link href="/panel/nueva" className={buttonClass("primary")}>
+              Nueva auditoría
             </Link>
             <form action={crearAuditoriaEjemplo}>
-              <SubmitButton variant="ghost" pendingText="Abriendo el ejemplo…">
-                O usa datos de ejemplo
+              <SubmitButton variant="secondary" pendingText="Abriendo el ejemplo…">
+                Usar datos de ejemplo
               </SubmitButton>
             </form>
           </div>

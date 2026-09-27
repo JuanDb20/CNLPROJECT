@@ -61,7 +61,7 @@ export default async function IngresarPage({
 
         <form action={ingresarPrueba} className="mt-5">
           <button type="submit" className={buttonClass("secondary", true)}>
-            Entrar con usuario de prueba
+            Probar sin registrarse
           </button>
           <p className="mt-2 text-center text-[11px] leading-relaxed text-ink-faint">
             Sin registro. Para probar el flujo, no para uso real.

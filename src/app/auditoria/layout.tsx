@@ -67,23 +67,26 @@ export default async function AuditoriaLayout({ children }: { children: ReactNod
           <Tag tone={STATUS_TONE[run.status]}>{STATUS_LABEL[run.status]}</Tag>
         </div>
         <div className="flex items-center gap-2">
-          <form action={alternarModoAprendizaje}>
-            <button
-              type="submit"
-              aria-pressed={aprendizaje}
-              title="Explica cada hallazgo en lenguaje sencillo, sin tecnicismos."
-              className={cx(
-                "rounded-[6px] border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors",
-                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                aprendizaje
-                  ? "border-brand bg-brand-soft text-brand"
-                  : "border-line bg-surface text-ink-soft hover:bg-surface-muted",
-              )}
-            >
-              Explicar hallazgos
-            </button>
-          </form>
-          <TemaToggle className="rounded-[6px] border border-line bg-surface px-2.5 py-1.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
+          {/* Solo tiene sentido cuando ya hay hallazgos que explicar. */}
+          {run.findings.length > 0 ? (
+            <form action={alternarModoAprendizaje}>
+              <button
+                type="submit"
+                aria-pressed={aprendizaje}
+                title="Explica cada hallazgo en lenguaje sencillo, sin tecnicismos."
+                className={cx(
+                  "whitespace-nowrap rounded-[6px] border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                  aprendizaje
+                    ? "border-brand bg-brand-soft text-brand"
+                    : "border-line bg-surface text-ink-soft hover:bg-surface-muted",
+                )}
+              >
+                {aprendizaje ? "✓ Explicando hallazgos" : "Explicar hallazgos"}
+              </button>
+            </form>
+          ) : null}
+          <TemaToggle className="whitespace-nowrap rounded-[6px] border border-line bg-surface px-2.5 py-1.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
           <AccountChip user={user} />
         </div>
       </header>
