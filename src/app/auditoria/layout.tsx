@@ -66,7 +66,7 @@ export default async function AuditoriaLayout({ children }: { children: ReactNod
           </span>
           <Tag tone={STATUS_TONE[run.status]}>{STATUS_LABEL[run.status]}</Tag>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Solo tiene sentido cuando ya hay hallazgos que explicar. */}
           {run.findings.length > 0 ? (
             <form action={alternarModoAprendizaje}>

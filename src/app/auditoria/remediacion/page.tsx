@@ -25,6 +25,7 @@ import {
 import { documentosGenerados } from "@/domain/documentos";
 import { formatDate } from "@/domain/format";
 import { scoreRun, sortFindings } from "@/domain/scoring";
+import type { Finding } from "@/domain/types";
 import { requireUser } from "@/server/auth";
 import { EXAMPLE_SHA256 } from "@/server/example-repo";
 import { requireAnalyzedRun } from "@/server/session";
@@ -61,11 +62,13 @@ export default async function RemediacionPage({
 
   /* El retesteo es la condición que habilita la firma: si no está en verde, la
      acción disponible es ejecutarlo, no firmar. */
-  const retestPassed =
-    selected !== undefined &&
-    selected.remediation.retests.length > 0 &&
-    selected.remediation.retests.every((t) => t.passed);
+  const superado = (f: Finding) =>
+    f.remediation.retests.length > 0 && f.remediation.retests.every((t) => t.passed);
+  const retestPassed = selected !== undefined && superado(selected);
   const signed = selected?.remediation.status === "firmado";
+  /* Retesteados sin firmar: si el informe se expide antes, quedan fuera para siempre. */
+  const listos = withPr.filter((f) => f.remediation.status !== "firmado" && superado(f));
+  const siguiente = signed ? listos[0] : undefined;
 
   const uploadForm = selected ? (
     <form action={retestearVersion} className="space-y-2">
@@ -433,8 +436,26 @@ export default async function RemediacionPage({
                       : `Reúne los ${score.resolved} hallazgos firmados`}{" "}
                     en un documento que cualquiera puede comprobar en línea.
                   </p>
+                  {listos.length > 0 ? (
+                    <p className="mt-2 text-[12.5px] leading-relaxed text-warning">
+                      {listos.length === 1
+                        ? "Queda 1 hallazgo listo para firmar: si expides ahora, queda fuera del informe."
+                        : `Quedan ${listos.length} hallazgos listos para firmar: si expides ahora, quedan fuera del informe.`}
+                    </p>
+                  ) : null}
                   <form action={expedirCertificado.bind(null, run.id)} className="mt-4 flex flex-wrap items-center gap-2">
-                    <SubmitButton variant={signed ? "primary" : "secondary"} pendingText="Expidiendo el informe…">
+                    {siguiente ? (
+                      <Link
+                        href={`/auditoria/remediacion?hallazgo=${siguiente.id}`}
+                        className={buttonClass("primary")}
+                      >
+                        Firmar el siguiente: {siguiente.code} <span aria-hidden>→</span>
+                      </Link>
+                    ) : null}
+                    <SubmitButton
+                      variant={signed && !siguiente ? "primary" : "secondary"}
+                      pendingText="Expidiendo el informe…"
+                    >
                       Expedir informe de auditoría
                     </SubmitButton>
                     <Link href={`/informe/${run.id}`} className={buttonClass("ghost")}>

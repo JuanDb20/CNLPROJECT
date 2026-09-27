@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { corregirTodos } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
-import { Card, SeverityBadge, cx } from "@/components/ui";
+import { Card, SeverityBadge, buttonClass, cx } from "@/components/ui";
 import { sortFindings } from "@/domain/scoring";
 import { requireAnalyzedRun } from "@/server/session";
 
@@ -28,6 +28,35 @@ export default async function HallazgosPage() {
           se corrige.
         </p>
       </div>
+
+      {pendientes > 0 ? (
+        <Card>
+          <p className="text-[13px] leading-relaxed text-ink-soft">
+            Puedes aceptar de una vez la corrección que VIGÍA propone para cada hallazgo y
+            probarlas todas juntas con la versión corregida, o revisar los hallazgos uno por uno.
+          </p>
+          <form action={corregirTodos} className="mt-3">
+            <SubmitButton variant="primary" pendingText="Preparando las correcciones…">
+              {pendientes === 1
+                ? "Aceptar la corrección propuesta y continuar"
+                : `Aceptar las ${pendientes} correcciones propuestas y continuar`}{" "}
+              <span aria-hidden>→</span>
+            </SubmitButton>
+          </form>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-muted">
+            Aceptar no firma nada: en el paso 6 se prueba la versión corregida y firmas cada
+            hallazgo.
+          </p>
+        </Card>
+      ) : findings.length > 0 ? (
+        <Link
+          href={run.certificate ? `/informe/${run.id}` : "/auditoria/remediacion"}
+          className={buttonClass("primary")}
+        >
+          {run.certificate ? "Ver el informe" : "Continuar con la remediación y firma"}{" "}
+          <span aria-hidden>→</span>
+        </Link>
+      ) : null}
 
       <Card className="py-2 sm:py-2">
         <ul className="divide-y divide-line">
@@ -61,23 +90,6 @@ export default async function HallazgosPage() {
           })}
         </ul>
       </Card>
-
-      {pendientes > 0 ? (
-        <Card>
-          <p className="text-[13px] leading-relaxed text-ink-soft">
-            {pendientes === 1
-              ? "Queda 1 hallazgo sin corrección iniciada."
-              : `Quedan ${pendientes} hallazgos sin corrección iniciada.`}{" "}
-            Puedes abrir la corrección de todos a la vez y probarlos juntos con la versión
-            corregida, sin entrar uno por uno.
-          </p>
-          <form action={corregirTodos} className="mt-3">
-            <SubmitButton variant="primary" pendingText="Preparando las correcciones…">
-              Corregir todos los hallazgos pendientes <span aria-hidden>→</span>
-            </SubmitButton>
-          </form>
-        </Card>
-      ) : null}
     </div>
   );
 }
