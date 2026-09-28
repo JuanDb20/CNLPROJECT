@@ -216,6 +216,23 @@ export default function MapaPage() {
         </p>
       </div>
 
+      <figure className="mt-6 overflow-hidden rounded-[12px] border border-line bg-surface">
+        <video
+          controls
+          preload="metadata"
+          playsInline
+          poster="/video/vigia-demo-poster.jpg"
+          className="block aspect-video w-full bg-surface"
+        >
+          <source src="/video/vigia-demo.mp4" type="video/mp4" />
+          <track kind="captions" src="/video/vigia-demo.vtt" srcLang="es" label="Español" default />
+        </video>
+        <figcaption className="px-4 py-3 text-[12.5px] leading-snug text-ink-muted sm:px-5">
+          El recorrido completo en minuto y medio, narrado y con subtítulos. Abajo está lo mismo por
+          escrito, área por área.
+        </figcaption>
+      </figure>
+
       <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
         {ESTADISTICAS.map((s) => (
           <div
