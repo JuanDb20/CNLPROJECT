@@ -65,6 +65,12 @@ const PACKS: Array<{ match: RegExp; pack: SectorPack }> = [
         "col-1581-sensibles",
         "col-1581-seguridad",
         "col-sic-ia",
+        "col-sic-fintech-finalidades",
+        "col-sic-fintech-biometria",
+        "col-sic-fintech-decisiones",
+        "col-sic-fintech-minimizacion",
+        "col-2300-horarios",
+        "col-2300-referencias",
       ],
       note:
         "La información financiera, crediticia y comercial se rige por la Ley 1266 de 2008, " +
@@ -74,7 +80,15 @@ const PACKS: Array<{ match: RegExp; pack: SectorPack }> = [
         "para las que sí lo son, la Circular Externa 007 de 2018 de esa Superintendencia " +
         "complementó los requerimientos mínimos de gestión del riesgo de ciberseguridad. En todo " +
         "caso se aplica la Ley 1581 de 2012 y, si la vinculación usa biometría, el régimen " +
-        "reforzado de datos sensibles (arts. 5 y 6).",
+        "reforzado de datos sensibles (arts. 5 y 6). A las fintech que vigila la SIC, la " +
+        "Circular Externa 001 de 2025 les exige pedir la autorización separando las finalidades " +
+        "necesarias de las accesorias (num. 4), diligencia reforzada con la biometría, incluido " +
+        "su borrado al terminar la relación (num. 5), explicar las decisiones automatizadas " +
+        "desfavorables (num. 8) y no leer los contactos ni la galería del dispositivo para " +
+        "cobrar (num. 2). Y quien cobre, vigilado o no, solo puede contactar al deudor por los " +
+        "canales que este autorice, de lunes a viernes de 7:00 a. m. a 7:00 p. m. y los sábados " +
+        "de 8:00 a. m. a 3:00 p. m., y en ningún caso a sus referencias (Ley 2300 de 2023, " +
+        "arts. 2 a 4).",
     },
   },
   {
@@ -82,12 +96,14 @@ const PACKS: Array<{ match: RegExp; pack: SectorPack }> = [
     pack: {
       id: "salud",
       name: "Salud y prestación de servicios médicos",
-      frameworks: ["col-1581", "owasp"],
+      frameworks: ["col-1581", "col-salud", "owasp"],
       ruleIds: [
         "col-1581-sensibles",
         "col-1581-autorizacion",
         "col-1581-seguridad",
         "col-sic-ia-eip",
+        "col-salud-hc-reserva",
+        "col-salud-hc-integridad",
       ],
       note:
         "Los datos relativos a la salud son datos sensibles (Ley 1581 de 2012, art. 5) y su " +
@@ -96,7 +112,10 @@ const PACKS: Array<{ match: RegExp; pack: SectorPack }> = [
         "La historia clínica es un documento privado, obligatorio y sometido a reserva, que " +
         "únicamente puede ser conocido por terceros previa autorización del paciente o en los " +
         "casos previstos por la ley (Resolución 1995 de 1999 del Ministerio de Salud, art. 1 " +
-        "lit. a); su interoperabilidad la regula la Ley 2015 de 2020.",
+        "lit. a). Solo pueden acceder a ella el usuario, el equipo de salud y las autoridades en " +
+        "los casos de ley (art. 14), y el software que la maneja debe impedir modificarla una vez " +
+        "registrada, impedir el acceso de personal no autorizado e identificar quién hizo cada " +
+        "registro, con hora y fecha (art. 18). Su interoperabilidad la regula la Ley 2015 de 2020.",
     },
   },
   {

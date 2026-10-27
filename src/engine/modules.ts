@@ -24,7 +24,7 @@ export const MODULES: ModuleDefinition[] = [
     id: "static-scan",
     name: "Análisis de código estático",
     description: "Llaves expuestas, control de acceso a la base de datos, dependencias y flujos de datos hacia proveedores de IA",
-    frameworks: ["owasp", "col-1581", "col-pi", "gdpr"],
+    frameworks: ["owasp", "col-1581", "col-1266", "col-pi", "col-salud", "gdpr"],
     durationMs: 300,
   },
   {

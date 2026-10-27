@@ -1,7 +1,16 @@
 {
-  "fecha": "2026-09-28T01:01:12.654Z",
-  "sha256": "0047dc4b0c12e803574316ab8d5ce6ce5a45a800157bec8d8b5b106cb1a63e9d",
-  "archivos": 107,
-  "hallazgos": [],
-  "avisosOsv": 0
+  "fecha": "2026-10-27T14:48:48.588Z",
+  "sha256": "828d7cb75bc5dc9f22f65af898ec13fd262c355155e1faca944742d82439b39a",
+  "archivos": 111,
+  "hallazgos": [
+    {
+      "code": "VGI-039",
+      "title": "Dependencias con vulnerabilidades publicadas",
+      "severity": "advertencia",
+      "locations": [
+        "package.json:13"
+      ]
+    }
+  ],
+  "avisosOsv": 1
 }

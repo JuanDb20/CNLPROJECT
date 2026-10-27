@@ -3,7 +3,7 @@
 Prototipo funcional para el Concurso Nacional de Legal Tech "Germán Cavelier" 2026-2.
 En producción: <https://vigia-legaltech.vercel.app>.
 
-VIGÍA audita aplicaciones hechas con IA (*vibecoding*): corre 61 pruebas sobre el
+VIGÍA audita aplicaciones hechas con IA (*vibecoding*): corre 71 pruebas sobre el
 código en un entorno aislado y autorizado, traduce cada falla técnica a la
 norma que incumple y propone el parche. VIGÍA propone el análisis jurídico; lo
 firma un abogado identificado con su tarjeta profesional. El entregable es el
@@ -85,7 +85,7 @@ RFC 3161 (por defecto `https://freetsa.org/tsr`).
    actúa como encargado, suscribe el contrato de transmisión.
 4. **Paso 2 — Configuración.** Proveedores de IA detectados en el código, con país,
    rol y si el país está en la lista de la SIC. Seleccionar los marcos normativos.
-5. **Paso 3 — Ejecución.** Los cuatro módulos corren las 61 pruebas sobre el código (y, si el
+5. **Paso 3 — Ejecución.** Los cuatro módulos corren las 71 pruebas sobre el código (y, si el
    cliente lo autorizó, la inspección de solo lectura del despliegue) y la consola recibe
    la traza por SSE.
 6. **Paso 4 — Mapa de riesgos** y **paso 5 — Detalle**: cada hallazgo muestra la
@@ -153,7 +153,7 @@ Cuatro decisiones sostienen la escalabilidad sin complicar el MVP:
 ## Motor de análisis
 
 `src/domain/checks.ts` es el catálogo base y concatena los catálogos por dimensión
-(`src/domain/checks-*.ts`): **61 pruebas** en total. Cada prueba declara qué busca en
+(`src/domain/checks-*.ts`): **71 pruebas** en total. Cada prueba declara qué busca en
 el código cargado, las obligaciones que se incumplen si lo encuentra, el análisis
 jurídico y el parche que propone. Un hallazgo solo aparece si su prueba encuentra
 la falla, y la evidencia es la línea exacta del código (con llaves y números de
@@ -222,10 +222,15 @@ El eje es el derecho colombiano:
 - Circular Única de la SIC, Título V, num. 3.2 (países con nivel adecuado; EE. UU.
   desde la Circular Externa 008 de 2017) y Circular Externa 002 de 2024
   (tratamiento de datos personales con IA).
-- Ley 1266 de 2008 (habeas data financiero) y Ley 1480 de 2011 (consumidor: arts. 23,
-  47, 50 y 51).
-- Propiedad intelectual: Decisión Andina 351 de 1993, Ley 23 de 1982 (modificada por la
-  Ley 1915 de 2018) y las licencias de cada dependencia.
+- Ley 1266 de 2008 (habeas data financiero), Ley 2300 de 2023 (horarios y canales de la
+  cobranza; prohibición de contactar a las referencias) y Ley 1480 de 2011 (consumidor:
+  arts. 23, 47, 50 y 51).
+- Circular Externa 001 de 2025 de la SIC (datos personales en servicios fintech: nums. 2,
+  4, 5, 8, 9 y 10), solo cuando el cliente declara el sector financiero.
+- Propiedad intelectual: Decisión Andina 351 de 1993, Ley 23 de 1982 (art. 20 modificado
+  por la Ley 1450 de 2011, art. 28, y la Ley 1915 de 2018) y las licencias de cada
+  dependencia.
+- Historia clínica: Resolución 1995 de 1999 del Ministerio de Salud (arts. 1, 14 y 18).
 - Accesibilidad: Ley 1618 de 2013 (art. 14), Resolución 1519 de 2020 de MinTIC y NTC 5854
   (obligatorias para entidades públicas; buena práctica para privados).
 - Estándar técnico: OWASP Top 10:2025 y OWASP Top 10 for LLM Applications 2025.
@@ -260,6 +265,33 @@ Sobre la base anterior, el catálogo incluye (todo integrado en `main` y en prod
 - **Inspección de solo lectura del despliegue** declarado en el alcance (campo opcional
   del formulario; cláusula específica del acuerdo; guardas anti-SSRF en
   `src/server/inspeccion.ts`; pruebas VGI-115 a VGI-123).
+
+## Especialistas y diagnóstico de etapa (rama `mejoras-gallego`)
+
+Un núcleo general (todo lo anterior) y especialistas por sector que añaden pruebas
+propias sobre el código, cada una con su norma verificada en texto oficial el 27-oct-2026:
+
+- **Fintech** (`src/domain/checks-fintech.ts`, VGI-124 a VGI-130): biometría sin borrado
+  al terminar la relación, lectura de la agenda o la galería del teléfono, autorización
+  que mezcla lo necesario con la publicidad, rechazo automático sin motivos (Circular
+  Externa 001 de 2025 de la SIC); cobranza sin horario y a las referencias (Ley 2300 de
+  2023); número de tarjeta o CVV en la base (deber de seguridad y PCI DSS).
+- **Salud** (`src/domain/checks-salud.ts`, VGI-132 y VGI-133): historia clínica editable
+  después de registrada y legible por cualquiera con sesión (Resolución 1995 de 1999).
+- **Titularidad del código** (VGI-131, en `checks-licencias.ts`): la licencia o el
+  `package.json` nombran como autor a alguien distinto del cliente (Ley 23 de 1982,
+  art. 20).
+- **Diagnóstico de etapa** (`/diagnostico`, reglas en `src/domain/etapas.ts`): ocho
+  preguntas para el fundador; devuelve la etapa (idea, prototipo, usuarios, ingresos,
+  inversión y escala), las obligaciones que ya aplican y las de la etapa siguiente, cada
+  una con su norma y con las pruebas de VIGÍA que la verifican. Sin sesión, sin guardar
+  nada y sin modelo de lenguaje. Desde una auditoría (`/auditoria/inventario`) se abre
+  prellenado con lo que el código ya responde.
+
+El botón «Usar datos de ejemplo» (Crediveloz, una fintech) trae sembradas las fallas del
+especialista fintech. `npm run especialistas` corre los casos sembrados, aplica los
+parches como lo hace el retesteo del ejemplo y comprueba que cada hallazgo aparece y se
+cierra.
 
 ## Aviso
 

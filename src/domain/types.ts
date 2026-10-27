@@ -19,6 +19,7 @@ export type FrameworkId =
   | "col-1266"
   | "col-1480"
   | "col-pi"
+  | "col-salud"
   | "col-inclusion"
   | "owasp"
   | "eu-ai-act"

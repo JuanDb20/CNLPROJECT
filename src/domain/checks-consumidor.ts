@@ -3,7 +3,7 @@ import { type Check, PROMPT, TOOLS, edit, grep } from "./check-kit";
 /** Consumidor y comercio electrónico (Ley 1480 de 2011). */
 
 /** Cobro al consumidor: pasarela de pago o ruta de compra en el código. */
-const COBRO =
+export const COBRO =
   /\bstripe\b|\bwompi\b|\bpayu\b|mercadopago|\bepayco\b|@stripe|\/checkout|\/pagos?\b|\bcheckout\b/i;
 /** Archivos donde vive la interfaz de compra. */
 const UI = /\.(tsx|jsx|ts|js|mjs|vue|svelte|html)$/i;

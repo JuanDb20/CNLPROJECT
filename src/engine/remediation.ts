@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 
+import { applyPatch } from "@/domain/check-kit";
 import { nextPrNumber, runChecks } from "@/domain/checks";
 import { scoreRun } from "@/domain/scoring";
-import type { AuditRun, ConformityCertificate, Finding, Patch, RepoFile } from "@/domain/types";
+import type { AuditRun, ConformityCertificate, Finding } from "@/domain/types";
 import { EXAMPLE_FILES, EXAMPLE_SHA256 } from "@/server/example-repo";
 import { readZip, writeZip } from "@/server/zip";
 import { accounts, repository } from "@/server/store";
@@ -107,26 +108,6 @@ export async function uploadCorrected(runId: string, fileName: string, zip: Buff
       findings: run.findings.map((f) => (retestable(f) ? evaluate(f, detected, fileName) : f)),
     };
   });
-}
-
-/**
- * Aplica un parche como lo haría el desarrollador: sin líneas eliminadas agrega
- * el texto (archivo nuevo o al final); si no, reemplaza esas líneas. Si no las
- * encuentra, no cambia nada y el retesteo lo reporta.
- */
-function applyPatch(files: RepoFile[], patch: Patch): RepoFile[] {
-  const file = files.find((f) => f.path === patch.target);
-  if (patch.removed.length === 0) {
-    const content = (file ? `${file.content}\n` : "") + `${patch.added.join("\n")}\n`;
-    return [...files.filter((f) => f !== file), { path: patch.target, content }];
-  }
-  if (!file) return files;
-  const lines = file.content.split("\n");
-  const at = lines.findIndex((_, i) => patch.removed.every((r, j) => lines[i + j]?.trim() === r));
-  if (at < 0) return files;
-  const indent = /^\s*/.exec(lines[at])![0];
-  lines.splice(at, patch.removed.length, ...patch.added.map((l) => indent + l));
-  return files.map((f) => (f === file ? { ...f, content: lines.join("\n") } : f));
 }
 
 /**

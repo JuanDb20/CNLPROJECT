@@ -18,6 +18,7 @@ export const LEYES = [
 
 const NAV = [
   { href: "/mapa", label: "Cómo funciona" },
+  { href: "/diagnostico", label: "Diagnóstico" },
   { href: "/verificar", label: "Verificar informe" },
   { href: "/transparencia", label: "Transparencia" },
   { href: "/registro", label: "Crear cuenta" },

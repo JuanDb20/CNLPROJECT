@@ -54,6 +54,34 @@ function toolEvidence(files: RepoFile[], marker: RegExp): Hit[] {
 const matchedTools = (files: RepoFile[]) =>
   HERRAMIENTAS_IA.filter((h) => toolEvidence(files, h.marker).length > 0);
 
+/* Titular declarado: «Copyright (c) 2026 Estudio X» o «"author": "Estudio X <correo>"». */
+const TITULAR_FILE = /(^|\/)(LICEN[CS]E|COPYING|AUTHORS)(\.\w+)?$|(^|\/)package\.json$/i;
+const TITULAR = /^\s*copyright\b|^\s*"author"\s*:/i;
+const GENERICO = /\b(authors?|contributors?|autores|colaboradores)\b/i;
+
+function titularDe(line: string): string | null {
+  const nombre =
+    /"author"\s*:\s*"([^"<]*)/i.exec(line)?.[1] ??
+    /copyright\s*(?:\(c\)|©)?\s*(?:\d{4}(?:\s*[-–]\s*\d{4})?,?\s*)?(.*)$/i.exec(line)?.[1] ??
+    "";
+  const limpio = nombre.replace(/all rights reserved\.?|todos los derechos reservados\.?/gi, "").trim();
+  return limpio && !GENERICO.test(limpio) ? limpio : null;
+}
+
+/** Misma persona si comparten una palabra significativa (sin tildes, puntos ni la forma societaria). */
+function mismoTitular(a: string, b: string): boolean {
+  const palabras = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/\b(s\.?\s?a\.?\s?s\.?|s\.?\s?a\.?|ltda\.?|inc\.?|llc|sas)(?=\s|$)/g, " ")
+      .split(/[^a-z0-9]+/)
+      .filter((p) => p.length >= 4);
+  const deB = new Set(palabras(b));
+  return palabras(a).some((p) => deB.has(p));
+}
+
 export const CHECKS_LICENCIAS: Check[] = [
   {
     code: "VGI-110",
@@ -185,5 +213,55 @@ export const CHECKS_LICENCIAS: Check[] = [
     branch: "vigia-patch/origen-del-codigo",
     changeNote: "Documento nuevo con la cláusula de cada herramienta detectada. No cambia el código.",
     retests: ["docs/origen-del-codigo.md nombra cada herramienta detectada y su cláusula de titularidad"],
+  },
+  {
+    code: "VGI-131",
+    module: "static-scan",
+    severity: "advertencia",
+    title: "El código declara como titular a alguien distinto del cliente",
+    summary:
+      "El aviso de derechos de la licencia o el autor del package.json nombran a una persona " +
+      "o empresa distinta de la auditada: quien escribió el código puede seguir siendo su dueño.",
+    legalAnalysis:
+      "En las obras creadas para otro en cumplimiento de un contrato de prestación de " +
+      "servicios o de trabajo, el autor es el titular originario de los derechos patrimoniales " +
+      "y morales; la ley presume que los patrimoniales pasaron al encargante o al empleador, " +
+      "pero solo en la medida necesaria para sus actividades habituales y solo si el contrato " +
+      "consta por escrito (art. 20 de la Ley 23 de 1982, modificado por el art. 28 de la Ley " +
+      "1450 de 2011). Si el desarrollador o la agencia que figura en el código trabajó sin " +
+      "contrato escrito, {cliente} no puede acreditar que el software es suyo: no puede " +
+      "venderlo, licenciarlo ni aportarlo a una sociedad con certeza, y es lo primero que " +
+      "revisa un inversionista. Cambiar el aviso no transfiere nada: lo que transfiere es la " +
+      "cesión por escrito.",
+    ruleIds: ["col-pi-encargo", "col-pi-origen"],
+    probe:
+      "Lectura del aviso de derechos (copyright) de los archivos LICENSE, COPYING y AUTHORS y " +
+      "del autor declarado en package.json, comparados con la razón social del cliente.",
+    detect: ({ files, client }) =>
+      grep(files.filter((f) => TITULAR_FILE.test(f.path)), /./, TITULAR).filter((h) => {
+        const titular = titularDe(h.text);
+        return titular !== null && !mismoTitular(titular, client.name);
+      }),
+    patch: (hits) => ({
+      kind: "config",
+      target: hits[0].path,
+      removed: [hits[0].text],
+      added: [
+        /"author"/.test(hits[0].text)
+          ? `"author": "{cliente}"${hits[0].text.trim().endsWith(",") ? "," : ""}`
+          : "Copyright (c) {cliente}",
+      ],
+      expectedImpact:
+        "Una vez firmada por escrito la cesión de los derechos patrimoniales con quien figura " +
+        "como autor, el aviso refleja al titular real y {cliente} puede acreditarlo.",
+    }),
+    branch: "vigia-patch/titular-del-codigo",
+    changeNote:
+      "Cambia el aviso de titularidad. Debe aplicarse solo después de firmar la cesión de " +
+      "derechos con el autor: el aviso, por sí solo, no transfiere la propiedad del software.",
+    retests: [
+      "Existe cesión por escrito de los derechos patrimoniales firmada por cada autor externo",
+      "El aviso de derechos y el autor del package.json nombran al cliente",
+    ],
   },
 ];

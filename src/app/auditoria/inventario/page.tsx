@@ -1,7 +1,11 @@
+import Link from "next/link";
+
 import { InventarioTabla, inventarioCsv } from "@/components/inventario";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardHeader, Panel, buttonClass } from "@/components/ui";
+import { respuestasDelCodigo } from "@/domain/etapas";
 import { requireAnalyzedRun } from "@/server/session";
+import { repository } from "@/server/store";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inventario de tratamientos" };
@@ -14,6 +18,8 @@ export default async function InventarioPage() {
   const run = await requireAnalyzedRun();
   const rows = run.inventory ?? [];
   const csv = `data:text/csv;charset=utf-8,${encodeURIComponent(inventarioCsv(rows))}`;
+  /* Si el código ya se borró, el diagnóstico se abre solo con el sector. */
+  const diagnostico = respuestasDelCodigo(await repository.files(run.id), run.scope.client.sector);
 
   return (
     <div className="space-y-5">
@@ -92,6 +98,21 @@ export default async function InventarioPage() {
             documento interno de trabajo.
           </li>
         </ul>
+      </Card>
+
+      <Card className="print:hidden">
+        <CardHeader
+          title="Diagnóstico de etapa del cliente"
+          description="Qué obligaciones le aplican hoy y cuáles llegan con su siguiente etapa, más allá del código."
+        />
+        <p className="text-[12.5px] leading-relaxed text-ink-soft">
+          Se abre con lo que el código ya responde: cobros, proveedores de IA y datos personales o
+          sensibles. Lo demás —quién programa, si hay sociedad, marca o inversión— se completa con
+          {" "}{run.scope.client.name}.
+        </p>
+        <Link href={`/diagnostico?${diagnostico}`} className={`mt-4 ${buttonClass("secondary")}`}>
+          Abrir el diagnóstico prellenado
+        </Link>
       </Card>
     </div>
   );

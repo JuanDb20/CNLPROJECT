@@ -36,9 +36,11 @@ import { CHECKS_BACKENDS } from "./checks-backends";
 import { CHECKS_COHERENCIA } from "./checks-coherencia";
 import { CHECKS_CONSUMIDOR } from "./checks-consumidor";
 import { CHECKS_DESPLIEGUE } from "./checks-despliegue";
+import { CHECKS_FINTECH } from "./checks-fintech";
 import { CHECKS_GOBERNANZA } from "./checks-gobernanza";
 import { CHECKS_INCLUSION } from "./checks-inclusion";
 import { CHECKS_LICENCIAS } from "./checks-licencias";
+import { CHECKS_SALUD } from "./checks-salud";
 import { generarDocumento, puntosDeRecoleccion } from "./documentos";
 import { PROVIDERS, detectProviders, providerTerms } from "./proveedores";
 
@@ -1614,6 +1616,8 @@ const ALL_CHECKS: Check[] = [
   ...CHECKS,
   ...CHECKS_COHERENCIA,
   ...CHECKS_CONSUMIDOR,
+  ...CHECKS_FINTECH,
+  ...CHECKS_SALUD,
   ...CHECKS_GOBERNANZA,
   ...CHECKS_INCLUSION,
   ...CHECKS_BACKENDS,

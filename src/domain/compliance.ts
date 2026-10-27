@@ -27,6 +27,7 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
     citation:
       "Ley 1581 de 2012; Decreto 1074 de 2015 (compila el Decreto 1377 de 2013); " +
       "Circular Única SIC, Título V; Circular Externa 002 de 2024 SIC; " +
+      "Circular Externa 001 de 2025 SIC (fintech); " +
       "Circular Externa 003 de 2025 SIC (cláusulas contractuales modelo RIPD)",
     description:
       "Deber de seguridad, autorización previa e informada, régimen reforzado para " +
@@ -39,12 +40,16 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
     name: "Habeas Data financiero",
     jurisdiction: "Colombia",
     kind: "juridico",
-    citation: "Ley 1266 de 2008, modificada y adicionada por la Ley 2157 de 2021",
+    citation:
+      "Ley 1266 de 2008, modificada y adicionada por la Ley 2157 de 2021; Ley 2300 de 2023 " +
+      "(canales, horarios y periodicidad de la cobranza)",
     description:
       "Régimen especial para información financiera, crediticia y comercial. Relevante " +
       "para cualquier asistente de IA que opere sobre historial de pagos o scoring. La " +
       "Ley 2157 de 2021 («borrón y cuenta nueva») adicionó y modificó varios artículos, " +
-      "pero no los arts. 5 ni 9, que son los que aquí se citan.",
+      "pero no los arts. 5 ni 9, que son los que aquí se citan. La Ley 2300 de 2023 fija " +
+      "cómo y cuándo puede contactarse al deudor; su incumplimiento lo sancionan la " +
+      "Superintendencia Financiera y la SIC según las competencias de la Ley 1266 (art. 9).",
   },
   "col-1480": {
     id: "col-1480",
@@ -66,13 +71,29 @@ export const FRAMEWORKS: Record<FrameworkId, Framework> = {
     jurisdiction: "Colombia y Comunidad Andina",
     kind: "juridico",
     citation:
-      "Ley 23 de 1982 (modificada por la Ley 1915 de 2018); Decisión Andina 351 de 1993; " +
-      "licencias de software libre y de código abierto; términos de las herramientas de generación de código",
+      "Ley 23 de 1982 (modificada por la Ley 1450 de 2011, art. 28, y la Ley 1915 de 2018); " +
+      "Decisión Andina 351 de 1993; licencias de software libre y de código abierto; términos " +
+      "de las herramientas de generación de código",
     description:
       "El software se protege como obra literaria. Las dependencias de la aplicación y el " +
       "código generado con herramientas de IA se usan bajo licencias y términos que imponen " +
       "obligaciones (publicar el código, atribuir, no usar comercialmente). Autoridad: " +
       "Dirección Nacional de Derecho de Autor; los conflictos de licencia se resuelven por vía civil.",
+  },
+  "col-salud": {
+    id: "col-salud",
+    shortName: "Historia clínica",
+    name: "Régimen de la historia clínica",
+    jurisdiction: "Colombia",
+    kind: "juridico",
+    citation: "Resolución 1995 de 1999 del Ministerio de Salud, arts. 1, 14 y 18",
+    description:
+      "La historia clínica es un documento privado, obligatorio y sometido a reserva. Solo " +
+      "pueden conocerla el usuario, el equipo de salud, las autoridades en los casos de ley y " +
+      "las demás personas que la ley determine (art. 14), y el software que la maneja debe " +
+      "impedir que se modifique después de registrada, proteger su reserva e identificar " +
+      "quién hizo cada registro, con fecha y hora (art. 18). Autoridad: Superintendencia " +
+      "Nacional de Salud.",
   },
   "col-inclusion": {
     id: "col-inclusion",
@@ -377,6 +398,57 @@ export const RULES: ComplianceRule[] = [
       "completos, exactos, actualizados, comprobables y comprensibles. Se prohíbe el " +
       "tratamiento de datos parciales, incompletos, fraccionados o que induzcan a error.",
   },
+  /* Circular Externa 001 del 18 de septiembre de 2025 de la SIC, verificada el
+     27-oct-2026 en su texto oficial (sedeelectronica.sic.gov.co). Se dirige a los
+     vigilados de la SIC en servicios de financiación, depósitos de bajo monto y afines
+     prestados con tecnologías digitales; no a los vigilados por la Superintendencia
+     Financiera. */
+  {
+    id: "col-sic-fintech-minimizacion",
+    framework: "col-1581",
+    label: "Circular Externa 001/2025 SIC, nums. 2 y 10",
+    title: "Fintech: contactos y galería del dispositivo",
+    obligation:
+      "El tratamiento debe limitarse a los datos idóneos y necesarios; las aplicaciones no " +
+      "podrán acceder a la galería de imágenes ni a la lista de contactos del dispositivo con " +
+      "fines de cobranza, y quien cobra debe abstenerse de contactar a las referencias " +
+      "personales y a los contactos del dispositivo del titular sin su autorización.",
+  },
+  {
+    id: "col-sic-fintech-finalidades",
+    framework: "col-1581",
+    label: "Circular Externa 001/2025 SIC, num. 4",
+    title: "Fintech: finalidades necesarias y accesorias por separado",
+    obligation:
+      "La autorización debe presentar las finalidades de forma diferenciada, al menos en dos " +
+      "grupos: las necesarias para el contrato o el servicio y las accesorias, como el envío " +
+      "de publicidad o la oferta de otros servicios. El titular puede oponerse en cualquier " +
+      "momento a las accesorias sin que su negativa afecte el servicio principal.",
+  },
+  {
+    id: "col-sic-fintech-biometria",
+    framework: "col-1581",
+    label: "Circular Externa 001/2025 SIC, num. 5",
+    title: "Fintech: diligencia reforzada con los datos biométricos",
+    obligation:
+      "Al recolectarlos, informar las finalidades precisas y por qué son necesarios, y obtener " +
+      "autorización explícita; durante todo el tratamiento, no usarlos para otras finalidades, " +
+      "protegerlos con medidas adicionales, no compartirlos ni alimentar bases biométricas " +
+      "centralizadas, y borrarlos en un término razonable cuando termine la relación " +
+      "contractual y no subsistan las finalidades autorizadas (num. 5.2 lit. e).",
+  },
+  {
+    id: "col-sic-fintech-decisiones",
+    framework: "col-1581",
+    label: "Circular Externa 001/2025 SIC, num. 8",
+    title: "Fintech: explicación de la decisión automatizada desfavorable",
+    obligation:
+      "El titular tiene derecho a una explicación clara y comprensible de cualquier decisión " +
+      "automatizada que le resulte desfavorable, con al menos una descripción general de la " +
+      "lógica y los criterios principales del sistema y de los factores que más influyen en " +
+      "el resultado. Si hay secretos comerciales, la explicación puede darse por tipos de " +
+      "factores, pero el titular debe poder entender los elementos principales de la decisión.",
+  },
   {
     id: "col-1377-aviso",
     framework: "col-1581",
@@ -489,6 +561,31 @@ export const RULES: ComplianceRule[] = [
       "Los usuarios de la información deben guardar reserva sobre la información que les " +
       "suministren los operadores, las fuentes o los titulares, y utilizarla únicamente " +
       "para los fines para los que les fue entregada.",
+  },
+  /* Ley 2300 de 2023, verificada el 27-oct-2026 en el Gestor Normativo de Función Pública.
+     Aplica a las vigiladas por la Superintendencia Financiera y a toda persona natural o
+     jurídica que cobre, directamente, por terceros o por cesión de la obligación (art. 1). */
+  {
+    id: "col-2300-horarios",
+    framework: "col-1266",
+    label: "Ley 2300 de 2023, arts. 2 y 3",
+    title: "Cobranza: canales autorizados, horario y periodicidad",
+    obligation:
+      "Solo se puede contactar al consumidor por los canales que él autorice. La cobranza se " +
+      "hace de lunes a viernes de 7:00 a. m. a 7:00 p. m. y los sábados de 8:00 a. m. a 3:00 " +
+      "p. m., nunca domingos ni festivos; establecido el contacto directo, no se le puede " +
+      "contactar por varios canales en la misma semana ni más de una vez en el mismo día.",
+  },
+  {
+    id: "col-2300-referencias",
+    framework: "col-1266",
+    label: "Ley 2300 de 2023, art. 4",
+    title: "Cobranza: prohibido contactar a las referencias",
+    obligation:
+      "En ningún caso quien adelante gestiones de cobranza, directamente, por terceros o por " +
+      "cesión de la obligación, puede contactar a las referencias personales o de otra índole " +
+      "del deudor. Al avalista, codeudor o deudor solidario se le contacta en las mismas " +
+      "condiciones que la ley fija para el deudor.",
   },
   {
     id: "col-1480-informacion",
@@ -627,6 +724,44 @@ export const RULES: ComplianceRule[] = [
       "del código generado con herramientas de IA la fijan los términos de cada herramienta. " +
       "El responsable debe poder acreditar de quién es el código que explota y bajo qué " +
       "condiciones antes de licenciarlo, venderlo o registrarlo.",
+  },
+  {
+    id: "col-pi-encargo",
+    framework: "col-pi",
+    label: "Ley 23/1982 Art. 20 (modificado por la Ley 1450/2011, art. 28)",
+    title: "Obra creada por contrato de servicios o de trabajo",
+    obligation:
+      "En las obras creadas para otro en cumplimiento de un contrato de prestación de " +
+      "servicios o de trabajo, el autor es el titular originario de los derechos " +
+      "patrimoniales y morales, pero se presume, salvo pacto en contrario, que los " +
+      "patrimoniales se transfirieron al encargante o al empleador en la medida necesaria " +
+      "para sus actividades habituales. Para que opere la presunción, el contrato debe " +
+      "constar por escrito.",
+  },
+  /* ---------------- Historia clínica ---------------- */
+  /* Resolución 1995 de 1999, verificada el 27-oct-2026 en el texto que publica el
+     Ministerio de Salud (minsalud.gov.co). */
+  {
+    id: "col-salud-hc-reserva",
+    framework: "col-salud",
+    label: "Resolución 1995/1999 MinSalud, arts. 14 y 18",
+    title: "Reserva de la historia clínica",
+    obligation:
+      "Solo pueden acceder a la historia clínica el usuario, el equipo de salud, las " +
+      "autoridades judiciales y de salud en los casos previstos en la ley y las demás " +
+      "personas que la ley determine (art. 14). La reserva debe protegerse con mecanismos " +
+      "que impidan el acceso de personal no autorizado para conocerla (art. 18).",
+  },
+  {
+    id: "col-salud-hc-integridad",
+    framework: "col-salud",
+    label: "Resolución 1995/1999 MinSalud, art. 18",
+    title: "Historia clínica inalterable y con autor identificado",
+    obligation:
+      "Los programas automatizados que manejan historias clínicas deben tener mecanismos de " +
+      "seguridad que imposibiliten modificarlas una vez se registren y guarden los datos, " +
+      "evitar la destrucción accidental o provocada de los registros y permitir establecer " +
+      "con exactitud quién realizó cada registro, con su hora y fecha.",
   },
   /* ---------------- Estándares técnicos ---------------- */
   {
