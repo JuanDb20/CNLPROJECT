@@ -9,7 +9,7 @@
     "autoauditoria": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/alias.mjs scripts/autoauditoria.mts"
   },
   "dependencies": {
-    "next": "^15.5.25",
+    "next": "^15.5.28",
     "react": "^19.1.9",
     "react-dom": "^19.1.9"
   },
