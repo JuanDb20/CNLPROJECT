@@ -14,8 +14,10 @@ export async function GET() {
 
 /**
  * POST /api/v1/runs — abre una auditoría. Recibe multipart/form-data con los
- * mismos campos del formulario: cliente, nit, representante, sector, sistema y
- * codigo (.zip).
+ * mismos campos del formulario: cliente, nit, representante, sector, sistema,
+ * formalizacion (registrada | en-proceso | sin-registro) y codigo (.zip) o
+ * repositorio. Si trae despliegue (URL del sitio), exige autorizoDespliegue=on y
+ * confirmaDominio con el dominio de esa URL.
  */
 export async function POST(request: Request) {
   const user = await currentUser();

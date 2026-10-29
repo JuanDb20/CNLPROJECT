@@ -4,23 +4,22 @@ import { crearAuditoria, crearAuditoriaEjemplo } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardHeader, Panel, buttonClass, fieldClass } from "@/components/ui";
 
+import { AreaDesplegable, AutorizacionSitio } from "./campos-sistema";
+import { ClienteCampos } from "./cliente-campos";
+
+/* Sectores limitados a cinco (Sara, 27-oct): los que el equipo justifica a
+   fondo —qué se exige en cada uno, qué normas lo rigen y quién vigila—. Entre
+   paréntesis, la autoridad de vigilancia. El texto sigue siendo libre para el
+   motor: src/domain/sectores.ts elige el paquete normativo por palabra clave. */
 const SECTORS = [
-  "Financiero y fintech (Superfinanciera)",
-  "Seguros (Superfinanciera)",
+  "Financiero, fintech y seguros (Superfinanciera y SIC)",
   "Salud (Supersalud)",
-  "Comercio electrónico y retail (SIC)",
-  "Servicios públicos domiciliarios (SSPD)",
-  "Transporte (Supertransporte)",
-  "Vigilancia y seguridad privada (Supervigilancia)",
-  "Economía solidaria (Supersolidaria)",
-  "Sociedades e industria (Supersociedades)",
-  "Educación (Mineducación)",
-  "Telecomunicaciones (MinTIC/CRC)",
-  "Sector público",
-  "Otro",
+  "Comercio electrónico (SIC)",
+  "Telecomunicaciones (MinTIC, CRC y SIC)",
+  "Redes sociales y plataformas digitales (SIC)",
 ];
 
-const FINTREX_SECTOR = SECTORS.find((s) => s.startsWith("Financiero y fintech")) ?? SECTORS[0];
+const FINTREX_SECTOR = SECTORS[0];
 
 export const metadata = { title: "Nueva auditoría" };
 
@@ -37,6 +36,7 @@ export default async function NuevaAuditoriaPage({
     sistema?: string;
     repositorio?: string;
     despliegue?: string;
+    formalizacion?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -54,6 +54,7 @@ export default async function NuevaAuditoriaPage({
         : ""),
     repositorio: sp.repositorio ?? "",
     despliegue: sp.despliegue ?? "",
+    formalizacion: sp.formalizacion ?? "registrada",
   };
 
   return (
@@ -69,7 +70,7 @@ export default async function NuevaAuditoriaPage({
           Nueva auditoría
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Registra al cliente y carga el código del sistema de IA que vas a auditar.
+          Registra la empresa y carga el código del proyecto que se va a revisar.
         </p>
       </div>
 
@@ -104,80 +105,42 @@ export default async function NuevaAuditoriaPage({
             title="Cliente"
             description="Responsable del tratamiento. Sus datos encabezan el acuerdo de alcance y el informe."
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-[12px] text-ink-soft sm:col-span-2">
-              Razón social<span className="text-critical"> *</span>
-              <input
-                name="cliente"
-                required
-                minLength={2}
-                maxLength={200}
-                defaultValue={defaults.cliente}
-                className={fieldClass}
-              />
-            </label>
-            <label className="block text-[12px] text-ink-soft">
-              NIT<span className="text-critical"> *</span>
-              <input
-                name="nit"
-                required
-                minLength={5}
-                maxLength={30}
-                placeholder="902.999.990-6"
-                defaultValue={defaults.nit}
-                className={fieldClass}
-              />
-            </label>
-            <label className="block text-[12px] text-ink-soft">
-              Sector
-              <select name="sector" className={fieldClass} defaultValue={defaults.sector}>
-                <option value="" disabled>
-                  Selecciona
-                </option>
-                {SECTORS.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[12px] text-ink-soft sm:col-span-2">
-              Representante legal<span className="text-critical"> *</span>
-              <input
-                name="representante"
-                required
-                minLength={3}
-                maxLength={200}
-                defaultValue={defaults.representante}
-                aria-describedby="f-representante-help"
-                className={fieldClass}
-              />
-            </label>
-            <span id="f-representante-help" className="-mt-2 block text-[11px] text-ink-faint sm:col-span-2">
-              Firma la autorización de las pruebas en el paso de alcance.
-            </span>
-          </div>
+          <ClienteCampos
+            sectores={SECTORS}
+            defaults={{
+              cliente: defaults.cliente,
+              nit: defaults.nit,
+              representante: defaults.representante,
+              sector: defaults.sector,
+              formalizacion: defaults.formalizacion,
+            }}
+          />
         </Card>
 
+        {/* Paso 2 con el nombre y los textos que propuso Sara (27-oct), revisados
+            contra lo que hace el código: zip.ts excluye node_modules, .git, .next,
+            dist, build y los binarios; la huella es el SHA-256 del .zip; del
+            repositorio se descarga la rama principal; el sitio solo recibe GET. */}
         <Card>
           <CardHeader
             step="2."
-            title="Sistema de IA y código"
-            description="VIGÍA analiza el código en memoria y en un entorno aislado. No se conecta a producción."
+            title="Arquitectura de análisis automatizado y entorno de ejecución"
+            description="VIGÍA analiza el código en memoria dentro de un entorno aislado, sin establecer conexiones con los sistemas de producción."
           />
-          <div className="space-y-4">
+          <div className="space-y-5">
             <label className="block text-[12px] text-ink-soft">
               ¿Qué hace el sistema? <span className="text-ink-faint">(opcional)</span>
-              <textarea
+              <AreaDesplegable
                 name="sistema"
-                rows={3}
                 maxLength={1000}
                 placeholder="Asistente de chat para clientes, vinculación digital con selfie y cédula…"
                 defaultValue={defaults.sistema}
-                className={fieldClass}
               />
             </label>
             <div>
               <label className="block text-[12px] text-ink-soft">
-                Código fuente (.zip, hasta 4 MB)
+                <span className="font-semibold text-ink">Carga del proyecto</span>{" "}
+                <span className="text-ink-faint">(.zip, hasta 4 MB)</span>
                 <input
                   name="codigo"
                   type="file"
@@ -186,15 +149,17 @@ export default async function NuevaAuditoriaPage({
                   className="mt-1 block w-full rounded-[7px] border border-dashed border-line-strong bg-surface-muted px-3 py-3 text-[12.5px] text-ink-soft file:mr-3 file:rounded-[6px] file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-[12px] file:text-canvas"
                 />
               </label>
-              <span id="f-codigo-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
-                Comprime la carpeta del proyecto. VIGÍA ignora node_modules, .git y los
-                archivos binarios, y calcula el SHA-256 del .zip para fijar la versión
-                auditada.
+              <span id="f-codigo-help" className="mt-1.5 block text-[11.5px] leading-relaxed text-ink-muted">
+                Comprime la carpeta de tu proyecto en un archivo .zip y súbela a VIGÍA. El sistema
+                excluirá automáticamente los archivos y carpetas que no necesita revisar (librerías
+                descargadas, historial de versiones, imágenes y otros binarios) y generará una
+                huella digital (SHA-256) para identificar exactamente la versión analizada.
               </span>
             </div>
             <div>
               <label className="block text-[12px] text-ink-soft">
-                O repositorio público de GitHub
+                <span className="font-semibold text-ink">Repositorio público de GitHub</span>{" "}
+                <span className="text-ink-faint">(opcional si cargaste el .zip)</span>
                 <input
                   name="repositorio"
                   type="url"
@@ -205,30 +170,14 @@ export default async function NuevaAuditoriaPage({
                   className={fieldClass}
                 />
               </label>
-              <span id="f-repositorio-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
-                VIGÍA descarga la rama principal. Si llenas los dos, se usa el repositorio.
+              <span id="f-repositorio-help" className="mt-1.5 block text-[11.5px] leading-relaxed text-ink-muted">
+                Si tu proyecto está publicado en GitHub como repositorio público, puedes compartir su
+                enlace. VIGÍA descargará automáticamente su versión principal. Si proporcionas tanto
+                el archivo .zip como el enlace de GitHub, se utilizará el repositorio. Hace falta al
+                menos uno de los dos.
               </span>
             </div>
-            <div>
-              <label className="block text-[12px] text-ink-soft">
-                URL pública del despliegue{" "}
-                <span className="text-ink-faint">(opcional)</span>
-                <input
-                  name="despliegue"
-                  type="url"
-                  placeholder="https://portal.cliente.com"
-                  defaultValue={defaults.despliegue}
-                  maxLength={300}
-                  aria-describedby="f-despliegue-help"
-                  className={fieldClass}
-                />
-              </label>
-              <span id="f-despliegue-help" className="mt-1 block text-[11px] leading-relaxed text-ink-faint">
-                Opcional. VIGÍA solo hará peticiones GET de lectura a rutas públicas conocidas
-                (política, archivos de configuración expuestos, cabeceras). El representante
-                legal debe aceptar la cláusula que la autoriza.
-              </span>
-            </div>
+            <AutorizacionSitio defaultValue={defaults.despliegue} />
           </div>
         </Card>
 

@@ -56,6 +56,13 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
     sector: text("sector", 60),
     system: text("sistema", 1000),
   };
+  /* Las mipymes sin registro o en formalización también pueden auditarse: el NIT
+     puede ser la cédula del responsable (con su dígito de verificación, que es
+     como la DIAN arma el NIT de una persona natural). */
+  const formalizacion = text("formalizacion", 20);
+  if (formalizacion === "en-proceso" || formalizacion === "sin-registro") {
+    client.formalization = formalizacion;
+  }
   if (client.name.length < 2 || client.legalRepresentative.length < 3) {
     throw new Error("Indica el cliente, su NIT y su representante legal");
   }
@@ -72,6 +79,19 @@ export async function createRunFromForm(owner: User, form: FormData): Promise<Au
   const liveUrl = text("despliegue", 300);
   if (liveUrl && !/^https:\/\/[^\s/?#]+\.[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(liveUrl)) {
     throw new Error("La URL del despliegue debe ser pública y empezar por https://");
+  }
+  /* Autorización explícita en el formulario (casilla «Autorizo» y el dominio
+     escrito a mano): sin las dos, no se registra el sitio. Se suma a la cláusula
+     del acuerdo de alcance que acepta el representante legal. */
+  if (liveUrl) {
+    if (form.get("autorizoDespliegue") !== "on") {
+      throw new Error("Para revisar el sitio web, marca «Autorizo» y escribe su dominio para confirmarlo");
+    }
+    const sinWww = (d: string) => d.toLowerCase().replace(/^www\./, "");
+    const confirmado = sinWww(text("confirmaDominio", 300).replace(/^https?:\/\//i, "").replace(/\/.*$/, ""));
+    if (confirmado !== sinWww(new URL(liveUrl).hostname)) {
+      throw new Error("El dominio que escribiste para confirmar no coincide con el del sitio web");
+    }
   }
 
   const { fileName, zip } = await sourceZip(text("repositorio", 300), form.get("codigo"));

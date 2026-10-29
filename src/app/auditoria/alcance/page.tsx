@@ -12,6 +12,13 @@ import { requireRun } from "@/server/session";
 import { Pasos } from "./pasos";
 import { RefrescarAlVolver } from "./refrescar";
 
+
+/* Lo que declaró quien abrió la auditoría cuando la empresa no está registrada. */
+const FORMALIZACION = {
+  "en-proceso": "Sin matrícula aún: la empresa declaró que está en proceso de formalización",
+  "sin-registro": "Sin registro mercantil: persona natural o emprendimiento sin registro",
+} as const;
+
 export const metadata = { title: "Alcance y autorización" };
 
 export const dynamic = "force-dynamic";
@@ -59,9 +66,11 @@ export default async function AlcancePage({
         "Registro mercantil",
         client.rues
           ? `${client.rues.name} · matrícula ${client.rues.status.toLowerCase()} · renovada en ${client.rues.renewed} (RUES)`
-          : client.rues === null
-            ? "El NIT no aparece en el RUES (datos abiertos de Confecámaras)"
-            : "",
+          : client.formalization
+            ? FORMALIZACION[client.formalization]
+            : client.rues === null
+              ? "El NIT no aparece en el RUES (datos abiertos de Confecámaras)"
+              : "",
       ],
       [
         "Código",

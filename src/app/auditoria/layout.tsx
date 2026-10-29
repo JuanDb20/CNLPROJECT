@@ -86,7 +86,7 @@ export default async function AuditoriaLayout({ children }: { children: ReactNod
               </button>
             </form>
           ) : null}
-          <TemaToggle className="whitespace-nowrap rounded-[6px] border border-line bg-surface px-2.5 py-1.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
+          <TemaToggle className="shrink-0 size-8 rounded-full border border-line bg-surface text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
           <AccountChip user={user} />
         </div>
       </header>

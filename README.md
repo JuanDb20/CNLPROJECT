@@ -7,11 +7,11 @@ VIGÍA audita aplicaciones hechas con IA (*vibecoding*): corre 61 pruebas sobre 
 código en un entorno aislado y autorizado, traduce cada falla técnica a la
 norma que incumple y propone el parche. VIGÍA propone el análisis jurídico; lo
 firma un abogado identificado con su tarjeta profesional. El entregable es el
-**Informe de auditoría técnico-jurídica: evidencia para el principio de
-responsabilidad demostrada (Decreto 1074 de 2015, arts. 2.2.2.25.6.1 y
-2.2.2.25.6.2)**, encadenado por hash con la evidencia del ataque, del retesteo y
-de la firma, y con sello de tiempo RFC 3161 de un tercero. No acredita
-conformidad: no lo expide un organismo acreditado por la ONAC.
+**Informe de auditoría técnico-jurídica: informe de lo encontrado y lo realizado
+sobre la versión del código identificada**, encadenado por hash con la evidencia
+del ataque, del retesteo y de la firma, y con sello de tiempo RFC 3161 de un
+tercero. No acredita conformidad ni el principio de responsabilidad demostrada por
+sí solo: no lo expide un organismo acreditado por la ONAC.
 
 ## Ejecutar
 
@@ -71,8 +71,14 @@ RFC 3161 (por defecto `https://freetsa.org/tsr`).
    **Probar sin registrarse** (sesión de invitado). La tarjeta profesional se pide
    al firmar el primer hallazgo y queda guardada en la cuenta. Cada abogado solo
    ve sus propias auditorías.
-2. **Mis auditorías → Nueva auditoría.** Registrar al cliente (razón social, NIT,
-   representante legal, sector) y cargar el código del sistema de IA en un `.zip`
+2. **Mis auditorías → Nueva auditoría.** Indicar si la empresa está registrada en
+   Cámara de Comercio, en proceso de formalización o sin registro (persona natural o
+   emprendimiento; el NIT puede ser la cédula del responsable). Si está registrada, el
+   **certificado de existencia y representación legal** en PDF llena la razón social,
+   el NIT y el representante legal: se lee en el navegador con pdf.js
+   (`src/domain/certificado.ts`) y no se envía. Elegir uno de los cinco sectores
+   (financiero, salud, comercio electrónico, telecomunicaciones, redes sociales) y
+   cargar el código del sistema de IA en un `.zip`
    de hasta 4 MB, o indicar un repositorio público de GitHub. VIGÍA lo lee en
    memoria, ignora `node_modules`, `.git` y los binarios, y fija la versión
    auditada con su SHA-256. **Usar datos de ejemplo** abre una auditoría sobre un
@@ -192,7 +198,7 @@ y responden 404 si la auditoría es de otro usuario.
 | Método | Ruta | Uso |
 | --- | --- | --- |
 | `GET` | `/api/v1/runs` | Auditorías del abogado de la sesión |
-| `POST` | `/api/v1/runs` | Abre una auditoría (multipart: `cliente`, `nit`, `representante`, `sector`, `sistema`, y `codigo` .zip o `repositorio` URL pública de GitHub) |
+| `POST` | `/api/v1/runs` | Abre una auditoría (multipart: `cliente`, `nit`, `representante`, `sector`, `sistema`, `formalizacion`, y `codigo` .zip o `repositorio` URL pública de GitHub; con `despliegue`, también `autorizoDespliegue=on` y `confirmaDominio`) |
 | `GET` | `/api/v1/runs/:id` | Estado y puntuación |
 | `POST` | `/api/v1/runs/:id/alcance` | `aceptar-clausula`, `autorizar` |
 | `PATCH` | `/api/v1/runs/:id/configuracion` | Marcos y minimización |
@@ -264,6 +270,8 @@ Sobre la base anterior, el catálogo incluye (todo integrado en `main` y en prod
 ## Aviso
 
 VIGÍA propone el análisis jurídico; la responsabilidad profesional es del abogado
-que firma cada hallazgo. El informe es evidencia del principio de responsabilidad
-demostrada frente a la SIC: no acredita conformidad ni lo expide un organismo
-acreditado por la ONAC.
+que firma cada hallazgo. El informe deja constancia de lo encontrado y lo realizado
+sobre la versión analizada: puede servir como uno de los soportes del principio de
+responsabilidad demostrada, pero no lo acredita por sí solo, no es un concepto
+vinculante ni lo expide un organismo acreditado por la ONAC, y está sujeto a cambios
+normativos posteriores y a la información que entregue el usuario.

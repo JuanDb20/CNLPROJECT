@@ -106,7 +106,7 @@ export async function crearAuditoria(form: FormData) {
     const back = new URLSearchParams({
       error: error instanceof Error ? error.message : "datos",
     });
-    for (const campo of ["cliente", "sector", "sistema", "repositorio", "despliegue"]) {
+    for (const campo of ["cliente", "sector", "sistema", "repositorio", "despliegue", "formalizacion"]) {
       const valor = String(form.get(campo) ?? "").slice(0, 300);
       if (valor) back.set(campo, valor);
     }

@@ -14,8 +14,11 @@ import type { AuditRun, Finding, RemediationStatus } from "@/domain/types";
    en src/app/informe/print.css, que importan ambas pantallas. */
 
 export const INFORME_TITULO = "Informe de auditoría técnico-jurídica";
-const INFORME_SUBTITULO =
-  "Evidencia para el principio de responsabilidad demostrada (Decreto 1074 de 2015, arts. 2.2.2.25.6.1 y 2.2.2.25.6.2)";
+/* Sara (27-oct): no presentarlo como algo que «acredita» la responsabilidad
+   demostrada —¿quién puede rendir un informe que acredite eso?—, sino como lo
+   que es: el informe de lo encontrado y lo realizado. El .docx usa el mismo. */
+export const INFORME_SUBTITULO =
+  "Informe de lo encontrado y lo realizado sobre la versión del código identificada en la sección 2";
 
 /* Qué acredita cada parte. El informe en Word (api/v1/runs/[runId]/informe) repite
    estos mismos textos: se definen una sola vez para que las dos versiones no se aparten. */
@@ -25,13 +28,21 @@ export const METODO_Y_LIMITES =
   "todos sus caminos posibles. Por eso puede señalar como falla algo que en su contexto no lo es (falso positivo) y no " +
   "detectar fallas que el catálogo no busca o no reconoce (falso negativo). La ausencia de hallazgos no acredita " +
   "seguridad ni cumplimiento. El retesteo acredita que la misma prueba ya no detecta la falla en la versión " +
-  "corregida, no que la falla no pueda existir de otra forma.";
+  "corregida, no que la falla no pueda existir de otra forma. Lo consignado refleja la información que suministró " +
+  "el usuario y las normas vigentes a la fecha del informe: está sujeto a cambios normativos posteriores y a hechos " +
+  "o información que el usuario no haya entregado.";
 export const QUIEN_RESPONDE =
   "Al cliente le corresponde la correspondencia entre el código entregado y el que tiene desplegado, y los hechos que " +
   "no constan en el código. VIGÍA responde por haber ejecutado fielmente, y de forma reproducible, las pruebas " +
   "declaradas sobre la versión identificada, y por la integridad de este informe. El abogado revisor responde por el " +
   "concepto jurídico de los hallazgos que firma; no certifica la seguridad del código. Los análisis de los hallazgos " +
   "sin firma son propuestas de VIGÍA que el abogado no ha conceptuado.";
+/** Primer párrafo del pie: qué es y qué no es el informe. */
+export const PIE_NATURALEZA =
+  "Este informe deja constancia de lo encontrado y lo realizado sobre la versión analizada. Puede servir como uno de " +
+  "los soportes de las medidas de seguridad que exige el principio de responsabilidad demostrada (Decreto 1074 de " +
+  "2015, art. 2.2.2.25.6.1), pero no lo acredita por sí solo, no es un concepto vinculante y no es un certificado de " +
+  "conformidad acreditado ante el ONAC.";
 export const PIE_RESPONSABILIDAD =
   "VIGÍA aporta la evidencia técnica, obtenida con un método reproducible y limitado a su catálogo; el abogado " +
   "revisor firma el concepto jurídico sobre esa evidencia, con la diligencia que le exige el art. 28 de la Ley 1123 " +
@@ -182,7 +193,11 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
             ["Cliente", `${client.name} (NIT ${client.nit})`],
             ...(client.rues
               ? [["Registro mercantil", `${client.rues.name}, matrícula ${client.rues.status.toLowerCase()}, renovada en ${client.rues.renewed} (RUES)`] as [string, string]]
-              : []),
+              : client.formalization
+                ? [["Registro mercantil", client.formalization === "en-proceso"
+                    ? "Sin matrícula: la empresa declaró que está en proceso de formalización"
+                    : "Sin registro: persona natural o emprendimiento"] as [string, string]]
+                : []),
             ["Representante legal", client.legalRepresentative],
             ...(client.sector ? [["Sector", client.sector] as [string, string]] : []),
             ...(client.system ? [["Sistema auditado", client.system] as [string, string]] : []),
@@ -602,11 +617,7 @@ export function Informe({ run, embedded = false }: { run: AuditRun; embedded?: b
       )}
 
       <footer className="mt-10 border-t border-neutral-300 pt-3 text-[11px] leading-relaxed text-neutral-500">
-        <p>
-          Este informe documenta medidas de seguridad para acreditar el principio de responsabilidad demostrada (Decreto
-          1074 de 2015, art. 2.2.2.25.6.1, que compila el art. 26 del Decreto 1377 de 2013). No es un certificado de
-          conformidad acreditado ante el ONAC.
-        </p>
+        <p>{PIE_NATURALEZA}</p>
         <p className="mt-2">{PIE_RESPONSABILIDAD}</p>
       </footer>
 

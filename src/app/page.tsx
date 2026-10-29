@@ -2,8 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ingresarPrueba } from "@/app/actions";
+import { CincoPasos, type HallazgoEjemplo } from "@/components/portada/cinco-pasos";
+import { Demostracion } from "@/components/portada/demostracion";
+import { Revelar } from "@/components/portada/revelar";
 import { Flecha, LEYES, SiteHeader, escalon } from "@/components/sitio";
-import { getRule } from "@/domain/compliance";
+import { MarkIcon } from "@/components/ui";
+import { CHECK_CODES } from "@/domain/checks";
+import { FRAMEWORKS, RULES, getRule } from "@/domain/compliance";
 import { currentUser } from "@/server/auth";
 
 import "./portada.css";
@@ -65,6 +70,40 @@ function Escaner() {
   );
 }
 
+/* Ejemplos del paso «Revisar y corregir»: las mismas normas que marca el escáner,
+   con la etiqueta del catálogo. */
+const HALLAZGOS: HallazgoEjemplo[] = [
+  {
+    grave: true,
+    norma: norma("col-1581-transferencia"),
+    titulo: "Datos personales enviados a un proveedor de IA en un país sin nivel adecuado de protección",
+  },
+  {
+    grave: true,
+    norma: norma("col-1581-circulacion"),
+    titulo: "Datos de un usuario visibles para otros usuarios con sesión",
+  },
+  {
+    grave: false,
+    norma: norma("col-1480-retracto"),
+    titulo: "La compra en línea no informa el derecho de retracto",
+  },
+];
+
+/* Marcos que se reportan como incumplimiento (los de referencia comparada, no). */
+const NORMAS = Object.values(FRAMEWORKS).filter((f) => !/\(ref\.\)/.test(f.shortName));
+
+function Probar({ className, texto = "Probar sin registrarse" }: { className: string; texto?: string }) {
+  return (
+    <form action={ingresarPrueba}>
+      <button type="submit" className={className}>
+        <span>{texto}</span>
+        <Flecha />
+      </button>
+    </form>
+  );
+}
+
 export default async function Home() {
   if (await currentUser()) redirect("/panel");
 
@@ -85,17 +124,14 @@ export default async function Home() {
                 <span>de apps hechas con IA</span>
               </span>
             </h1>
+            {/* Eslogan nuevo (Sara, 27-oct): sin «el abogado firma»; el papel del
+                abogado se presenta en el modelo de negocio del pitch. */}
             <p className="sub">
-              Cada hallazgo, con la norma que incumple;
+              Cada hallazgo, con la norma que incumple
               <br />
-              VIGÍA lo propone y un abogado lo firma.
+              y la corrección para cerrarlo.
             </p>
-            <form action={ingresarPrueba}>
-              <button type="submit" className="btn btn-cta">
-                <span>Probar sin registrarse</span>
-                <Flecha />
-              </button>
-            </form>
+            <Probar className="btn btn-cta" />
           </section>
           <div className="sp sp-b" />
           <ul className="stats" aria-label="Leyes que revisa VIGÍA">
@@ -109,10 +145,126 @@ export default async function Home() {
           <div className="sp sp-c" />
         </main>
 
-        <Link href="/privacidad" className="legal">
-          Política de tratamiento de datos
-        </Link>
+        <a href="#problema" className="bajar">
+          Cómo funciona
+          <svg viewBox="0 0 16 16" aria-hidden>
+            <path d="M3 6l5 5 5-5" />
+          </svg>
+        </a>
       </div>
+
+      <div className="portada-mas">
+        <section id="problema" className="pm-seccion pm-dos" aria-labelledby="pm-problema">
+          <div data-revelar>
+            <p className="pm-eyebrow">01 · El problema</p>
+            <h2 id="pm-problema" className="pm-h2">
+              Un código puede cambiar después de revisarlo.
+            </h2>
+            <p className="pm-p">
+              Si no queda fijada la versión que se revisó, después nadie puede demostrar sobre qué se
+              hizo la revisión. Las apps hechas con IA salen en días y casi nadie revisa su código con la
+              norma en la mano.
+            </p>
+            <p className="pm-p">
+              VIGÍA fija la versión con una huella digital, corre sus pruebas sin tocar producción y deja
+              constancia de lo encontrado, lo corregido y lo que se volvió a probar.
+            </p>
+          </div>
+          <div data-revelar style={escalon(1)}>
+            <Demostracion pruebas={CHECK_CODES.length} />
+          </div>
+        </section>
+
+        <section id="pasos" className="pm-seccion" aria-labelledby="pm-pasos">
+          <div data-revelar>
+            <p className="pm-eyebrow">02 · Cómo funciona</p>
+            <h2 id="pm-pasos" className="pm-h2">
+              Cinco pasos, de la carpeta al informe.
+            </h2>
+            <p className="pm-p">Sin necesidad de saber de GitHub ni de criptografía. Recorre cada etapa.</p>
+          </div>
+          <div data-revelar style={escalon(1)}>
+            <CincoPasos
+              pruebas={CHECK_CODES.length}
+              hallazgos={HALLAZGOS}
+              cta={<Probar className="btn btn-cta" texto="Ir a la herramienta" />}
+            />
+          </div>
+        </section>
+
+        <section className="pm-seccion pm-cifras" aria-labelledby="pm-revisa">
+          <div data-revelar>
+            <p className="pm-eyebrow">03 · Qué revisa</p>
+            <h2 id="pm-revisa" className="pm-h2">
+              La norma colombiana, prueba por prueba.
+            </h2>
+          </div>
+          <ul className="pm-numeros" data-revelar style={escalon(1)}>
+            <li>
+              <span className="pm-num">{CHECK_CODES.length}</span>
+              <span className="pm-lab">pruebas automáticas de cumplimiento</span>
+            </li>
+            <li>
+              <span className="pm-num">{RULES.length}</span>
+              <span className="pm-lab">obligaciones legales que verifica</span>
+            </li>
+          </ul>
+          <div className="pm-normas" data-revelar style={escalon(2)}>
+            <p className="pm-normas-rotulo">Normas que revisa</p>
+            <ul>
+              {NORMAS.map((f) => (
+                <li key={f.id} title={f.name}>
+                  {f.shortName}
+                </li>
+              ))}
+            </ul>
+            <Link href="/mapa" className="pm-enlace">
+              Ver el mapa completo de funcionalidades <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="pm-seccion pm-somos" aria-labelledby="pm-somos" data-revelar>
+          <p className="pm-eyebrow">04 · Quiénes somos</p>
+          <h2 id="pm-somos" className="pm-h2">
+            Revisión legal de software, con evidencia de qué se revisó.
+          </h2>
+          <p className="pm-p">
+            Un equipo de Derecho, Contaduría e Ingeniería de Sistemas. VIGÍA analiza sistemas de
+            software —incluidos los que usan inteligencia artificial— frente a las normas que les
+            aplican, y explica los resultados sin tecnicismos para equipos jurídicos y técnicos.
+          </p>
+          <Link href="/quienes-somos" className="pm-enlace">
+            Conoce al equipo <span aria-hidden>→</span>
+          </Link>
+        </section>
+
+        <section className="pm-cta" data-revelar aria-labelledby="pm-cta">
+          <h2 id="pm-cta" className="pm-h2">
+            Revisa tu app antes de que la revise otro.
+          </h2>
+          <div className="pm-cta-acciones">
+            <Probar className="btn btn-cta" />
+            <Link href="/ingresar" className="pm-enlace">
+              Ingresar o crear cuenta <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </section>
+
+        <footer className="pm-pie">
+          <span className="pm-pie-marca">
+            <MarkIcon className="size-5" />
+            VIGÍA
+          </span>
+          <nav aria-label="Pie de página">
+            <Link href="/privacidad">Política de tratamiento de datos</Link>
+            <Link href="/verificar">Verificar informe</Link>
+            <Link href="/transparencia">Transparencia</Link>
+            <Link href="/quienes-somos">Quiénes somos</Link>
+          </nav>
+        </footer>
+      </div>
+      <Revelar />
     </div>
   );
 }
