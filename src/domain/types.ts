@@ -64,6 +64,12 @@ export interface ClientInfo {
   system: string;
   /** Matrícula en el RUES: null si el NIT no aparece; ausente si no se pudo consultar. */
   rues?: { name: string; status: string; ciiu: string; renewed: string } | null;
+  /**
+   * Si la empresa aún no está registrada en Cámara de Comercio: en proceso de
+   * formalización o sin registro (persona natural o emprendimiento). Ausente si
+   * está registrada o si la auditoría es anterior a esta pregunta.
+   */
+  formalization?: "en-proceso" | "sin-registro";
 }
 
 /** Código fuente cargado para la auditoría. El hash fija la versión analizada. */

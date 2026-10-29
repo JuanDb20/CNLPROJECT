@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { registrarse } from "@/app/actions";
 import { RESPONSABLE } from "@/app/privacidad/datos";
 import { ValidacionRegistro } from "@/app/registro/validacion";
+import { AccesoTabs } from "@/components/acceso-tabs";
 import { SitePage } from "@/components/sitio";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, Panel, fieldClass } from "@/components/ui";
@@ -42,8 +43,9 @@ export default async function RegistroPage({
   const { error } = await searchParams;
 
   return (
-    <SitePage actual="/registro" className="mx-auto flex w-full max-w-[440px] flex-col gap-6 px-5 pb-16 pt-10">
+    <SitePage actual="/ingresar" className="mx-auto flex w-full max-w-[440px] flex-col gap-6 px-5 pb-16 pt-10">
       <Card>
+        <AccesoTabs actual="registro" />
         <h1 className="text-[18px] font-semibold tracking-tight text-ink">
           Crear cuenta de abogado
         </h1>
@@ -120,12 +122,6 @@ export default async function RegistroPage({
           </SubmitButton>
         </form>
       </Card>
-      <p className="text-center text-[12.5px] text-ink-muted">
-        ¿Ya tienes cuenta?{" "}
-        <Link href="/ingresar" className="font-medium text-ink underline-offset-2 hover:underline">
-          Ingresar
-        </Link>
-      </p>
     </SitePage>
   );
 }

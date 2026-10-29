@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { JetBrains_Mono, Manrope } from "next/font/google";
+
+import { AvisoDatos } from "@/components/aviso-datos";
 
 import "./globals.css";
 
 /* next/font las sirve desde el propio dominio: ninguna petición del visitante
-   sale a Google. Las consumen --font-sans y --font-mono (globals.css). */
-const sg = Space_Grotesk({ subsets: ["latin"], variable: "--font-sg" });
+   sale a Google. Las consumen --font-sans y --font-mono (globals.css).
+   Manrope reemplaza a Space Grotesk (28-oct): es la letra del prototipo de Sara. */
+const ui = Manrope({ subsets: ["latin"], variable: "--font-ui" });
 const jb = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jb" });
 
 /* Aplica el tema guardado ANTES de pintar (sin flash), igual que haría
@@ -36,7 +39,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es-CO" className={`${sg.variable} ${jb.variable}`} suppressHydrationWarning>
+    <html lang="es-CO" className={`${ui.variable} ${jb.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: TEMA_SCRIPT }} />
       </head>
@@ -48,6 +51,7 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         {children}
+        <AvisoDatos />
       </body>
     </html>
   );

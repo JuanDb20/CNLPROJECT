@@ -16,11 +16,13 @@ export const LEYES = [
   { n: FRAMEWORKS["col-1266"].shortName, label: "Hábeas data" },
 ];
 
+/* «Crear cuenta» salió de la navegación (Sara, 27-oct): la opción de crear
+   cuenta está dentro de «Ingresar». En su lugar, «Quiénes somos». */
 const NAV = [
   { href: "/mapa", label: "Cómo funciona" },
   { href: "/verificar", label: "Verificar informe" },
   { href: "/transparencia", label: "Transparencia" },
-  { href: "/registro", label: "Crear cuenta" },
+  { href: "/quienes-somos", label: "Quiénes somos" },
 ];
 
 export const escalon = (n: number) => ({ "--i": n }) as CSSProperties;

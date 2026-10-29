@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ingresar, ingresarPrueba } from "@/app/actions";
+import { AccesoTabs } from "@/components/acceso-tabs";
 import { SitePage } from "@/components/sitio";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, Panel, buttonClass, fieldClass } from "@/components/ui";
@@ -20,8 +20,11 @@ export default async function IngresarPage({
   return (
     <SitePage actual="/ingresar" className="mx-auto flex w-full max-w-[400px] flex-col gap-6 px-5 pb-16 pt-10">
       <Card>
+        <AccesoTabs actual="ingresar" />
         <h1 className="text-[18px] font-semibold tracking-tight text-ink">Ingresar</h1>
-        <p className="mt-1 text-[12.5px] text-ink-muted">Accede a las auditorías de tus clientes.</p>
+        <p className="mt-1 text-[12.5px] text-ink-muted">
+          Entra con tu correo y contraseña. ¿Es tu primera vez? Elige «Crear cuenta».
+        </p>
 
         {error ? (
           <Panel tone="critical" className="mt-4">
@@ -68,12 +71,6 @@ export default async function IngresarPage({
           </p>
         </form>
       </Card>
-      <p className="text-center text-[12.5px] text-ink-muted">
-        ¿No tienes cuenta?{" "}
-        <Link href="/registro" className="font-medium text-ink underline-offset-2 hover:underline">
-          Crear cuenta de abogado
-        </Link>
-      </p>
     </SitePage>
   );
 }

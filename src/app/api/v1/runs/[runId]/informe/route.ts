@@ -1,4 +1,11 @@
-import { METODO_Y_LIMITES, PIE_RESPONSABILIDAD, QUIEN_RESPONDE } from "@/components/informe";
+import {
+  INFORME_SUBTITULO,
+  INFORME_TITULO,
+  METODO_Y_LIMITES,
+  PIE_NATURALEZA,
+  PIE_RESPONSABILIDAD,
+  QUIEN_RESPONDE,
+} from "@/components/informe";
 import { getRules } from "@/domain/compliance";
 import { formatDate, lawyerName } from "@/domain/format";
 import { SEVERITY_LABEL, scoreRun, sortFindings } from "@/domain/scoring";
@@ -34,8 +41,8 @@ function informeLines(run: AuditRun): string[] {
   const lawyer = lawyerName(signatories.find((s) => s.id === "sig-abogado")?.role) || "—";
 
   const lines: string[] = [
-    "# Informe de auditoría técnico-jurídica",
-    "## Evidencia para el principio de responsabilidad demostrada (Decreto 1074 de 2015, arts. 2.2.2.25.6.1 y 2.2.2.25.6.2)",
+    `# ${INFORME_TITULO}`,
+    `## ${INFORME_SUBTITULO}`,
     "",
     cert ? cert.id : "BORRADOR",
     `${client.name} · NIT ${client.nit}`,
@@ -157,9 +164,7 @@ function informeLines(run: AuditRun): string[] {
 
   lines.push(
     "",
-    "Este informe documenta medidas de seguridad para acreditar el principio de responsabilidad demostrada " +
-      "(Decreto 1074 de 2015, art. 2.2.2.25.6.1, que compila el art. 26 del Decreto 1377 de 2013). No es un " +
-      "certificado de conformidad acreditado ante el ONAC.",
+    PIE_NATURALEZA,
     PIE_RESPONSABILIDAD,
   );
 

@@ -27,7 +27,7 @@ export default async function DocumentosPage() {
           Documentos jurídicos generados
         </h1>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          VIGÍA propone, el abogado firma
+          Borradores que VIGÍA redacta a partir del código, para revisarlos y ajustarlos
         </p>
       </div>
 
